@@ -185,9 +185,9 @@ export function SaveLoadModal({
    */
   const getCaseName = (caseId: string): string => {
     const caseNames: Record<string, string> = {
-      case_001: 'The Restricted Section',
+      case_001: 'The Sealed Stacks',
       case_002: 'The Poisoned Potion',
-      case_003: 'The Missing Wand',
+      case_003: 'The Missing Focus',
       case_004: 'The Forbidden Forest',
       case_005: 'The Dark Artifact',
       case_006: 'The Memory Charm',
@@ -238,7 +238,7 @@ export function SaveLoadModal({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `hp_save_${caseId}_${slotId}_${Date.now()}.json`;
+      link.download = `lantern_save_${caseId}_${slotId}_${Date.now()}.json`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) {

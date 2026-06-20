@@ -67,7 +67,7 @@ interface UseLocationReturn {
 // ============================================
 
 // localStorage key for persisting current location per case
-const LOCATION_STORAGE_KEY = (caseId: string) => `hp_game_location_${caseId}`;
+const LOCATION_STORAGE_KEY = (caseId: string) => `lantern_game_location_${caseId}`;
 
 export function useLocation({
   caseId,

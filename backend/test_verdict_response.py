@@ -44,10 +44,10 @@ async def test_verdict_response_structure():
         ),
         confrontation=ConfrontationDialogue(
             dialogue=[
-                {"speaker": "Auror", "text": "I know what you did."},
-                {"speaker": "Draco", "text": "You can't prove anything!"},
+                {"speaker": "Lantern Inspector", "text": "I know what you did."},
+                {"speaker": "Cassian", "text": "You can't prove anything!"},
             ],
-            aftermath="Draco was taken into custody.",
+            aftermath="Cassian was taken into custody.",
         ),
         reveal=None,
         wrong_suspect_response=None,

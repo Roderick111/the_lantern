@@ -1,8 +1,8 @@
-# Auror Academy: Critical Thinking Investigation Game
+# The Lantern: Critical Thinking Investigation Game
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> An AI-powered Harry Potter detective game teaching rationality and deductive reasoning through immersive investigations.
+> An AI-powered Victorian occult detective game teaching rationality and deductive reasoning through immersive investigations.
 
 **Version:** 1.7.0 | **Type Safety:** Grade A | **Status:** Production Ready
 
@@ -10,15 +10,15 @@
 
 ## 🎯 Overview
 
-**Auror Academy** is an interactive investigation game where you play as an Auror-in-training, solving magical mysteries at Hogwarts. The game combines:
+**The Lantern** is an interactive investigation game where you play as a probationary Lantern Inspector, solving occult mysteries at Blackwood Collegiate. The game combines:
 
 - 🔍 **AI-Powered Investigations** - Dynamic LLM narrator responds to freeform actions
 - 🗣️ **Witness Interrogation** - Build trust, reveal secrets, detect lies
-- 🔮 **Magic System** - Cast 7 investigation spells (Revelio, Legilimency, etc.)
+- 🔮 **Rite System** - Perform 7 investigation rites (Unveil, Mnemonic Delving, etc.)
 - 🧠 **Critical Thinking** - Detect fallacies, avoid bias, submit verdicts
-- 👻 **Inner Voice (Tom)** - AI mentor who's 50/50 helpful/misleading
+- 👻 **Spirit Companion (Matthew Croft)** - Unreliable ghost advisor; 50% helpful, 50% misleading
 
-**Perfect for:** Educators teaching critical thinking, Harry Potter fans, detective game enthusiasts
+**Perfect for:** Educators teaching critical thinking, Victorian occult detective fans, detective game enthusiasts
 
 ---
 
@@ -28,7 +28,7 @@
 - **Freeform Input**: Type any action—LLM narrator responds dynamically
 - **Evidence Discovery**: Keyword triggers with 5+ variants per clue
 - **Location Navigation**: Move between Library, Dormitory, Great Hall (clickable or natural language)
-- **7 Investigation Spells**: Revelio, Homenum Revelio, Prior Incantato, Specialis Revelio, Legilimency, Finite Incantatem, Protego Totalum
+- **7 Investigation Rites**: Unveil, Sense Presence, Echo Reading, Identify Substance, Mnemonic Delving, Dispel, Ward Circle
 - **Conversation History**: Full investigation transcript preserved across saves
 - **Multi-LLM Provider Support**: Switch between OpenRouter, Anthropic, OpenAI, Google providers
 - **Music Ambience**: Per-case background music with volume control, play/pause, mute (localStorage persistence)
@@ -41,13 +41,13 @@
 
 ### Verdict & Feedback
 - **Detective Reasoning**: Submit suspect + explanation + evidence
-- **Fallacy Detection**: Moody analyzes for 4 types of logical errors
+- **Fallacy Detection**: Graves analyzes for 4 types of logical errors
 - **Adaptive Hints**: Feedback scales with attempt count
 - **Post-Verdict Confrontation**: Dialogue scene with culprit if correct
 
 ### Educational Components
-- **Briefing System**: Moody teaches rationality concepts (base rates, evidence strength)
-- **Tom's Guidance**: Ghost mentor provides 50% helpful, 50% misleading advice
+- **Briefing System**: Graves teaches rationality concepts (base rates, evidence strength)
+- **Matthew's Guidance**: Spirit companion provides 50% helpful, 50% misleading advice
 - **Critical Thinking**: Learn to evaluate evidence objectively
 
 ---
@@ -56,64 +56,73 @@
 
 ### Prerequisites
 - **Python 3.11+** with [uv](https://github.com/astral-sh/uv)
-- **Bun** (not npm/yarn)
-- **LLM API Key** - OpenRouter recommended ([Get key](https://openrouter.ai/)), or Anthropic/OpenAI/Google
+- **Bun** (not npm/yarn — use `~/.bun/bin/bun` if `bun` is not on your PATH)
+- **LLM API Key** — OpenRouter recommended ([Get key](https://openrouter.ai/)), or Anthropic/OpenAI/Google
 
-### Installation
+### First-time setup
 
-1. **Clone repository**
-   ```bash
-   git clone https://github.com/Roderick111/hp-game.git
-   cd hp-game
-   ```
+```bash
+git clone https://github.com/Roderick111/the-lantern.git
+cd the-lantern
 
-2. **Backend setup**
-   ```bash
-   cd backend
-   uv venv
-   uv sync
-   cp .env.example .env
-   # Configure LLM provider in .env (see backend/README.md for details)
-   # Recommended: DEFAULT_LLM_PROVIDER=openrouter, OPENROUTER_API_KEY=sk-or-v1-...
-   uv run uvicorn src.main:app --reload
-   ```
-   Backend runs at `http://localhost:8000`
+# Backend
+cd backend
+uv venv
+uv sync
+cp .env.example .env
+# Edit .env — see backend/README.md
+# Recommended: DEFAULT_LLM_PROVIDER=openrouter, OPENROUTER_API_KEY=sk-or-v1-...
 
-3. **Frontend setup** (new terminal)
-   ```bash
-   cd frontend
-   bun install
-   ~/.bun/bin/bun run dev
-   ```
-   Frontend runs at `http://localhost:5173`
+# Frontend (from repo root)
+cd ../frontend
+bun install
+```
 
-4. **Add music (optional)**
-   ```bash
-   # Add MP3 files to frontend/public/music/
-   # Naming: case_{id}_default.mp3 (e.g., case_001_default.mp3)
-   # Format: MP3, 128-192 kbps, 30-120s loop
-   ```
+### Run locally (two terminals)
 
-5. **Play!**
-   - Open browser to `http://localhost:5173`
-   - Select a case from landing page
-   - Complete Moody's briefing
-   - Start investigating!
+Use **two terminal tabs**. Start the backend first, then the frontend.
+
+**Terminal 1 — backend** → `http://localhost:8000`
+```bash
+cd backend
+uv run uvicorn src.main:app --reload --port 8000
+```
+
+**Terminal 2 — frontend** → `http://localhost:5173`
+```bash
+cd frontend
+~/.bun/bin/bun run dev
+```
+
+Open **http://localhost:5173** in your browser. In dev, the Vite proxy forwards `/api` to `http://127.0.0.1:8000`.
+
+**Troubleshooting:** If you see the wrong app or stale content, another process may be bound to `:8000` or `:5173`. Stop it and restart both servers.
+
+### Optional: music
+
+Add MP3 files to `frontend/public/music/` — naming: `case_{id}_default.mp3` (e.g. `case_001_default.mp3`). Format: MP3, 128–192 kbps, 30–120s loop.
+
+### Play
+
+1. Open `http://localhost:5173`
+2. Select a case from the landing page
+3. Complete Graves's briefing
+4. Start investigating
 
 ---
 
 ## 🎮 How to Play
 
 ### 1. Briefing Phase
-- Moody explains the case (WHO/WHAT/WHERE/WHEN)
+- Graves explains the case (WHO/WHAT/WHERE/WHEN)
 - Ask follow-up questions to clarify details
 - Learn a rationality concept (e.g., base rates, evidence strength)
 
 ### 2. Investigation Phase
 - **Navigate**: Click locations or type "go to dormitory"
-- **Investigate**: Type freeform actions ("search the desk", "examine the wand")
-- **Cast Spells**: "revelio hidden objects", "legilimens on Hermione"
-- **Talk to Tom**: "Tom, should I trust this witness?" (but beware—he's sometimes wrong!)
+- **Investigate**: Type freeform actions ("search the desk", "examine the focus")
+- **Perform Rites**: "unveil hidden objects", "mnemonic delving on Elena"
+- **Consult Matthew**: Prefix with `Matthew,` — e.g. "Matthew, should I trust this witness?" (carnival instincts, not Bureau training — he's sometimes wrong)
 - **Evidence Board**: Automatically tracks discovered clues
 
 ### 3. Interrogation Phase
@@ -123,7 +132,7 @@
 
 ### 4. Verdict Phase
 - **Submit Accusation**: Choose suspect + reasoning + evidence
-- **Moody's Analysis**: Fallacy detection and scoring (0-100)
+- **Graves's Analysis**: Fallacy detection and scoring (0-100)
 - **Confrontation**: Dialogue scene with culprit if correct
 - **10 Attempts**: Educational focus—learn from mistakes
 
@@ -131,7 +140,7 @@
 - **ESC**: Open main menu (New Game, Save, Load, Settings, Exit)
 - **1-3**: Quick-select locations
 - **Ctrl+Enter**: Submit investigation action
-- **Cmd+H**: View Auror's Handbook (spell reference)
+- **Cmd+H**: View Lantern Compendium (rite reference)
 - **Settings → Audio**: Control music volume, play/pause, mute
 
 ---
@@ -153,7 +162,7 @@
 ## 📖 Documentation
 
 ### Getting Started
-- [Game Design Document](docs/game-design/AUROR_ACADEMY_GAME_DESIGN.md) - Complete game design
+- [Game Design Document](docs/game-design/LANTERN_GAME_DESIGN.md) - Complete game design
 - [Case Design Guide](docs/CASE_DESIGN_GUIDE.md) - Create your own cases
 - [Developer Guide](CLAUDE.md) - Coding standards & agent orchestration
 
@@ -226,7 +235,7 @@ See [STATUS.md](STATUS.md) for detailed current state.
 ## 🗂️ Project Structure
 
 ```
-hp_game/
+lantern_game/
 ├── backend/                # Python FastAPI + Claude LLM
 │   ├── src/
 │   │   ├── case_store/     # YAML case files + loader
@@ -279,7 +288,7 @@ This project is licensed under the [MIT License](LICENSE).
 ## 🙏 Acknowledgments
 
 - Built with [Anthropic Claude](https://www.anthropic.com/)
-- Harry Potter universe © J.K. Rowling
+- Victorian occult detective universe 
 - Inspired by *Return of the Obra Dinn*, *LA Noire*, and rationality education
 
 ---

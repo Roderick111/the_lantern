@@ -17,10 +17,10 @@ from src.context.witness import (
 def sample_witness() -> dict:
     """Sample witness data for testing."""
     return {
-        "id": "hermione",
-        "name": "Hermione Granger",
+        "id": "elena",
+        "name": "Elena Marsh",
         "personality": "Brilliant student. Values truth and logic.",
-        "background": "Top student. Best friends with Harry and Ron.",
+        "background": "Top student. Peers with Cassian and Rowan.",
         "base_trust": 50,
         "knowledge": [
             "Was in library from 8:30pm to 9:30pm",
@@ -29,9 +29,9 @@ def sample_witness() -> dict:
         ],
         "secrets": [
             {
-                "id": "saw_draco",
+                "id": "saw_cassian",
                 "trigger": "evidence:frost_pattern OR trust>70",
-                "text": "I saw Draco near the window at 9pm.",
+                "text": "I saw Cassian near the window at 9pm.",
                 "why_hiding": "I don't want to accuse anyone without proof",
             },
             {
@@ -159,8 +159,16 @@ class TestBuildWitnessPrompt:
 
             conversation_history=[],
             player_input="Where were you?",
+            case_context={
+                "crime_type": "assault",
+                "location": "the Sealed Stacks",
+                "setting": "Blackwood Collegiate, autumn 1890",
+            },
         )
-        assert "Hermione Granger" in prompt
+        assert "Elena Marsh" in prompt
+        assert "the Sealed Stacks" in prompt
+        assert "Blackwood Collegiate, autumn 1890" in prompt
+        assert "crime at Blackwood Collegiate" not in prompt
 
     def test_prompt_contains_personality(self, sample_witness: dict) -> None:
         prompt = build_witness_prompt(
@@ -209,7 +217,7 @@ class TestBuildWitnessPrompt:
 
     def test_system_prompt_contains_calibration(self) -> None:
         """System prompt includes trust+pressure behavioral guidance."""
-        prompt = build_witness_system_prompt("Hermione Granger")
+        prompt = build_witness_system_prompt("Elena Marsh")
         assert "Low trust + low pressure" in prompt
         assert "High trust + high pressure" in prompt
 
@@ -222,7 +230,7 @@ class TestBuildWitnessPrompt:
             conversation_history=[],
             player_input="Where were you?",
         )
-        assert "saw Draco near the window" in prompt
+        assert "saw Cassian near the window" in prompt
         assert "borrowed a restricted book" in prompt
 
     def test_no_mandatory_lie_system(self, sample_witness: dict) -> None:
@@ -270,7 +278,7 @@ class TestBuildWitnessPrompt:
                 {"name": "Frost Pattern", "implicates_me": False},
             ],
         )
-        assert "EVIDENCE THE AUROR HAS SHOWN YOU" in prompt
+        assert "EVIDENCE THE LANTERN INSPECTOR HAS SHOWN YOU" in prompt
         assert "Torn Letter" in prompt
         assert "implicates YOU" in prompt
 
@@ -288,7 +296,7 @@ class TestBuildWitnessPrompt:
 
     def test_system_prompt_contains_contradiction_rules(self) -> None:
         """System prompt instructs LLM about handling contradictions."""
-        prompt = build_witness_system_prompt("Hermione Granger")
+        prompt = build_witness_system_prompt("Elena Marsh")
         assert "contradiction" in prompt.lower()
         assert "FORBIDDEN" in prompt
 
@@ -297,20 +305,20 @@ class TestBuildWitnessSystemPrompt:
     """Tests for build_witness_system_prompt function."""
 
     def test_system_prompt_contains_name(self) -> None:
-        prompt = build_witness_system_prompt("Hermione Granger")
-        assert "Hermione Granger" in prompt
+        prompt = build_witness_system_prompt("Elena Marsh")
+        assert "Elena Marsh" in prompt
 
     def test_system_prompt_mentions_trust_and_pressure(self) -> None:
-        prompt = build_witness_system_prompt("Hermione Granger")
+        prompt = build_witness_system_prompt("Elena Marsh")
         assert "trust" in prompt.lower()
         assert "pressure" in prompt.lower()
 
     def test_system_prompt_contains_isolation(self) -> None:
-        prompt = build_witness_system_prompt("Hermione Granger")
+        prompt = build_witness_system_prompt("Elena Marsh")
         assert "ISOLATION" in prompt or "SEPARATE" in prompt
 
     def test_system_prompt_contains_style_guidance(self) -> None:
-        prompt = build_witness_system_prompt("Hermione Granger")
+        prompt = build_witness_system_prompt("Elena Marsh")
         assert "first person" in prompt.lower()
         assert "2-4 sentences" in prompt
 

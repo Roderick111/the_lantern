@@ -24,8 +24,8 @@ import type { LocationInfo, ChangeLocationResponse } from '../../types/investiga
 vi.mock('../../api/client');
 
 const mockLocations: LocationInfo[] = [
-  { id: 'library', name: 'Hogwarts Library', type: 'micro' },
-  { id: 'dormitory', name: 'Slytherin Dormitory', type: 'micro' },
+  { id: 'library', name: 'Blackwood Collegiate Library', type: 'micro' },
+  { id: 'dormitory', name: 'Iron Lodge Dormitory', type: 'micro' },
   { id: 'great_hall', name: 'Great Hall', type: 'building' },
 ];
 
@@ -33,8 +33,8 @@ const mockChangeLocationResponse: ChangeLocationResponse = {
   success: true,
   location: {
     id: 'dormitory',
-    name: 'Slytherin Dormitory',
-    description: 'The Slytherin common room...',
+    name: 'Iron Lodge Dormitory',
+    description: 'The Iron Lodge common room...',
   },
   message: 'Location changed successfully',
 };
@@ -311,7 +311,7 @@ describe('useLocation', () => {
       // Go back to library
       vi.mocked(client.changeLocation).mockResolvedValue({
         success: true,
-        location: { id: 'library', name: 'Hogwarts Library', description: '...' },
+        location: { id: 'library', name: 'Blackwood Collegiate Library', description: '...' },
       });
 
       await act(async () => {

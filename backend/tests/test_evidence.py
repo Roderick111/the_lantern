@@ -47,8 +47,8 @@ class TestMatchesTrigger:
 
     def test_phrase_trigger(self) -> None:
         """Multi-word phrase trigger."""
-        triggers = ["prior incantato"]
-        assert matches_trigger("I cast prior incantato on the wand", triggers) is True
+        triggers = ["echo reading"]
+        assert matches_trigger("I cast echo reading on the focus", triggers) is True
 
     def test_empty_triggers(self) -> None:
         """Empty triggers list."""
@@ -137,10 +137,10 @@ class TestExtractEvidenceFromResponse:
 
     def test_tag_with_underscores(self) -> None:
         """Tag with underscores in ID."""
-        response = "[EVIDENCE: wand_last_spell_signature]"
+        response = "[EVIDENCE: focus_last_spell_signature]"
         result = extract_evidence_from_response(response)
 
-        assert result == ["wand_last_spell_signature"]
+        assert result == ["focus_last_spell_signature"]
 
 
 class TestCheckAlreadyDiscovered:
@@ -155,8 +155,8 @@ class TestCheckAlreadyDiscovered:
                 "triggers": ["under desk", "search desk"],
             },
             {
-                "id": "wand_signature",
-                "triggers": ["examine wand"],
+                "id": "focus_signature",
+                "triggers": ["examine focus"],
             },
         ]
 
@@ -174,7 +174,7 @@ class TestCheckAlreadyDiscovered:
     def test_asking_about_undiscovered(self, sample_evidence: list[dict]) -> None:
         """Player asking about undiscovered evidence."""
         result = check_already_discovered(
-            "examine the wand",
+            "examine the focus",
             sample_evidence,
             discovered_ids=[],
         )

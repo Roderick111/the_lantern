@@ -6,7 +6,7 @@ NOT a conftest.py — must be imported explicitly. Provides:
 * `slow_stream_mock`      — async generator that sleeps between yielded chunks
 * `make_text_mock`        — non-streaming response, configurable per-call
 * `make_evaluator_mock`   — fixed verdict-evaluator result (avoid real LLM)
-* `make_moody_mock`       — fixed mentor feedback text
+* `make_graves_mock`       — fixed mentor feedback text
 * `clear_state_cache`     — wipe `_state_cache` between tests
 * `fresh_player_state`    — build a minimal PlayerState for direct seeding
 * `seed_state`            — drop a PlayerState into the mocked persistence layer
@@ -195,9 +195,9 @@ def bypass_state_cache(monkeypatch: pytest.MonkeyPatch) -> None:
         "src.api.routes.witnesses",
         "src.api.routes.verdict",
         "src.api.routes.saves",
-        "src.api.routes.legilimency",
+        "src.api.routes.mnemonic_delving",
         "src.api.routes.briefing",
-        "src.api.routes.inner_voice",
+        "src.api.routes.matthew",
         "src.api.routes.evidence",
     ):
         try:

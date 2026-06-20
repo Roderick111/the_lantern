@@ -186,7 +186,7 @@ async def test_concurrent_investigate_and_interrogate_same_player() -> None:
         "You search carefully. [EVIDENCE: hidden_note] A note."
     )
     witness_mock = make_text_mock(
-        "Hermione looks up from her book, eyes wary. [TRUST_DELTA: -5]"
+        "Elena looks up from her book, eyes wary. [TRUST_DELTA: -5]"
     )
 
     async with make_client() as client:
@@ -213,7 +213,7 @@ async def test_concurrent_investigate_and_interrogate_same_player() -> None:
                 client.post(
                     "/api/interrogate",
                     json={
-                        "witness_id": "hermione",
+                        "witness_id": "elena",
                         "question": "Did you do it?",
                         "case_id": case_id,
                         "player_id": player_id,
@@ -228,7 +228,7 @@ async def test_concurrent_investigate_and_interrogate_same_player() -> None:
     assert persisted is not None
 
     has_evidence = "hidden_note" in persisted.discovered_evidence
-    has_witness = "hermione" in persisted.witness_states
+    has_witness = "elena" in persisted.witness_states
 
     # REGRESSION: at least ONE of the two mutations is lost in the final
     # persisted state because investigate and interrogate load through
@@ -443,11 +443,11 @@ async def test_different_players_no_race() -> None:
     n_players = 10
 
     # Distinct LLM responses per request, each tagging a distinct evidence id.
-    # We reuse 'hidden_note' / 'frost_pattern' / 'wand_signature' etc. cycling.
+    # We reuse 'hidden_note' / 'frost_pattern' / 'focus_signature' etc. cycling.
     evidence_pool = [
         "hidden_note",
         "frost_pattern",
-        "wand_signature",
+        "focus_signature",
         "scuff_marks",
         "dropped_badge",
     ]

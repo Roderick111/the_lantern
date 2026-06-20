@@ -26,10 +26,10 @@ src/
 │       ├── __init__.py       # Mounts all sub-routers
 │       ├── investigation.py  # POST /api/investigate — narrator + spell detection + evidence discovery
 │       ├── witnesses.py      # POST /api/interrogate, /api/present-evidence — trust mechanics
-│       ├── legilimency.py    # POST /api/cast-legilimency — programmatic success formula
+│       ├── mnemonic_delving.py    # POST /api/cast-mnemonic_delving — programmatic success formula
 │       ├── verdict.py        # POST /api/submit-verdict — scoring + fallacy detection + confrontation
-│       ├── briefing.py       # GET /api/briefing, POST /api/briefing/{case_id}/question — Moody Q&A
-│       ├── inner_voice.py    # POST /api/tom/* — ghost mentor auto-comments + chat
+│       ├── briefing.py       # GET /api/briefing, POST /api/briefing/{case_id}/question — Graves Q&A
+│       ├── matthew.py        # POST /api/matthew/* — spirit companion auto-comments + chat
 │       ├── saves.py          # Save/load/list/delete — multi-slot system
 │       ├── cases.py          # Case discovery + location info
 │       ├── evidence.py       # GET /api/evidence — list discovered evidence
@@ -42,10 +42,10 @@ src/
 ├── context/                  # LLM prompt builders (one per feature)
 │   ├── narrator.py           # Investigation narration — victim humanization, evidence significance
 │   ├── witness.py            # Witness interrogation — personality, trust-aware responses
-│   ├── mentor.py             # Moody feedback — template + LLM-powered verdict response
+│   ├── mentor.py             # Graves feedback — template + LLM-powered verdict response
 │   ├── briefing.py           # Rationality teaching Q&A prompts
-│   ├── tom_llm.py            # Tom's ghost — 50/50 helpful/misleading, evidence-aware
-│   ├── inner_voice.py        # Legacy trigger selection (fallback for Tom)
+│   ├── matthew_llm.py        # Matthew Croft — 50/50 helpful/misleading, evidence-aware
+│   ├── matthew_triggers.py   # Legacy YAML trigger selection (fallback for Matthew)
 │   ├── spell_detection.py    # Multi-priority: exact → fuzzy → semantic spell matching
 │   ├── spell_prompts.py      # Spell effect narration builders
 │   ├── spell_llm.py          # LLM-based spell success calculation
@@ -58,7 +58,7 @@ src/
 │   └── parser.py             # Natural language location parsing (SequenceMatcher, 75% threshold)
 │
 ├── spells/
-│   └── definitions.py        # 7 spell definitions (Revelio, Homenum Revelio, Legilimency, etc.)
+│   └── definitions.py        # 7 spell definitions (Unveil, Sense Presence, Mnemonic Delving, etc.)
 │
 ├── state/
 │   ├── player_state.py       # PlayerState dataclass — conversation, evidence, witnesses, trust
@@ -88,11 +88,11 @@ tests/
 ├── test_evidence.py          # Evidence extraction + dedup
 ├── test_persistence.py       # Save/load PostgreSQL
 ├── test_briefing.py          # Briefing Q&A
-├── test_mentor.py            # Moody feedback
+├── test_mentor.py            # Graves feedback
 ├── test_verdict_evaluator.py # Verdict scoring
 ├── test_fallacies.py         # Fallacy detection
 ├── test_spell_*.py           # Spell detection + LLM integration
-├── test_tom_*.py             # Tom ghost mentor
+├── test_matthew_*.py         # Matthew spirit companion
 ├── test_location.py          # Location parsing
 ├── test_case_*.py            # Case loading, discovery, context
 └── test_trust.py             # Trust mechanics

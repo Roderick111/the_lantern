@@ -23,7 +23,7 @@ let flushTimer: ReturnType<typeof setInterval> | null = null;
 
 function getCaseId(): string {
   try {
-    const session = localStorage.getItem('hp-detective-active-session');
+    const session = localStorage.getItem('lantern-active-session');
     if (session) {
       const parsed = JSON.parse(session) as Record<string, string>;
       return parsed.caseId ?? 'unknown';

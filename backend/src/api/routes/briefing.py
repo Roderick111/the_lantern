@@ -1,4 +1,4 @@
-"""Briefing endpoints: case assignment, teaching questions, Moody Q&A."""
+"""Briefing endpoints: case assignment, teaching questions, Graves Q&A."""
 
 import asyncio
 import logging
@@ -19,7 +19,7 @@ from src.api.schemas import (
     TeachingQuestion,
 )
 from src.case_store.loader import load_case
-from src.context.briefing import ask_moody_question
+from src.context.briefing import ask_graves_question
 from src.telemetry.logger import log_event
 
 logger = logging.getLogger(__name__)
@@ -105,7 +105,7 @@ async def ask_briefing_question(
     player_id: str = Depends(get_authenticated_player_id),
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ) -> BriefingQuestionResponse:
-    """Ask Moody a question during briefing."""
+    """Ask Graves a question during briefing."""
     player_id = player_id
     briefing = _load_briefing_content(case_id)
 
@@ -133,7 +133,7 @@ TIME: {dossier.get("time", "Unknown")}
 STATUS: {dossier.get("status", "Unknown")}
 SYNOPSIS: {dossier.get("synopsis", "")}"""
 
-    answer = await ask_moody_question(
+    answer = await ask_graves_question(
         question=body.question,
         case_assignment=case_assignment,
         teaching_moment=first_question.get("prompt", ""),

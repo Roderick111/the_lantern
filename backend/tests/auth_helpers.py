@@ -10,6 +10,7 @@ fixture import shadowing). Test files declare their own fixtures.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -82,5 +83,8 @@ def db_path() -> Path:
     """
     saves_dir = Path("/app/saves")
     if saves_dir.exists():
-        return saves_dir / "hp_game.db"
-    return Path(__file__).parent.parent / "saves" / "hp_game.db"
+        return saves_dir / "lantern.db"
+    env_path = os.environ.get("LANTERN_DB_PATH")
+    if env_path:
+        return Path(env_path)
+    return Path(__file__).parent.parent / "saves" / "lantern.db"

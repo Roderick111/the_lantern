@@ -93,7 +93,7 @@ def format_evidence_shown(evidence_shown_details: list[dict[str, Any]]) -> str:
     if not evidence_shown_details:
         return ""
 
-    lines = ["== EVIDENCE THE AUROR HAS SHOWN YOU =="]
+    lines = ["== EVIDENCE THE LANTERN INSPECTOR HAS SHOWN YOU =="]
     for ev in evidence_shown_details:
         name = ev.get("name", "unknown")
         implicates = ev.get("implicates_me", False)
@@ -106,7 +106,7 @@ def format_evidence_shown(evidence_shown_details: list[dict[str, Any]]) -> str:
 def describe_pressure(pressure: int) -> str:
     """Convert numeric pressure to a natural language description."""
     if pressure <= 0:
-        return "NONE — the Auror has no evidence against you"
+        return "NONE — the Lantern Inspector has no evidence against you"
     elif pressure < 80:
         return "LOW — some evidence exists but easy to deflect"
     elif pressure < 160:
@@ -120,7 +120,7 @@ def describe_pressure(pressure: int) -> str:
 def describe_trust(trust: int) -> str:
     """Convert numeric trust to a natural language description."""
     if trust <= 20:
-        return "HOSTILE — wants nothing to do with this Auror"
+        return "HOSTILE — wants nothing to do with this Lantern Inspector"
     elif trust <= 40:
         return "GUARDED — reluctant, gives minimum"
     elif trust <= 60:
@@ -128,7 +128,7 @@ def describe_trust(trust: int) -> str:
     elif trust <= 80:
         return "COOPERATIVE — willing to help, building rapport"
     else:
-        return "TRUSTING — genuinely wants to help this Auror"
+        return "TRUSTING — genuinely wants to help this Lantern Inspector"
 
 
 def describe_stance(trust: int, pressure: int) -> str:
@@ -189,14 +189,17 @@ def build_witness_prompt(
         crime_type = case_context.get("crime_type", "")
         location = case_context.get("location", "")
 
-        if victim_name or crime_type or location:
+        setting = case_context.get("setting", "")
+        if victim_name or crime_type or location or setting:
             case_info = "\n== CASE CONTEXT (public knowledge) ==\n"
+            if setting:
+                case_info += f"Setting: {setting}\n"
             if victim_name:
                 case_info += f"Victim: {victim_name}\n"
             if crime_type:
                 case_info += f"What happened: {crime_type}\n"
             if location:
-                case_info += f"Where: {location}\n"
+                case_info += f"Crime scene: {location}\n"
             case_info += "\n"
 
     # Format sections
@@ -225,7 +228,7 @@ def build_witness_prompt(
 
         evidence_section = f"""
 == EVIDENCE BEING PRESENTED RIGHT NOW ==
-The Auror shows you: "{ev_name}"
+The Lantern Inspector shows you: "{ev_name}"
 {ev_desc}
 {reaction_hint}
 """
@@ -236,22 +239,25 @@ The Auror shows you: "{ev_name}"
         spell_def = get_spell(spell_id)
         spell_name = spell_def.get("name") if spell_def else spell_id.title()
 
-        invasive_spells = {"prior_incantato", "specialis_revelio"}
+        invasive_spells = {"echo_reading", "identify_substance"}
         invasiveness_note = ""
         if spell_id in invasive_spells:
             invasiveness_note = (
-                "\nThis is an INVASIVE spell — most people feel "
-                "violated or resistant unless they trust the caster."
+                "\nThis is an INVASIVE rite — most people feel "
+                "violated or resistant unless they trust the inspector."
             )
 
         spell_context = f"""
-== SPELL CAST ==
-The Auror cast {spell_name} on you/your belongings/your wand.
+== RITE PERFORMED ==
+The Lantern Inspector performed {spell_name} on you/your belongings/your focus.
 Outcome: {spell_outcome}{invasiveness_note}
 React naturally based on your personality, trust, and what this might reveal.
 """
 
-    return f"""You are {name}. An Auror is questioning you about a crime at Hogwarts.
+    crime_label = case_context.get("crime_type", "a crime") if case_context else "a crime"
+    scene_label = case_context.get("location", "the crime scene") if case_context else "the crime scene"
+
+    return f"""You are {name}. A Crown Occult Bureau Lantern Inspector is questioning you about a {crime_label} at {scene_label}.
 {case_info}
 == PERSONALITY ==
 {personality}
@@ -281,7 +287,7 @@ def build_witness_system_prompt(witness_name: str, language: str = "en") -> str:
     """Build system prompt for witness."""
     from src.config.language import get_language_instruction
 
-    return f"""You are {witness_name} in a Harry Potter investigation game. \
+    return f"""You are {witness_name} in a Victorian occult detective investigation game. \
 First person, 2-4 sentences, in character. Never break the fourth wall. \
 Use spaces around em dashes ( — not —).
 
@@ -309,14 +315,14 @@ it is FORBIDDEN. Deny it, spin it, rage — but never act like it doesn't exist.
 - Caught in a contradiction → your story MUST adapt. Repeating a broken lie \
 is FORBIDDEN.
 - Conversational pressure counts: holes poked in your story, cross-witness \
-citations, revealing spells — all add pressure beyond formal evidence.
+citations, revealing rites — all add pressure beyond formal evidence.
 - Full confessions are rare. Partial admissions and modified lies are the norm.
 - Secrets are telegraphic facts. When revealing them, add emotion, detail, \
 and drama that fits your personality.
 
 == TRUST DELTA (MANDATORY) ==
 EVERY response MUST end with exactly: [TRUST_DELTA: N]
-N = -15 to +10, based on the Auror's APPROACH, not the topic.
+N = -15 to +10, based on the Lantern Inspector's APPROACH, not the topic.
 +7 to +10: defends you, validates fear, shows vulnerability
 +3 to +6: polite about scary topics
 +1 to +2: normal respectful question

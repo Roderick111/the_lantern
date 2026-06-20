@@ -87,6 +87,7 @@ def is_valid_byok_model(model: str) -> bool:
         "openai/", "gpt-",
         "google/", "gemini",
         "openrouter/",
+        "user/",
     )
     if any(m.startswith(p) or p in m for p in prefixes):
         return True

@@ -39,7 +39,7 @@ class TestInterrogateStreamHappyPath:
                 "POST",
                 "/api/interrogate/stream",
                 json_body={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "question": "Where were you?",
                     "case_id": "case_001",
                     "player_id": "test_sse_interrog_happy",
@@ -64,7 +64,7 @@ class TestInterrogateStreamTrustDelta:
     async def test_negative_trust_delta_extracted(
         self, client: AsyncClient
     ) -> None:
-        # Hermione's base_trust = 55. With -10 → 45.
+        # Elena's base_trust = 55. With -10 → 45.
         chunks = [
             "How dare you accuse me! ",
             "I would never do such a thing. ",
@@ -77,8 +77,8 @@ class TestInterrogateStreamTrustDelta:
                 "POST",
                 "/api/interrogate/stream",
                 json_body={
-                    "witness_id": "hermione",
-                    "question": "Did you attack Snape?",
+                    "witness_id": "elena",
+                    "question": "Did you attack Professor Vane?",
                     "case_id": "case_001",
                     "player_id": "test_sse_interrog_trust",
                 },
@@ -87,7 +87,7 @@ class TestInterrogateStreamTrustDelta:
         done = parsed.done_frame
         assert done is not None
         assert done["trust_delta"] == -10
-        # Hermione starts at 55, -10 → 45
+        # Elena starts at 55, -10 → 45
         assert done["trust"] == 45
 
         # Trust tag should be stripped from streamed text frames
@@ -107,7 +107,7 @@ class TestInterrogateStreamTrustDelta:
                 "POST",
                 "/api/interrogate/stream",
                 json_body={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "question": "Did you do it?",
                     "case_id": "case_001",
                     "player_id": player_id,
@@ -116,6 +116,6 @@ class TestInterrogateStreamTrustDelta:
 
         state = load_player_state("case_001", player_id, "autosave")
         assert state is not None
-        hermione_state = state.witness_states.get("hermione")
-        assert hermione_state is not None
-        assert hermione_state.trust == 45
+        elena_state = state.witness_states.get("elena")
+        assert elena_state is not None
+        assert elena_state.trust == 45

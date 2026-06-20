@@ -50,7 +50,7 @@ def _clean_cache() -> None:
 def _patch_verdict_llm(
     score: int = 50,
     quality: str = "fair",
-    moody_text: str = "MOCKED MOODY FEEDBACK",
+    graves_text: str = "MOCKED GRAVES FEEDBACK",
     sleep_s: float = 0.05,
 ) -> list[Any]:
     """Build the list of patches needed to short-circuit the verdict LLMs.
@@ -65,19 +65,19 @@ def _patch_verdict_llm(
         await asyncio.sleep(sleep_s)
         return make_evaluator_result(score=score, quality=quality)
 
-    async def _moody_with_yield(*_args: Any, **_kwargs: Any) -> str:
+    async def _graves_with_yield(*_args: Any, **_kwargs: Any) -> str:
         await asyncio.sleep(sleep_s)
-        return moody_text
+        return graves_text
 
     eval_patch = patch(
         "src.api.routes.verdict.evaluate_reasoning_llm",
         side_effect=_eval_with_yield,
     )
-    moody_patch = patch(
-        "src.api.routes.verdict.build_moody_feedback_llm",
-        side_effect=_moody_with_yield,
+    graves_patch = patch(
+        "src.api.routes.verdict.build_graves_feedback_llm",
+        side_effect=_graves_with_yield,
     )
-    return [eval_patch, moody_patch]
+    return [eval_patch, graves_patch]
 
 
 # ── Test 4 from the brief: concurrent verdict submissions ──────────────────
@@ -110,7 +110,7 @@ async def test_concurrent_verdict_submissions_overshoots_attempts() -> None:
                 client.post(
                     "/api/submit-verdict",
                     json={
-                        "accused_suspect_id": "draco",
+                        "accused_suspect_id": "cassian",
                         "reasoning": "Concurrent submission A.",
                         "evidence_cited": [],
                         "case_id": case_id,
@@ -120,7 +120,7 @@ async def test_concurrent_verdict_submissions_overshoots_attempts() -> None:
                 client.post(
                     "/api/submit-verdict",
                     json={
-                        "accused_suspect_id": "hermione",
+                        "accused_suspect_id": "elena",
                         "reasoning": "Concurrent submission B.",
                         "evidence_cited": [],
                         "case_id": case_id,
@@ -207,7 +207,7 @@ async def test_verdict_race_state_consistency_under_normal_attempts() -> None:
                 client.post(
                     "/api/submit-verdict",
                     json={
-                        "accused_suspect_id": "draco",
+                        "accused_suspect_id": "cassian",
                         "reasoning": "Submission A reasoning.",
                         "evidence_cited": [],
                         "case_id": case_id,
@@ -217,7 +217,7 @@ async def test_verdict_race_state_consistency_under_normal_attempts() -> None:
                 client.post(
                     "/api/submit-verdict",
                     json={
-                        "accused_suspect_id": "hermione",
+                        "accused_suspect_id": "elena",
                         "reasoning": "Submission B reasoning.",
                         "evidence_cited": [],
                         "case_id": case_id,
@@ -297,7 +297,7 @@ async def test_verdict_burst_five_attempts_one_remaining() -> None:
                     client.post(
                         "/api/submit-verdict",
                         json={
-                            "accused_suspect_id": "draco",
+                            "accused_suspect_id": "cassian",
                             "reasoning": f"Burst submission {i}.",
                             "evidence_cited": [],
                             "case_id": case_id,

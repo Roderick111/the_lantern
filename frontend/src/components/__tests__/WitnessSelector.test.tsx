@@ -25,20 +25,20 @@ import type { WitnessInfo } from '../../types/investigation';
 
 const mockWitnesses: WitnessInfo[] = [
   {
-    id: 'hermione',
-    name: 'Hermione Granger',
+    id: 'elena',
+    name: 'Elena Marsh',
     trust: 55,
     secrets_revealed: [],
   },
   {
-    id: 'draco',
-    name: 'Draco Malfoy',
+    id: 'cassian',
+    name: 'Cassian Thorne',
     trust: 25,
     secrets_revealed: ['secret_1'],
   },
   {
-    id: 'neville',
-    name: 'Neville Longbottom',
+    id: 'rowan',
+    name: 'Rowan Ashford',
     trust: 80,
     secrets_revealed: ['secret_a', 'secret_b'],
   },
@@ -78,9 +78,9 @@ describe('WitnessSelector', () => {
     it('renders all witness names', () => {
       render(<WitnessSelector {...defaultProps} />);
 
-      expect(screen.getByText('Hermione Granger')).toBeInTheDocument();
-      expect(screen.getByText('Draco Malfoy')).toBeInTheDocument();
-      expect(screen.getByText('Neville Longbottom')).toBeInTheDocument();
+      expect(screen.getByText('Elena Marsh')).toBeInTheDocument();
+      expect(screen.getByText('Cassian Thorne')).toBeInTheDocument();
+      expect(screen.getByText('Rowan Ashford')).toBeInTheDocument();
     });
 
     it('renders trust percentages', () => {
@@ -109,7 +109,7 @@ describe('WitnessSelector', () => {
       render(<WitnessSelector {...defaultProps} />);
 
       // Should display trust bars with percentages
-      // Hermione (55%), Draco (25%), Neville (80%)
+      // Elena (55%), Cassian (25%), Rowan (80%)
       expect(screen.getByText(/55%/)).toBeInTheDocument();
       expect(screen.getByText(/25%/)).toBeInTheDocument();
       expect(screen.getByText(/80%/)).toBeInTheDocument();
@@ -132,19 +132,19 @@ describe('WitnessSelector', () => {
     it('shows secrets badge when secrets revealed', () => {
       render(<WitnessSelector {...defaultProps} />);
 
-      // Draco has 1 secret
+      // Cassian has 1 secret
       expect(screen.getByText('1 secret revealed')).toBeInTheDocument();
 
-      // Neville has 2 secrets
+      // Rowan has 2 secrets
       expect(screen.getByText('2 secrets revealed')).toBeInTheDocument();
     });
 
     it('does not show secrets badge when no secrets', () => {
       render(<WitnessSelector {...defaultProps} />);
 
-      // Hermione has no secrets - should not have a secrets badge
-      const hermioneCard = screen.getByText('Hermione Granger').closest('button');
-      expect(hermioneCard).not.toHaveTextContent(/secret/i);
+      // Elena has no secrets - should not have a secrets badge
+      const elenaCard = screen.getByText('Elena Marsh').closest('button');
+      expect(elenaCard).not.toHaveTextContent(/secret/i);
     });
   });
 
@@ -161,20 +161,20 @@ describe('WitnessSelector', () => {
         <WitnessSelector {...defaultProps} onSelectWitness={onSelectWitness} />
       );
 
-      const hermioneCard = screen.getByText('Hermione Granger').closest('button');
-      await user.click(hermioneCard!);
+      const elenaCard = screen.getByText('Elena Marsh').closest('button');
+      await user.click(elenaCard!);
 
-      expect(onSelectWitness).toHaveBeenCalledWith('hermione');
+      expect(onSelectWitness).toHaveBeenCalledWith('elena');
     });
 
     it('shows witness names with white text', () => {
       render(<WitnessSelector {...defaultProps} />);
 
-      const hermioneText = screen.getByText('Hermione Granger');
-      expect(hermioneText).toHaveClass('text-white');
+      const elenaText = screen.getByText('Elena Marsh');
+      expect(elenaText).toHaveClass('text-white');
 
-      const dracoText = screen.getByText('Draco Malfoy');
-      expect(dracoText).toHaveClass('text-white');
+      const cassianText = screen.getByText('Cassian Thorne');
+      expect(cassianText).toHaveClass('text-white');
     });
   });
 
@@ -201,7 +201,7 @@ describe('WitnessSelector', () => {
       );
 
       // Should still show witnesses (refresh scenario)
-      expect(screen.getByText('Hermione Granger')).toBeInTheDocument();
+      expect(screen.getByText('Elena Marsh')).toBeInTheDocument();
     });
   });
 
@@ -228,7 +228,7 @@ describe('WitnessSelector', () => {
       );
 
       // Should still show witnesses
-      expect(screen.getByText('Hermione Granger')).toBeInTheDocument();
+      expect(screen.getByText('Elena Marsh')).toBeInTheDocument();
     });
   });
 
@@ -258,15 +258,15 @@ describe('WitnessSelector', () => {
     it('has accessible aria-labels on witness cards', () => {
       render(<WitnessSelector {...defaultProps} />);
 
-      const hermioneCard = screen.getByLabelText(
-        /Select Hermione Granger for interrogation\. Trust: 55%\. Secrets revealed: 0/i
+      const elenaCard = screen.getByLabelText(
+        /Select Elena Marsh for interrogation\. Trust: 55%\. Secrets revealed: 0/i
       );
-      expect(hermioneCard).toBeInTheDocument();
+      expect(elenaCard).toBeInTheDocument();
 
-      const dracoCard = screen.getByLabelText(
-        /Select Draco Malfoy for interrogation\. Trust: 25%\. Secrets revealed: 1/i
+      const cassianCard = screen.getByLabelText(
+        /Select Cassian Thorne for interrogation\. Trust: 25%\. Secrets revealed: 1/i
       );
-      expect(dracoCard).toBeInTheDocument();
+      expect(cassianCard).toBeInTheDocument();
     });
   });
 });

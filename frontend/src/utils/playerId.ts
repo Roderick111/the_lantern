@@ -13,7 +13,7 @@
 
 import { useMemo } from 'react';
 
-const KEY = 'hp_player_id';
+const KEY = 'lantern_player_id';
 
 export function getOrCreatePlayerId(): string {
   let id = localStorage.getItem(KEY);

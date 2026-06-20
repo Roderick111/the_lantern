@@ -1,7 +1,7 @@
-"""Rationality thinking guide for Moody's context.
+"""Rationality thinking guide for Graves's context.
 
 Condensed from backend/data/rationality-thinking-guide-condensed.md (290 lines).
-Used to inject into Moody's LLM prompts for natural Q&A about rationality concepts.
+Used to inject into Graves's LLM prompts for natural Q&A about rationality concepts.
 """
 
 RATIONALITY_PRINCIPLES = """
@@ -33,7 +33,7 @@ Check both directions.
 
 **What**: Focusing only on evidence supporting your theory while ignoring contradictions.
 
-Example: Suspect was present at scene, so you ignore frost pattern showing spell came from outside. Presence ≠ guilt.
+Example: Suspect was present at scene, so you ignore frost pattern showing the rite came from outside. Presence ≠ guilt.
 
 **Fix**: Actively search for disconfirming evidence. Ask "what would prove me wrong?"
 
@@ -101,7 +101,7 @@ Conclusion: Tight but possible. Check traffic cameras, GPS.
 If there's no other explanation → strong proof.
 If there are ten other explanations → weak proof.
 
-Example: Wand signature matches suspect. Alternative: Wand was borrowed. Alternative: Signature was planted. Must rule out alternatives.
+Example: Focus signature matches suspect. Alternative: Focus was borrowed. Alternative: Signature was planted. Must rule out alternatives.
 
 ---
 
@@ -129,10 +129,10 @@ Don't shift burden. Accuser must prove, not accused disprove.
 
 **What**: Speculation without evidence. "I guess," "probably," "I think," "not sure."
 
-Example: "I guess Hermione did it because she was there."
+Example: "I guess Elena did it because she was there."
 Problem: No causal mechanism. No evidence cited. Just speculation.
 
-**Fix**: State facts, not feelings. "Hermione was present AND her wand shows no offensive spells" = evidence-based.
+**Fix**: State facts, not feelings. "Elena was present AND her focus shows no offensive rites" = evidence-based.
 
 ---
 
@@ -140,7 +140,7 @@ Problem: No causal mechanism. No evidence cited. Just speculation.
 
 **What**: Trusting testimony without verifying against physical evidence.
 
-Example: Witness says "I saw suspect cast spell." But magical residue shows different signature.
+Example: Witness says "I saw suspect perform a rite." But etheric residue shows different signature.
 
 **Fix**: Physical evidence > testimony when they conflict. Witnesses can be mistaken or lie.
 
@@ -161,7 +161,7 @@ Problem: Temporal order ≠ causation.
 
 **What**: Continuing action because you've already invested, not because it's right.
 
-Example: "I've spent 5 attempts accusing Hermione. Can't change theory now."
+Example: "I've spent 5 attempts accusing Elena. Can't change theory now."
 
 **Fix**: Ask "If I were starting fresh, would I accuse this person?" If no, change theory.
 
@@ -171,7 +171,7 @@ Example: "I've spent 5 attempts accusing Hermione. Can't change theory now."
 
 **What**: Overweighting recent/dramatic events in probability estimates.
 
-Example: Recent Death Eater attack → assume every crime is Dark Magic related.
+Example: Recent cult attack → assume every crime is forbidden craft related.
 
 **Fix**: Check base rates. Most crimes are mundane, not dramatic.
 
@@ -181,7 +181,7 @@ Example: Recent Death Eater attack → assume every crime is Dark Magic related.
 
 **What**: First number you hear influences estimates.
 
-Example: Moody says "I've seen similar cases take 3 attempts." You then expect yours to take ~3.
+Example: Graves says "I've seen similar cases take 3 attempts." You then expect yours to take ~3.
 
 **Fix**: Ignore initial number. Generate independent estimate.
 
@@ -197,8 +197,8 @@ Example: Moody says "I've seen similar cases take 3 attempts." You then expect y
 3. Ask: "What assumptions must hold? What if opposite is true? What evidence am I ignoring?"
 4. Address or adapt
 
-Example: "I think Draco is guilty."
-Red team: "What if Hermione lied about seeing him? What if frost pattern was faked? What if someone else knows freezing charms?"
+Example: "I think Cassian is guilty."
+Red team: "What if Elena lied about seeing him? What if frost pattern was faked? What if someone else knows freezing cantrips?"
 
 ---
 
@@ -206,7 +206,7 @@ Red team: "What if Hermione lied about seeing him? What if frost pattern was fak
 
 **What**: Imagine your theory is wrong. Why did it fail?
 
-Example: "I accused Draco and Moody said I'm wrong. What did I miss?"
+Example: "I accused Cassian and Graves said I'm wrong. What did I miss?"
 - Ignored alibi evidence
 - Trusted witness without verification
 - Confirmation bias on frost pattern
@@ -224,7 +224,7 @@ Underconfident: "50% sure" but right 80% of time.
 
 **Practice**: Make predictions with confidence levels. Track accuracy. Adjust.
 
-Example: "70% confident Draco is guilty" based on current evidence. If new evidence appears, update to 85% or 50%.
+Example: "70% confident Cassian is guilty" based on current evidence. If new evidence appears, update to 85% or 50%.
 
 ---
 
@@ -233,10 +233,10 @@ Example: "70% confident Draco is guilty" based on current evidence. If new evide
 **What**: Explain HOW crime happened, not just WHO did it.
 
 Example:
-- Weak: "Draco had motive"
-- Strong: "Draco cast freezing charm from outside window at 9:00pm. Victim saw attack, cast Stupefy defensively at 9:15pm. Draco fled. Timeline matches frost formation."
+- Weak: "Cassian had motive"
+- Strong: "Cassian cast freezing charm from outside window at 9:00pm. Victim saw attack, cast Stupefy defensively at 9:15pm. Cassian fled. Timeline matches frost formation."
 
-**Test**: Can you describe sequence of physical actions + spells + timing?
+**Test**: Can you describe sequence of physical actions + rites + timing?
 
 ---
 
@@ -255,7 +255,7 @@ Example:
 ## XXI. EVIDENCE STRENGTH
 
 **Strong evidence**:
-- Physical (wand residue, spell traces)
+- Physical (focus residue, rite traces)
 - Recorded (magical records, portraits)
 - Mechanistically linked (frost pattern direction proves outside casting)
 
@@ -274,10 +274,10 @@ Example:
 
 Example:
 8:45pm - Victim enters library (portrait witness)
-9:00pm - Hermione studying inside (her testimony)
-9:00pm - Draco at window outside (Hermione saw)
-9:15pm - Victim casts Stupefy (Prior Incantato)
-9:20pm - Victim found petrified (discovery)
+9:00pm - Elena studying inside (her testimony)
+9:00pm - Cassian at window outside (Elena saw)
+9:15pm - Victim casts Stupefy (Echo Reading)
+9:20pm - Victim found held in stillness (discovery)
 
 **Fix**: Build timeline from evidence, not assumptions.
 
@@ -299,8 +299,8 @@ No footprints → attacker didn't enter room.
 **Principle**: Simplest explanation requiring fewest assumptions is usually correct.
 
 Example:
-- Complex: Draco used Polyjuice, disguised as Hermione, planted evidence, faked frost
-- Simple: Draco cast spell from window
+- Complex: Cassian used Polyjuice, disguised as Elena, planted evidence, faked frost
+- Simple: Cassian performed a rite from the window
 
 **Fix**: Prefer simple over complex UNLESS evidence demands complexity.
 
@@ -323,15 +323,15 @@ Example:
 
 ---
 
-## MOODY'S VOICE INTEGRATION
+## GRAVES'S VOICE INTEGRATION
 
-When teaching these concepts as Moody:
+When teaching these concepts as Graves:
 
 **DO**:
 - Use gruff, direct voice
 - Give concrete examples from investigations
 - Mock common mistakes ("You saw what you expected to see")
-- Emphasize CONSTANT VIGILANCE
+- Emphasize: trust nothing unseen
 - Explain through questions ("What would prove you wrong?")
 
 **DON'T**:
@@ -342,11 +342,11 @@ When teaching these concepts as Moody:
 
 **Examples**:
 
-"You accused Granger because she was present. That's LAZY thinking. Being at the scene doesn't make someone guilty. Check the MECHANISM - WHERE did the spell come from?"
+"You accused Marsh because she was present. That's LAZY thinking. Being at the scene doesn't make someone guilty. Check the MECHANISM - WHERE did the rite come from?"
 
-"Base rates, recruit. 85% of school incidents are accidents. Start there. Don't chase Death Eater conspiracies before ruling out someone dropping their wand."
+"Base rates, recruit. 85% of school incidents are accidents. Start there. Don't chase cult conspiracies before ruling out someone dropping their focus."
 
-"I see confirmation bias all over this accusation. You found ONE piece of evidence and stopped looking. What about the contradicting evidence? CONSTANT VIGILANCE means checking EVERYTHING."
+"I see confirmation bias all over this accusation. You found ONE piece of evidence and stopped looking. What about the contradicting evidence? Trust nothing unseen means checking EVERYTHING."
 
 ---
 
@@ -355,7 +355,7 @@ When teaching these concepts as Moody:
 
 
 def get_rationality_context() -> str:
-    """Get rationality principles for Moody's LLM context.
+    """Get rationality principles for Graves's LLM context.
 
     Returns:
         Condensed rationality guide for prompt injection.

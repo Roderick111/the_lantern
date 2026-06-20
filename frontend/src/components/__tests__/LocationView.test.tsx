@@ -41,7 +41,7 @@ vi.mock('../../api/client', async (importOriginal) => {
 
 const mockLocationData: LocationResponse = {
   id: 'library',
-  name: 'Hogwarts Library - Crime Scene',
+  name: 'Blackwood Collegiate Library - Crime Scene',
   description: 'You enter the library. A heavy oak desk dominates the center.',
   surface_elements: [
     'Oak desk with scattered papers',
@@ -85,7 +85,7 @@ describe('LocationView', () => {
     it('renders location name', () => {
       render(<LocationView {...defaultProps} />);
 
-      expect(screen.getByText(/Hogwarts Library - Crime Scene/i)).toBeInTheDocument();
+      expect(screen.getByText(/Blackwood Collegiate Library - Crime Scene/i)).toBeInTheDocument();
     });
 
     it('renders location description', () => {
@@ -446,15 +446,15 @@ describe('LocationView', () => {
       expect(textarea).toHaveValue("check the window");
     });
 
-    it('fills input with Tom prompt when ask Tom clicked', async () => {
+    it('fills input with inner voice prompt when ask voice clicked', async () => {
       const user = userEvent.setup();
       render(<LocationView {...defaultProps} />);
 
-      const button = screen.getByRole('button', { name: /ask Tom/i });
+      const button = screen.getByRole('button', { name: /ask voice/i });
       await user.click(button);
 
       const textarea = screen.getByPlaceholderText(/describe your action/i);
-      expect(textarea).toHaveValue("Tom, what do you think?");
+      expect(textarea).toHaveValue("Voice, what do you think?");
     });
 
     it('does NOT auto-submit when quick action clicked', async () => {
@@ -474,10 +474,10 @@ describe('LocationView', () => {
   });
 
   // ------------------------------------------
-  // Auror's Handbook Tests (Phase 4.5)
+  // Lantern Compendium Tests (Phase 4.5)
   // ------------------------------------------
 
-  describe("Auror's Handbook (Phase 4.5)", () => {
+  describe("Lantern Compendium (Phase 4.5)", () => {
     it.todo('renders Handbook button');
 
     it.todo('opens Handbook modal when button clicked');
@@ -488,7 +488,7 @@ describe('LocationView', () => {
 
     it.todo('closes Handbook modal on second Ctrl+H press');
 
-    it.todo('Handbook shows all 7 spells');
+    it.todo('Handbook shows all 7 rites');
 
     it.todo('Handbook button has title with keyboard shortcut');
   });

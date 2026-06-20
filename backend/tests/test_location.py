@@ -77,11 +77,11 @@ class TestListLocations:
         ids = [loc["id"] for loc in locations]
         assert "library" in ids
 
-    def test_slytherin_common_room_in_locations(self, case_data):
-        """Slytherin Common Room location exists."""
+    def test_iron_lodge_common_room_in_locations(self, case_data):
+        """Iron Lodge Common Room location exists."""
         locations = list_locations(case_data)
         ids = [loc["id"] for loc in locations]
-        assert "slytherin_common_room" in ids
+        assert "iron_lodge_common_room" in ids
 
     def test_third_floor_corridor_in_locations(self, case_data):
         """Third Floor Corridor location exists."""
@@ -183,7 +183,7 @@ class TestChangeLocationEndpoint:
         """Response contains location data."""
         response = await client.post(
             "/api/case/case_001/change-location",
-            json={"location_id": "slytherin_common_room"},
+            json={"location_id": "iron_lodge_common_room"},
         )
         data = response.json()
         assert "location" in data
@@ -210,22 +210,22 @@ class TestChangeLocationEndpoint:
         assert "witnesses_present" in response.json()["location"]
 
     @pytest.mark.asyncio
-    async def test_library_has_hermione(self, client: AsyncClient):
-        """Library location has Hermione as witness."""
+    async def test_library_has_elena(self, client: AsyncClient):
+        """Library location has Elena as witness."""
         response = await client.post(
             "/api/case/case_001/change-location",
             json={"location_id": "library"},
         )
-        assert "hermione" in response.json()["location"]["witnesses_present"]
+        assert "elena" in response.json()["location"]["witnesses_present"]
 
     @pytest.mark.asyncio
-    async def test_kitchens_has_dobby(self, client: AsyncClient):
-        """Kitchens location has Dobby as witness."""
+    async def test_kitchens_has_wisp(self, client: AsyncClient):
+        """Kitchens location has Wisp as witness."""
         response = await client.post(
             "/api/case/case_001/change-location",
             json={"location_id": "kitchens"},
         )
-        assert "dobby" in response.json()["location"]["witnesses_present"]
+        assert "wisp" in response.json()["location"]["witnesses_present"]
 
     @pytest.mark.asyncio
     async def test_invalid_case_returns_404(self, client: AsyncClient):
@@ -269,7 +269,7 @@ class TestLocationCommandParser:
     def parser(self):
         """Create parser with test locations."""
         return LocationCommandParser(
-            ["library", "slytherin_common_room", "third_floor_corridor", "kitchens"]
+            ["library", "iron_lodge_common_room", "third_floor_corridor", "kitchens"]
         )
 
     def test_go_to_location(self, parser):
@@ -294,7 +294,7 @@ class TestLocationCommandParser:
 
     def test_move_to_location(self, parser):
         """Parses 'move to X' pattern."""
-        assert parser.parse("move to slytherin common room") == "slytherin_common_room"
+        assert parser.parse("move to iron lodge common room") == "iron_lodge_common_room"
 
     def test_fuzzy_match_typo(self, parser):
         """Fuzzy matches typos (kichens -> kitchens)."""
@@ -305,8 +305,8 @@ class TestLocationCommandParser:
         assert parser.parse("visit libary") == "library"
 
     def test_underscore_replaced_with_space(self, parser):
-        """Matches 'slytherin common room' to 'slytherin_common_room'."""
-        assert parser.parse("go to slytherin common room") == "slytherin_common_room"
+        """Matches 'iron lodge common room' to 'iron_lodge_common_room'."""
+        assert parser.parse("go to iron lodge common room") == "iron_lodge_common_room"
 
     def test_case_insensitive(self, parser):
         """Case insensitive matching."""
@@ -389,42 +389,42 @@ class TestLocationManagementIntegration:
     @pytest.mark.asyncio
     async def test_change_location_updates_state(self, client: AsyncClient):
         """Changing location actually updates player state."""
-        # Change to slytherin_common_room
+        # Change to iron_lodge_common_room
         response = await client.post(
             "/api/case/case_001/change-location",
-            json={"location_id": "slytherin_common_room", "player_id": "test_player_loc"},
+            json={"location_id": "iron_lodge_common_room", "player_id": "test_player_loc"},
         )
         assert response.status_code == 200
 
-        # Verify response has slytherin_common_room data
-        assert response.json()["location"]["id"] == "slytherin_common_room"
-        assert "Slytherin" in response.json()["location"]["name"]
+        # Verify response has iron_lodge_common_room data
+        assert response.json()["location"]["id"] == "iron_lodge_common_room"
+        assert "Iron Lodge" in response.json()["location"]["name"]
 
 
 class TestNewLocationsContent:
-    """Tests for location content (slytherin_common_room, kitchens, etc.)."""
+    """Tests for location content (iron_lodge_common_room, kitchens, etc.)."""
 
-    def test_slytherin_common_room_has_description(self, case_data):
-        """Slytherin Common Room has description text."""
+    def test_iron_lodge_common_room_has_description(self, case_data):
+        """Iron Lodge Common Room has description text."""
         from src.case_store.loader import get_location
 
-        location = get_location(case_data, "slytherin_common_room")
+        location = get_location(case_data, "iron_lodge_common_room")
         assert "description" in location
         assert len(location["description"]) > 50
 
-    def test_slytherin_common_room_has_evidence(self, case_data):
-        """Slytherin Common Room has hidden evidence."""
+    def test_iron_lodge_common_room_has_evidence(self, case_data):
+        """Iron Lodge Common Room has hidden evidence."""
         from src.case_store.loader import get_location
 
-        location = get_location(case_data, "slytherin_common_room")
+        location = get_location(case_data, "iron_lodge_common_room")
         assert "hidden_evidence" in location
         assert len(location["hidden_evidence"]) > 0
 
-    def test_slytherin_common_room_evidence_torn_letter(self, case_data):
-        """Slytherin Common Room has torn_letter evidence."""
+    def test_iron_lodge_common_room_evidence_torn_letter(self, case_data):
+        """Iron Lodge Common Room has torn_letter evidence."""
         from src.case_store.loader import get_location
 
-        location = get_location(case_data, "slytherin_common_room")
+        location = get_location(case_data, "iron_lodge_common_room")
         evidence_ids = [e["id"] for e in location["hidden_evidence"]]
         assert "torn_letter" in evidence_ids
 

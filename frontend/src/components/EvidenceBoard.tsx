@@ -138,7 +138,7 @@ export function EvidenceBoard({
  *
  * @example
  * formatEvidenceId("hidden_note") // "Hidden Note"
- * formatEvidenceId("wand_signature") // "Wand Signature"
+ * formatEvidenceId("focus_signature") // "Focus Signature"
  */
 function formatEvidenceId(id: string): string {
   return id

@@ -13,62 +13,62 @@ class TestSpellDefinitions:
     """Tests for SPELL_DEFINITIONS constant."""
 
     def test_has_seven_spells(self) -> None:
-        """SPELL_DEFINITIONS contains exactly 7 spells."""
+        """SPELL_DEFINITIONS contains exactly 7 rites."""
         assert len(SPELL_DEFINITIONS) == 7
 
-    def test_has_revelio(self) -> None:
-        """Contains Revelio spell."""
-        assert "revelio" in SPELL_DEFINITIONS
-        spell = SPELL_DEFINITIONS["revelio"]
-        assert spell["name"] == "Revelio"
+    def test_has_unveil(self) -> None:
+        """Contains Unveil spell."""
+        assert "unveil" in SPELL_DEFINITIONS
+        spell = SPELL_DEFINITIONS["unveil"]
+        assert spell["name"] == "Unveil"
         assert spell["safety_level"] == "safe"
         assert spell["category"] == "detection"
 
-    def test_has_homenum_revelio(self) -> None:
-        """Contains Homenum Revelio spell."""
-        assert "homenum_revelio" in SPELL_DEFINITIONS
-        spell = SPELL_DEFINITIONS["homenum_revelio"]
-        assert spell["name"] == "Homenum Revelio"
+    def test_has_sense_presence(self) -> None:
+        """Contains Sense Presence spell."""
+        assert "sense_presence" in SPELL_DEFINITIONS
+        spell = SPELL_DEFINITIONS["sense_presence"]
+        assert spell["name"] == "Sense Presence"
         assert spell["safety_level"] == "safe"
         assert spell["category"] == "detection"
 
-    def test_has_specialis_revelio(self) -> None:
-        """Contains Specialis Revelio spell."""
-        assert "specialis_revelio" in SPELL_DEFINITIONS
-        spell = SPELL_DEFINITIONS["specialis_revelio"]
-        assert spell["name"] == "Specialis Revelio"
+    def test_has_identify_substance(self) -> None:
+        """Contains Identify Substance spell."""
+        assert "identify_substance" in SPELL_DEFINITIONS
+        spell = SPELL_DEFINITIONS["identify_substance"]
+        assert spell["name"] == "Identify Substance"
         assert spell["safety_level"] == "safe"
         assert spell["category"] == "analysis"
 
-    def test_has_lumos(self) -> None:
-        """Contains Lumos spell."""
-        assert "lumos" in SPELL_DEFINITIONS
-        spell = SPELL_DEFINITIONS["lumos"]
-        assert spell["name"] == "Lumos"
+    def test_has_raise_the_lamp(self) -> None:
+        """Contains Raise the Lamp spell."""
+        assert "raise_the_lamp" in SPELL_DEFINITIONS
+        spell = SPELL_DEFINITIONS["raise_the_lamp"]
+        assert spell["name"] == "Raise the Lamp"
         assert spell["safety_level"] == "safe"
         assert spell["category"] == "detection"
 
-    def test_has_prior_incantato(self) -> None:
-        """Contains Prior Incantato spell."""
-        assert "prior_incantato" in SPELL_DEFINITIONS
-        spell = SPELL_DEFINITIONS["prior_incantato"]
-        assert spell["name"] == "Prior Incantato"
+    def test_has_echo_reading(self) -> None:
+        """Contains Echo Reading spell."""
+        assert "echo_reading" in SPELL_DEFINITIONS
+        spell = SPELL_DEFINITIONS["echo_reading"]
+        assert spell["name"] == "Echo Reading"
         assert spell["safety_level"] == "safe"
         assert spell["category"] == "analysis"
 
-    def test_has_reparo(self) -> None:
-        """Contains Reparo spell."""
-        assert "reparo" in SPELL_DEFINITIONS
-        spell = SPELL_DEFINITIONS["reparo"]
-        assert spell["name"] == "Reparo"
+    def test_has_mend(self) -> None:
+        """Contains Mend spell."""
+        assert "mend" in SPELL_DEFINITIONS
+        spell = SPELL_DEFINITIONS["mend"]
+        assert spell["name"] == "Mend"
         assert spell["safety_level"] == "safe"
         assert spell["category"] == "restoration"
 
-    def test_has_legilimency(self) -> None:
-        """Contains Legilimency spell (restricted)."""
-        assert "legilimency" in SPELL_DEFINITIONS
-        spell = SPELL_DEFINITIONS["legilimency"]
-        assert spell["name"] == "Legilimency"
+    def test_has_mnemonic_delving(self) -> None:
+        """Contains Mnemonic Delving spell (restricted)."""
+        assert "mnemonic_delving" in SPELL_DEFINITIONS
+        spell = SPELL_DEFINITIONS["mnemonic_delving"]
+        assert spell["name"] == "Mnemonic Delving"
         assert spell["safety_level"] == "restricted"
         assert spell["category"] == "mental"
 
@@ -105,9 +105,9 @@ class TestGetSpell:
 
     def test_get_existing_spell(self) -> None:
         """Get existing spell returns spell dict."""
-        spell = get_spell("revelio")
+        spell = get_spell("unveil")
         assert spell is not None
-        assert spell["name"] == "Revelio"
+        assert spell["name"] == "Unveil"
 
     def test_get_nonexistent_spell(self) -> None:
         """Get nonexistent spell returns None."""
@@ -116,9 +116,9 @@ class TestGetSpell:
 
     def test_case_insensitive(self) -> None:
         """Get spell is case insensitive."""
-        spell_lower = get_spell("revelio")
-        spell_upper = get_spell("REVELIO")
-        spell_mixed = get_spell("ReVeLiO")
+        spell_lower = get_spell("unveil")
+        spell_upper = get_spell("UNVEIL")
+        spell_mixed = get_spell("UnVeil")
 
         assert spell_lower is not None
         assert spell_upper is not None
@@ -127,7 +127,7 @@ class TestGetSpell:
 
     def test_get_restricted_spell(self) -> None:
         """Get restricted spell returns correct data."""
-        spell = get_spell("legilimency")
+        spell = get_spell("mnemonic_delving")
         assert spell is not None
         assert spell["safety_level"] == "restricted"
 
@@ -135,23 +135,23 @@ class TestGetSpell:
 class TestIsRestrictedSpell:
     """Tests for is_restricted_spell function."""
 
-    def test_legilimency_is_restricted(self) -> None:
-        """Legilimency is restricted."""
-        assert is_restricted_spell("legilimency") is True
+    def test_mnemonic_delving_is_restricted(self) -> None:
+        """Mnemonic Delving is restricted."""
+        assert is_restricted_spell("mnemonic_delving") is True
 
-    def test_revelio_not_restricted(self) -> None:
-        """Revelio is not restricted."""
-        assert is_restricted_spell("revelio") is False
+    def test_unveil_not_restricted(self) -> None:
+        """Unveil is not restricted."""
+        assert is_restricted_spell("unveil") is False
 
     def test_all_safe_spells_not_restricted(self) -> None:
         """All safe spells are not restricted."""
         safe_spells = [
-            "revelio",
-            "homenum_revelio",
-            "specialis_revelio",
-            "lumos",
-            "prior_incantato",
-            "reparo",
+            "unveil",
+            "sense_presence",
+            "identify_substance",
+            "raise_the_lamp",
+            "echo_reading",
+            "mend",
         ]
 
         for spell_id in safe_spells:
@@ -169,12 +169,12 @@ class TestListSpells:
         """List safe spells returns 6 spells."""
         safe = list_safe_spells()
         assert len(safe) == 6
-        assert "legilimency" not in safe
-        assert "revelio" in safe
+        assert "mnemonic_delving" not in safe
+        assert "unveil" in safe
 
     def test_list_all_spells(self) -> None:
-        """List all spells returns 7 spells."""
+        """List all spells returns 7 rites."""
         all_spells = list_all_spells()
         assert len(all_spells) == 7
-        assert "legilimency" in all_spells
-        assert "revelio" in all_spells
+        assert "mnemonic_delving" in all_spells
+        assert "unveil" in all_spells

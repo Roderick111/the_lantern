@@ -82,7 +82,7 @@ class TestLocationEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == "library"
-        assert "Restricted Section" in data["name"]
+        assert "Sealed Stacks" in data["name"]
         assert "description" in data
         assert "surface_elements" in data
 
@@ -95,7 +95,7 @@ class TestLocationEndpoint:
         data = response.json()
         assert "witnesses_present" in data
         assert isinstance(data["witnesses_present"], list)
-        assert "hermione" in data["witnesses_present"]
+        assert "elena" in data["witnesses_present"]
 
     @pytest.mark.asyncio
     async def test_get_location_not_found(self, client: AsyncClient) -> None:
@@ -415,7 +415,7 @@ class TestResetCaseEndpoint:
         await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
+                "accused_suspect_id": "cassian",
                 "reasoning": "Test.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -477,8 +477,8 @@ class TestWitnessesEndpoint:
         assert len(data) >= 2
 
         witness_ids = [w["id"] for w in data]
-        assert "hermione" in witness_ids
-        assert "draco" in witness_ids
+        assert "elena" in witness_ids
+        assert "cassian" in witness_ids
 
     @pytest.mark.asyncio
     async def test_list_witnesses_includes_trust(self, client: AsyncClient) -> None:
@@ -491,11 +491,11 @@ class TestWitnessesEndpoint:
         assert response.status_code == 200
         data = response.json()
 
-        hermione = next(w for w in data if w["id"] == "hermione")
-        draco = next(w for w in data if w["id"] == "draco")
+        elena = next(w for w in data if w["id"] == "elena")
+        cassian = next(w for w in data if w["id"] == "cassian")
 
-        assert hermione["trust"] == 55  # base_trust
-        assert draco["trust"] == 30  # base_trust
+        assert elena["trust"] == 55  # base_trust
+        assert cassian["trust"] == 30  # base_trust
 
 
 class TestWitnessInfoEndpoint:
@@ -505,21 +505,21 @@ class TestWitnessInfoEndpoint:
     async def test_get_witness_info(self, client: AsyncClient) -> None:
         """Get witness information."""
         response = await client.get(
-            "/api/witness/hermione",
+            "/api/witness/elena",
             params={"case_id": "case_001"},
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] == "hermione"
-        assert data["name"] == "Hermione Granger"
+        assert data["id"] == "elena"
+        assert data["name"] == "Elena Marsh"
         assert data["trust"] == 55
 
     @pytest.mark.asyncio
     async def test_get_witness_not_found(self, client: AsyncClient) -> None:
         """404 for nonexistent witness."""
         response = await client.get(
-            "/api/witness/voldemort",
+            "/api/witness/moriarty",
             params={"case_id": "case_001"},
         )
 
@@ -547,7 +547,7 @@ class TestInterrogateEndpoint:
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "question": "Where were you that night?",
                     "case_id": "case_001",
                     "player_id": "test_interrogate_player",
@@ -576,7 +576,7 @@ class TestInterrogateEndpoint:
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "question": "I understand this must be difficult.",
                     "case_id": "case_001",
                     "player_id": "test_empathy_player",
@@ -603,7 +603,7 @@ class TestInterrogateEndpoint:
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "question": "You're lying! I know you did it!",
                     "case_id": "case_001",
                     "player_id": "test_aggressive_player",
@@ -621,7 +621,7 @@ class TestInterrogateEndpoint:
         response = await client.post(
             "/api/interrogate",
             json={
-                "witness_id": "voldemort",
+                "witness_id": "moriarty",
                 "question": "Where were you?",
                 "case_id": "case_001",
                 "player_id": "test_player",
@@ -645,7 +645,7 @@ class TestPresentEvidenceEndpoint:
         response = await client.post(
             "/api/present-evidence",
             json={
-                "witness_id": "hermione",
+                "witness_id": "elena",
                 "evidence_id": "frost_pattern",
                 "case_id": "case_001",
                 "player_id": "test_undiscovered_evidence",
@@ -681,7 +681,7 @@ class TestPresentEvidenceEndpoint:
             response = await client.post(
                 "/api/present-evidence",
                 json={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "evidence_id": "frost_pattern",
                     "case_id": "case_001",
                     "player_id": "test_present_evidence",
@@ -718,7 +718,7 @@ class TestSubmitVerdictEndpoint:
                 "analysis": "Mock analysis of reasoning quality.",
             }
 
-        mock_moody = "CONSTANT VIGILANCE! Your reasoning shows promise, but keep digging."
+        mock_graves = "Trust nothing unseen! Your reasoning shows promise, but keep digging."
 
         with (
             patch(
@@ -726,10 +726,10 @@ class TestSubmitVerdictEndpoint:
                 side_effect=mock_evaluator,
             ) as self.mock_eval,
             patch(
-                "src.api.routes.verdict.build_moody_feedback_llm",
+                "src.api.routes.verdict.build_graves_feedback_llm",
                 new_callable=AsyncMock,
-                return_value=mock_moody,
-            ) as self.mock_moody,
+                return_value=mock_graves,
+            ) as self.mock_graves,
         ):
             yield
 
@@ -739,9 +739,9 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "dobby",
-                "reasoning": "Dobby's binding magic combined with Draco's ritual caused the petrification.",
-                "evidence_cited": ["frost_pattern", "wand_signature"],
+                "accused_suspect_id": "wisp",
+                "reasoning": "Wisp's binding magic combined with Cassian's ritual caused the paralytic binding.",
+                "evidence_cited": ["frost_pattern", "focus_signature"],
                 "case_id": "case_001",
                 "player_id": "test_correct_verdict",
             },
@@ -760,7 +760,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "She was there so she did it.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -784,7 +784,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "dobby",
+                "accused_suspect_id": "wisp",
                 "reasoning": "The frost pattern proves it.",
                 "evidence_cited": ["frost_pattern"],
                 "case_id": "case_001",
@@ -812,7 +812,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "She was present in the library so she did it.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -834,7 +834,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "She was there.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -853,8 +853,8 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "dobby",
-                "reasoning": "Dobby's binding magic completed the petrification.",
+                "accused_suspect_id": "wisp",
+                "reasoning": "Wisp's binding magic completed the paralytic binding.",
                 "evidence_cited": ["frost_pattern"],
                 "case_id": "case_001",
                 "player_id": "test_confrontation",
@@ -876,7 +876,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "Wrong guess.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -889,7 +889,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "Wrong again.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -904,7 +904,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
+                "accused_suspect_id": "cassian",
                 "reasoning": "Test",
                 "evidence_cited": [],
                 "case_id": "nonexistent_case",
@@ -921,9 +921,9 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
-                "reasoning": "The frost pattern matches Draco's wand signature. The witness testimony confirms it.",
-                "evidence_cited": ["frost_pattern", "wand_signature"],
+                "accused_suspect_id": "cassian",
+                "reasoning": "The frost pattern matches Cassian's focus signature. The witness testimony confirms it.",
+                "evidence_cited": ["frost_pattern", "focus_signature"],
                 "case_id": "case_001",
                 "player_id": "test_scoring_good",
             },
@@ -935,7 +935,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "x",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -953,9 +953,9 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "dobby",
-                "reasoning": "The frost pattern and wand signature prove the spell combination.",
-                "evidence_cited": ["frost_pattern", "wand_signature"],
+                "accused_suspect_id": "wisp",
+                "reasoning": "The frost pattern and focus signature prove the spell combination.",
+                "evidence_cited": ["frost_pattern", "focus_signature"],
                 "case_id": "case_001",
                 "player_id": "test_quality",
             },
@@ -974,7 +974,7 @@ class TestSubmitVerdictEndpoint:
         first_response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "dobby",
+                "accused_suspect_id": "wisp",
                 "reasoning": "Correct verdict.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -988,7 +988,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "Testing retry.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -1009,7 +1009,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "Wrong.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -1025,7 +1025,7 @@ class TestSubmitVerdictEndpoint:
             response = await client.post(
                 "/api/submit-verdict",
                 json={
-                    "accused_suspect_id": "hermione",
+                    "accused_suspect_id": "elena",
                     "reasoning": "Wrong.",
                     "evidence_cited": [],
                     "case_id": "case_001",
@@ -1042,7 +1042,7 @@ class TestSubmitVerdictEndpoint:
     async def test_submit_verdict_confrontation_for_wrong_with_show_anyway(
         self, client: AsyncClient
     ) -> None:
-        """Wrong verdict for hermione shows confrontation (confrontation_anyway: true)."""
+        """Wrong verdict for elena shows confrontation (confrontation_anyway: true)."""
         player_id = "test_confrontation_anyway"
 
         # Use up all attempts to trigger confrontation for wrong verdict
@@ -1050,7 +1050,7 @@ class TestSubmitVerdictEndpoint:
             response = await client.post(
                 "/api/submit-verdict",
                 json={
-                    "accused_suspect_id": "hermione",
+                    "accused_suspect_id": "elena",
                     "reasoning": "Wrong.",
                     "evidence_cited": [],
                     "case_id": "case_001",
@@ -1117,16 +1117,16 @@ class TestPhase44ConversationPersistence:
         assert "timestamp" in state.conversation_history[1]
 
     @pytest.mark.asyncio
-    async def test_tom_chat_saves_player_and_tom_messages(self, client: AsyncClient) -> None:
-        """Test Tom chat endpoint appends player + Tom to conversation_history."""
-        player_id = "test_tom_convo_1"
-        tom_response = "Interesting observation, but perhaps you're missing something..."
+    async def test_matthew_chat_saves_player_and_matthew_messages(self, client: AsyncClient) -> None:
+        """Test Matthew chat endpoint appends player + Matthew to conversation_history."""
+        player_id = "test_matthew_convo_1"
+        matthew_response = "Interesting observation, but perhaps you're missing something..."
 
-        with patch("src.context.tom_llm.generate_tom_response") as mock_generate:
-            mock_generate.return_value = (tom_response, "helpful")
+        with patch("src.context.matthew_llm.generate_matthew_response") as mock_generate:
+            mock_generate.return_value = (matthew_response, "helpful")
 
             await client.post(
-                "/api/case/case_001/tom/chat",
+                "/api/case/case_001/matthew/chat",
                 params={"player_id": player_id},
                 json={"message": "What do you think about this case?"},
             )
@@ -1142,23 +1142,23 @@ class TestPhase44ConversationPersistence:
         assert state.conversation_history[0]["type"] == "player"
         assert state.conversation_history[0]["text"] == "What do you think about this case?"
 
-        # Second message is tom
-        assert state.conversation_history[1]["type"] == "tom"
-        assert state.conversation_history[1]["text"] == tom_response
+        # Second message is matthew
+        assert state.conversation_history[1]["type"] == "matthew"
+        assert state.conversation_history[1]["text"] == matthew_response
 
     @pytest.mark.asyncio
-    async def test_tom_auto_comment_saves_only_tom_message(self, client: AsyncClient) -> None:
-        """Test Tom auto-comment endpoint appends only Tom message (no player message)."""
-        player_id = "test_tom_auto_1"
-        tom_response = "Hmm, this evidence seems suspicious..."
+    async def test_matthew_auto_comment_saves_only_matthew_message(self, client: AsyncClient) -> None:
+        """Test Matthew auto-comment endpoint appends only Matthew message (no player message)."""
+        player_id = "test_matthew_auto_1"
+        matthew_response = "Hmm, this evidence seems suspicious..."
 
-        with patch("src.context.tom_llm.check_tom_should_comment") as mock_check:
+        with patch("src.context.matthew_llm.check_matthew_should_comment") as mock_check:
             mock_check.return_value = True
-            with patch("src.context.tom_llm.generate_tom_response") as mock_generate:
-                mock_generate.return_value = (tom_response, "helpful")
+            with patch("src.context.matthew_llm.generate_matthew_response") as mock_generate:
+                mock_generate.return_value = (matthew_response, "helpful")
 
                 await client.post(
-                    "/api/case/case_001/tom/auto-comment",
+                    "/api/case/case_001/matthew/auto-comment",
                     params={"player_id": player_id},
                     json={"is_critical": True},
                 )
@@ -1170,9 +1170,9 @@ class TestPhase44ConversationPersistence:
         assert state is not None
         assert len(state.conversation_history) == 1
 
-        # Only tom message (no player message for auto-comment)
-        assert state.conversation_history[0]["type"] == "tom"
-        assert state.conversation_history[0]["text"] == tom_response
+        # Only matthew message (no player message for auto-comment)
+        assert state.conversation_history[0]["type"] == "matthew"
+        assert state.conversation_history[0]["text"] == matthew_response
 
     @pytest.mark.asyncio
     async def test_conversation_persists_through_save_load_cycle(
@@ -1563,33 +1563,33 @@ class TestPhase45NarratorConversationMemory:
                 assert history[0]["response"] == "First response."
 
 
-class TestLegilimencyInterrogation:
-    """Tests for Legilimency spell in witness interrogation (Phase 4.6.2).
+class TestMnemonicDelvingInterrogation:
+    """Tests for Mnemonic Delving spell in witness interrogation (Phase 4.6.2).
 
     Phase 4.6.2 Changes:
-    - Legilimency now executes instantly (no warning/confirmation flow)
+    - Mnemonic Delving now executes instantly (no warning/confirmation flow)
     - Programmatic outcomes based on trust threshold (70)
     - Random trust penalty [5, 10, 15, 20]
     - Focused vs unfocused detection based on search intent
     """
 
     @pytest.mark.asyncio
-    async def test_legilimency_instant_execution(self, client: AsyncClient) -> None:
-        """Phase 4.6.2: Legilimency executes instantly with LLM narration."""
+    async def test_mnemonic_delving_instant_execution(self, client: AsyncClient) -> None:
+        """Phase 4.6.2: Mnemonic Delving executes instantly with LLM narration."""
         with patch("src.api.routes.witnesses.get_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(
-                return_value="You slip into Hermione's mind, finding a chaotic swirl of memories..."
+                return_value="You slip into Elena's mind, finding a chaotic swirl of memories..."
             )
             mock_get_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "I cast legilimency on Hermione",
+                    "witness_id": "elena",
+                    "question": "I cast mnemonic_delving on Elena",
                     "case_id": "case_001",
-                    "player_id": "test_legilimency_instant",
+                    "player_id": "test_mnemonic_delving_instant",
                 },
             )
 
@@ -1602,22 +1602,22 @@ class TestLegilimencyInterrogation:
         assert data["trust_delta"] in [0, -5, -10, -15, -20]
 
     @pytest.mark.asyncio
-    async def test_legilimency_focused_detection(self, client: AsyncClient) -> None:
-        """Phase 4.6.2: Focused Legilimency detected via 'about X' pattern."""
+    async def test_mnemonic_delving_focused_detection(self, client: AsyncClient) -> None:
+        """Phase 4.6.2: Focused Mnemonic Delving detected via 'about X' pattern."""
         with patch("src.api.routes.witnesses.get_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(
-                return_value="You focus on finding information about Draco..."
+                return_value="You focus on finding information about Cassian..."
             )
             mock_get_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "use legilimency on her to find out about draco",
+                    "witness_id": "elena",
+                    "question": "use mnemonic_delving on her to find out about cassian",
                     "case_id": "case_001",
-                    "player_id": "test_legilimency_focused",
+                    "player_id": "test_mnemonic_delving_focused",
                 },
             )
 
@@ -1628,8 +1628,8 @@ class TestLegilimencyInterrogation:
         assert data["trust_delta"] in [0, -5, -10, -15, -20]
 
     @pytest.mark.asyncio
-    async def test_legilimency_semantic_phrase_detection(self, client: AsyncClient) -> None:
-        """Phase 4.6.2: Legilimency detected via semantic phrases like 'read her mind'."""
+    async def test_mnemonic_delving_semantic_phrase_detection(self, client: AsyncClient) -> None:
+        """Phase 4.6.2: Mnemonic Delving detected via semantic phrases like 'read her mind'."""
         with patch("src.api.routes.witnesses.get_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(return_value="You attempt to read her thoughts...")
@@ -1638,10 +1638,10 @@ class TestLegilimencyInterrogation:
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "I cast legilimency on her",
+                    "witness_id": "elena",
+                    "question": "I cast mnemonic_delving on her",
                     "case_id": "case_001",
-                    "player_id": "test_legilimency_fuzzy",
+                    "player_id": "test_mnemonic_delving_fuzzy",
                 },
             )
 
@@ -1653,19 +1653,19 @@ class TestLegilimencyInterrogation:
 
     @pytest.mark.asyncio
     async def test_other_spell_in_interrogation_handled(self, client: AsyncClient) -> None:
-        """Non-Legilimency safe spells are handled in interrogation via LLM."""
+        """Non-Mnemonic Delving safe spells are handled in interrogation via LLM."""
         with patch("src.api.routes.witnesses.get_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(
-                return_value="You cast Revelio but it's better used during investigation."
+                return_value="You cast Unveil but it's better used during investigation."
             )
             mock_get_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "I cast revelio",
+                    "witness_id": "elena",
+                    "question": "I cast unveil",
                     "case_id": "case_001",
                     "player_id": "test_other_spell",
                 },
@@ -1677,7 +1677,7 @@ class TestLegilimencyInterrogation:
 
     @pytest.mark.asyncio
     async def test_no_false_positives_conversational(self, client: AsyncClient) -> None:
-        """Phase 4.6.2: Conversational phrases don't trigger Legilimency."""
+        """Phase 4.6.2: Conversational phrases don't trigger Mnemonic Delving."""
         with patch("src.api.routes.witnesses.get_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(return_value="I'm not sure what you mean by that.")
@@ -1686,7 +1686,7 @@ class TestLegilimencyInterrogation:
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "question": "What's in your mind right now?",
                     "case_id": "case_001",
                     "player_id": "test_no_false_positive",
@@ -1696,7 +1696,7 @@ class TestLegilimencyInterrogation:
         assert response.status_code == 200
         data = response.json()
 
-        # Should NOT trigger Legilimency (no random trust penalty)
+        # Should NOT trigger Mnemonic Delving (no random trust penalty)
         # Normal interrogation trust delta depends on tone
         assert data["trust_delta"] != -5 or data["trust_delta"] == 0
 
@@ -1710,27 +1710,27 @@ class TestLegilimencyInterrogation:
         assert ws.awaiting_spell_confirmation is None
 
         # Set field
-        ws.awaiting_spell_confirmation = "legilimency"
-        assert ws.awaiting_spell_confirmation == "legilimency"
+        ws.awaiting_spell_confirmation = "mnemonic_delving"
+        assert ws.awaiting_spell_confirmation == "mnemonic_delving"
 
         # Clear field
         ws.awaiting_spell_confirmation = None
         assert ws.awaiting_spell_confirmation is None
 
     @pytest.mark.asyncio
-    async def test_legilimency_trust_penalty_applied(self, client: AsyncClient) -> None:
-        """Phase 4.6.2: Trust drops by random [5, 10, 15, 20] on Legilimency."""
-        player_id = "test_legilimency_trust_penalty"
+    async def test_mnemonic_delving_trust_penalty_applied(self, client: AsyncClient) -> None:
+        """Phase 4.6.2: Trust drops by random [5, 10, 15, 20] on Mnemonic Delving."""
+        player_id = "test_mnemonic_delving_trust_penalty"
 
         # Get initial trust
         witness_response = await client.get(
-            "/api/witness/hermione",
+            "/api/witness/elena",
             params={"case_id": "case_001", "player_id": player_id},
         )
         initial_trust = witness_response.json()["trust"]
 
-        # Cast Legilimency (instant execution in Phase 4.6.2)
-        with patch("src.api.routes.witnesses.get_client") as mock_get_client,              patch("src.api.routes.legilimency.get_client") as mock_legi_client:
+        # Cast Mnemonic Delving (instant execution in Phase 4.6.2)
+        with patch("src.api.routes.witnesses.get_client") as mock_get_client,              patch("src.api.routes.mnemonic_delving.get_client") as mock_legi_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(
                 return_value="You probe her thoughts, finding scattered memories..."
@@ -1741,8 +1741,8 @@ class TestLegilimencyInterrogation:
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "cast legilimency on her",
+                    "witness_id": "elena",
+                    "question": "cast mnemonic_delving on her",
                     "case_id": "case_001",
                     "player_id": player_id,
                 },
@@ -1754,7 +1754,7 @@ class TestLegilimencyInterrogation:
 
         # Verify final trust reflects the penalty
         witness_response = await client.get(
-            "/api/witness/hermione",
+            "/api/witness/elena",
             params={"case_id": "case_001", "player_id": player_id},
         )
         final_trust = witness_response.json()["trust"]
@@ -1774,13 +1774,13 @@ class TestPhase47SpellSuccessSystem:
     def mock_success_response(self) -> str:
         """Mock response for successful spell."""
         return (
-            "Your Revelio charm reveals a hidden parchment under the desk. [EVIDENCE: hidden_note]"
+            "Your Unveil charm reveals a hidden parchment under the desk. [EVIDENCE: hidden_note]"
         )
 
     @pytest.fixture
     def mock_failure_response(self) -> str:
         """Mock response for failed spell."""
-        return "Your Revelio charm fizzles and dissipates before finding anything of note."
+        return "Your Unveil charm fizzles and dissipates before finding anything of note."
 
     @pytest.mark.asyncio
     async def test_spell_attempt_tracking_initialized(self, client: AsyncClient) -> None:
@@ -1823,7 +1823,7 @@ class TestPhase47SpellSuccessSystem:
                 await client.post(
                     "/api/investigate",
                     json={
-                        "player_input": "cast revelio on desk",
+                        "player_input": "cast unveil on desk",
                         "case_id": "case_001",
                         "location_id": "library",
                         "player_id": player_id,
@@ -1836,8 +1836,8 @@ class TestPhase47SpellSuccessSystem:
         state = load_player_state("case_001", player_id, "autosave")
         assert state is not None
         assert "library" in state.spell_attempts_by_location
-        assert "revelio" in state.spell_attempts_by_location["library"]
-        assert state.spell_attempts_by_location["library"]["revelio"] == 1
+        assert "unveil" in state.spell_attempts_by_location["library"]
+        assert state.spell_attempts_by_location["library"]["unveil"] == 1
 
     @pytest.mark.asyncio
     async def test_multiple_spell_attempts_tracked_separately(
@@ -1852,22 +1852,22 @@ class TestPhase47SpellSuccessSystem:
             mock_get_client.return_value = mock_client
 
             with patch("src.context.spell_detection.random.random", return_value=0.5):
-                # Cast revelio
+                # Cast unveil
                 await client.post(
                     "/api/investigate",
                     json={
-                        "player_input": "cast revelio",
+                        "player_input": "cast unveil",
                         "case_id": "case_001",
                         "location_id": "library",
                         "player_id": player_id,
                     },
                 )
 
-                # Cast lumos
+                # Cast raise_the_lamp
                 await client.post(
                     "/api/investigate",
                     json={
-                        "player_input": "lumos",
+                        "player_input": "raise_the_lamp",
                         "case_id": "case_001",
                         "location_id": "library",
                         "player_id": player_id,
@@ -1877,8 +1877,8 @@ class TestPhase47SpellSuccessSystem:
         from src.state.persistence import load_player_state
 
         state = load_player_state("case_001", player_id, "autosave")
-        assert state.spell_attempts_by_location["library"]["revelio"] == 1
-        assert state.spell_attempts_by_location["library"]["lumos"] == 1
+        assert state.spell_attempts_by_location["library"]["unveil"] == 1
+        assert state.spell_attempts_by_location["library"]["raise_the_lamp"] == 1
 
     @pytest.mark.asyncio
     async def test_spell_attempts_tracking_structure(
@@ -1893,23 +1893,23 @@ class TestPhase47SpellSuccessSystem:
             mock_get_client.return_value = mock_client
 
             with patch("src.context.spell_detection.random.random", return_value=0.5):
-                # Cast revelio twice
+                # Cast unveil twice
                 for _ in range(2):
                     await client.post(
                         "/api/investigate",
                         json={
-                            "player_input": "cast revelio",
+                            "player_input": "cast unveil",
                             "case_id": "case_001",
                             "location_id": "library",
                             "player_id": player_id,
                         },
                     )
 
-                # Cast lumos once
+                # Cast raise_the_lamp once
                 await client.post(
                     "/api/investigate",
                     json={
-                        "player_input": "cast lumos",
+                        "player_input": "cast raise_the_lamp",
                         "case_id": "case_001",
                         "location_id": "library",
                         "player_id": player_id,
@@ -1921,25 +1921,25 @@ class TestPhase47SpellSuccessSystem:
         state = load_player_state("case_001", player_id, "autosave")
         # Verify nested structure: {location: {spell: count}}
         assert "library" in state.spell_attempts_by_location
-        assert state.spell_attempts_by_location["library"]["revelio"] == 2
-        assert state.spell_attempts_by_location["library"]["lumos"] == 1
+        assert state.spell_attempts_by_location["library"]["unveil"] == 2
+        assert state.spell_attempts_by_location["library"]["raise_the_lamp"] == 1
 
     @pytest.mark.asyncio
-    async def test_legilimency_bypasses_success_calculation(self, client: AsyncClient) -> None:
-        """Legilimency uses trust-based system, not success calculation."""
-        player_id = "test_legilimency_bypass"
+    async def test_mnemonic_delving_bypasses_success_calculation(self, client: AsyncClient) -> None:
+        """Mnemonic Delving uses trust-based system, not success calculation."""
+        player_id = "test_mnemonic_delving_bypass"
 
         with patch("src.api.routes.witnesses.get_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(return_value="You probe her mind...")
             mock_get_client.return_value = mock_client
 
-            # Cast Legilimency in interrogation
+            # Cast Mnemonic Delving in interrogation
             await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "cast legilimency",
+                    "witness_id": "elena",
+                    "question": "cast mnemonic_delving",
                     "case_id": "case_001",
                     "player_id": player_id,
                 },
@@ -1948,11 +1948,11 @@ class TestPhase47SpellSuccessSystem:
         from src.state.persistence import load_player_state
 
         state = load_player_state("case_001", player_id, "autosave")
-        # Legilimency should NOT be tracked in spell_attempts_by_location
+        # Mnemonic Delving should NOT be tracked in spell_attempts_by_location
         # (it uses trust-based system instead)
         if state.spell_attempts_by_location:
             for loc_spells in state.spell_attempts_by_location.values():
-                assert "legilimency" not in loc_spells
+                assert "mnemonic_delving" not in loc_spells
 
     @pytest.mark.asyncio
     async def test_spell_outcome_success_passed_to_prompt(
@@ -1974,7 +1974,7 @@ class TestPhase47SpellSuccessSystem:
                     await client.post(
                         "/api/investigate",
                         json={
-                            "player_input": "cast revelio on desk",
+                            "player_input": "cast unveil on desk",
                             "case_id": "case_001",
                             "location_id": "library",
                             "player_id": player_id,
@@ -2005,7 +2005,7 @@ class TestPhase47SpellSuccessSystem:
                     await client.post(
                         "/api/investigate",
                         json={
-                            "player_input": "cast revelio",
+                            "player_input": "cast unveil",
                             "case_id": "case_001",
                             "location_id": "library",
                             "player_id": player_id,
@@ -2037,7 +2037,7 @@ class TestPhase47SpellSuccessSystem:
                     await client.post(
                         "/api/investigate",
                         json={
-                            "player_input": "cast revelio on desk to find hidden clues",
+                            "player_input": "cast unveil on desk to find hidden clues",
                             "case_id": "case_001",
                             "location_id": "library",
                             "player_id": player_id,
@@ -2062,7 +2062,7 @@ class TestPhase47SpellSuccessSystem:
 
             outcomes = []
 
-            # Cast revelio 3 times with roll=65
+            # Cast unveil 3 times with roll=65
             # 1st: 70% > 65% = SUCCESS
             # 2nd: 60% < 65% = FAILURE
             # 3rd: 50% < 65% = FAILURE
@@ -2074,7 +2074,7 @@ class TestPhase47SpellSuccessSystem:
                         await client.post(
                             "/api/investigate",
                             json={
-                                "player_input": "cast revelio",
+                                "player_input": "cast unveil",
                                 "case_id": "case_001",
                                 "location_id": "library",
                                 "player_id": player_id,
@@ -2101,7 +2101,7 @@ class TestPhase47SpellSuccessSystem:
         from src.state.player_state import PlayerState
 
         state = PlayerState(case_id="case_001", current_location="library")
-        state.spell_attempts_by_location = {"library": {"revelio": 10}}
+        state.spell_attempts_by_location = {"library": {"unveil": 10}}
         save_player_state("case_001", player_id, state, "autosave")
 
         with patch("src.api.routes.investigation.get_client") as mock_get_client:
@@ -2117,7 +2117,7 @@ class TestPhase47SpellSuccessSystem:
                     await client.post(
                         "/api/investigate",
                         json={
-                            "player_input": "cast revelio",
+                            "player_input": "cast unveil",
                             "case_id": "case_001",
                             "location_id": "library",
                             "player_id": player_id,
@@ -2159,15 +2159,15 @@ class TestPhase47SpellSuccessSystem:
     async def test_all_safe_spells_use_success_calculation(
         self, client: AsyncClient, mock_success_response: str
     ) -> None:
-        """All 6 safe investigation spells use success calculation."""
+        """All 6 safe investigation rites use success calculation."""
         player_id = "test_all_safe_spells"
         safe_spells = [
-            "revelio",
-            "lumos",
-            "homenum_revelio",
-            "specialis_revelio",
-            "prior_incantato",
-            "reparo",
+            "unveil",
+            "raise_the_lamp",
+            "sense_presence",
+            "identify_substance",
+            "echo_reading",
+            "mend",
         ]
 
         with patch("src.api.routes.investigation.get_client") as mock_get_client:

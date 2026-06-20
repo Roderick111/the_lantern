@@ -200,8 +200,8 @@ class TestShouldLie:
             "lies": [
                 {
                     "condition": "trust<30",
-                    "topics": ["draco", "malfoy"],
-                    "response": "I didn't see Draco.",
+                    "topics": ["cassian", "thorne"],
+                    "response": "I didn't see Cassian.",
                 }
             ]
         }
@@ -219,19 +219,19 @@ class TestDetectEvidenceInMessage:
             "library": {
                 "hidden_evidence": [
                     {"id": "hidden_note", "name": "Crumpled Apology Note"},
-                    {"id": "wand_signature", "name": "Snape's Wand Signature"},
+                    {"id": "focus_signature", "name": "Professor Vane's Focus Signature"},
                     {"id": "frost_pattern", "name": "Frost Pattern"},
                 ]
             },
             "kitchen": {
                 "hidden_evidence": [
                     {"id": "kitchen_log", "name": "Kitchen Duty Log"},
-                    {"id": "dobby_frostbite", "name": "Dobby's Frostbite Marks"},
+                    {"id": "wisp_frostbite", "name": "Wisp's Frostbite Marks"},
                 ]
             },
         }
     }
-    ALL_IDS = ["hidden_note", "wand_signature", "frost_pattern", "kitchen_log", "dobby_frostbite"]
+    ALL_IDS = ["hidden_note", "focus_signature", "frost_pattern", "kitchen_log", "wisp_frostbite"]
 
     # --- Explicit verb patterns (backward compat) ---
 
@@ -257,9 +257,9 @@ class TestDetectEvidenceInMessage:
     def test_what_do_you_know(self) -> None:
         """'What do you know about X?' matches."""
         result = detect_evidence_in_message(
-            "What do you know about Snape's wand signature?", self.ALL_IDS, self.CASE_DATA,
+            "What do you know about Professor Vane's focus signature?", self.ALL_IDS, self.CASE_DATA,
         )
-        assert result == "wand_signature"
+        assert result == "focus_signature"
 
     def test_does_this_mean_anything(self) -> None:
         """'Does X mean anything to you?' matches."""
@@ -278,9 +278,9 @@ class TestDetectEvidenceInMessage:
     def test_i_found_evidence(self) -> None:
         """'I found X' matches."""
         result = detect_evidence_in_message(
-            "I found Dobby's frostbite marks", self.ALL_IDS, self.CASE_DATA,
+            "I found Wisp's frostbite marks", self.ALL_IDS, self.CASE_DATA,
         )
-        assert result == "dobby_frostbite"
+        assert result == "wisp_frostbite"
 
     def test_id_with_spaces(self) -> None:
         """Evidence ID with underscores matched as spaces."""
@@ -292,9 +292,9 @@ class TestDetectEvidenceInMessage:
     def test_exact_id_mention(self) -> None:
         """Exact evidence ID in message triggers match."""
         result = detect_evidence_in_message(
-            "What's wand_signature about?", self.ALL_IDS, self.CASE_DATA,
+            "What's focus_signature about?", self.ALL_IDS, self.CASE_DATA,
         )
-        assert result == "wand_signature"
+        assert result == "focus_signature"
 
     # --- No false positives ---
 

@@ -50,10 +50,10 @@ const mockCasesResponse: CaseListResponse = {
   cases: [
     {
       id: 'case_001',
-      title: 'The Restricted Section',
+      title: 'The Sealed Stacks',
       difficulty: 'intermediate',
       description:
-        'A third-year student has been found petrified in the Hogwarts Library.',
+        'A third-year student has been found held in stillness in the Blackwood Collegiate Library.',
     },
     {
       id: 'case_002',
@@ -74,9 +74,9 @@ const mockPartialErrorResponse: CaseListResponse = {
   cases: [
     {
       id: 'case_001',
-      title: 'The Restricted Section',
+      title: 'The Sealed Stacks',
       difficulty: 'intermediate',
-      description: 'A student has been found petrified.',
+      description: 'A student has been found held in stillness.',
     },
   ],
   count: 1,
@@ -120,7 +120,7 @@ describe('LandingPage', () => {
 
       render(<LandingPage {...defaultProps} />);
 
-      expect(screen.getByText('AUROR ACADEMY')).toBeInTheDocument();
+      expect(screen.getByText('THE LANTERN')).toBeInTheDocument();
       expect(screen.getByText(/Case Investigation System/i)).toBeInTheDocument();
     });
   });
@@ -213,7 +213,7 @@ describe('LandingPage', () => {
       render(<LandingPage {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getByText(/petrified/i)).toBeInTheDocument();
+        expect(screen.getByText(/held in stillness/i)).toBeInTheDocument();
       });
     });
 

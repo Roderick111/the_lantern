@@ -91,7 +91,7 @@ export function VerdictSubmission({
 
   return (
     <div className="space-y-6">
-      {/* Moody's intro */}
+      {/* Graves's intro */}
       <p className={`${theme.fonts.narrative} italic ${theme.colors.text.muted} text-sm text-center`}>
         "Present your case, cadet. Choose your words carefully."
       </p>

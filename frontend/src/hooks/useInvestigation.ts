@@ -78,7 +78,7 @@ interface UseInvestigationReturn {
 
 /**
  * Convert backend conversation messages to frontend Message format
- * Maps 'tom' type to 'tom_ghost' for rendering compatibility
+ * Maps 'matthew' (and legacy 'tom') to 'matthew_ghost' for rendering
  */
 function convertConversationMessages(
   messages: ConversationMessage[] | null | undefined
@@ -88,10 +88,9 @@ function convertConversationMessages(
   }
 
   return messages.map((msg) => {
-    if (msg.type === 'tom') {
-      // Convert 'tom' backend type to 'tom_ghost' frontend type
+    if (msg.type === 'matthew' || msg.type === 'tom') {
       return {
-        type: 'tom_ghost' as const,
+        type: 'matthew_ghost' as const,
         text: msg.text,
         timestamp: msg.timestamp,
       };

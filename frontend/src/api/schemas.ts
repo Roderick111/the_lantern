@@ -34,7 +34,7 @@ export function formatZodError(error: z.ZodError): string {
  */
 const ConversationMessageSchema = z
   .object({
-    type: z.enum(['player', 'narrator', 'tom']),
+    type: z.enum(['player', 'narrator', 'matthew', 'tom']),
     text: z.string(),
     timestamp: z.number(),
   })
@@ -361,13 +361,13 @@ export const BriefingCompleteResponseSchema = z
 
 
 // ============================================
-// Phase 4: Tom's Inner Voice Schemas
+// Phase 4: Matthew spirit companion schemas
 // ============================================
 
 /**
- * Schema for TomTriggerType
+ * Schema for MatthewTriggerType
  */
-const TomTriggerTypeSchema = z.enum([
+const MatthewTriggerTypeSchema = z.enum([
   'helpful',
   'misleading',
   'self_aware',
@@ -376,24 +376,24 @@ const TomTriggerTypeSchema = z.enum([
 ]);
 
 /**
- * Schema for InnerVoiceTrigger
- * Runtime validation for POST /api/case/{case_id}/inner-voice/check
+ * Schema for MatthewTrigger
+ * Runtime validation for POST /api/case/{case_id}/matthew/triggers/check
  */
-export const InnerVoiceTriggerSchema = z
+export const MatthewTriggerSchema = z
   .object({
     id: z.string(),
     text: z.string(),
-    type: TomTriggerTypeSchema,
+    type: MatthewTriggerTypeSchema,
     tier: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   })
   .strict();
 
 
 /**
- * Schema for TomResponse
- * Runtime validation for Tom LLM endpoints (auto-comment and direct chat)
+ * Schema for MatthewResponse
+ * Runtime validation for Matthew LLM endpoints (auto-comment and direct chat)
  */
-export const TomResponseSchema = z
+export const MatthewResponseSchema = z
   .object({
     text: z.string(),
     mode: z.string(),

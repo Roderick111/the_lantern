@@ -8,5 +8,5 @@ export * from './witnesses';
 export * from './saves';
 export * from './settings';
 export * from './briefing';
-export * from './tom';
+export * from './matthew';
 export * from './verdict';

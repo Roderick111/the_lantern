@@ -28,7 +28,7 @@ class TestLoadCase:
 
         assert "case" in case_data
         assert case_data["case"]["id"] == "case_001"
-        assert case_data["case"]["title"] == "The Restricted Section"
+        assert case_data["case"]["title"] == "The Sealed Stacks"
 
     def test_load_case_has_locations(self) -> None:
         """Case has locations dictionary."""
@@ -52,7 +52,7 @@ class TestGetLocation:
         location = get_location(case_data, "library")
 
         assert location["id"] == "library"
-        assert location["name"] == "Restricted Section"
+        assert location["name"] == "Sealed Stacks"
         assert "description" in location
 
     def test_location_has_description_multiline(self) -> None:
@@ -154,16 +154,16 @@ class TestEvidenceStructure:
         hidden_note = next(e for e in location["hidden_evidence"] if e["id"] == "hidden_note")
         assert "desk" in hidden_note["discovery_guidance"].lower()
 
-    def test_wand_signature_evidence_exists(self) -> None:
-        """wand_signature evidence with Prior Incantato discovery guidance."""
+    def test_focus_signature_evidence_exists(self) -> None:
+        """focus_signature evidence with Echo Reading discovery guidance."""
         case_data = load_case("case_001")
         location = get_location(case_data, "library")
 
         evidence_ids = [e["id"] for e in location["hidden_evidence"]]
-        assert "wand_signature" in evidence_ids
+        assert "focus_signature" in evidence_ids
 
-        wand_sig = next(e for e in location["hidden_evidence"] if e["id"] == "wand_signature")
-        assert "prior incantato" in wand_sig["discovery_guidance"].lower()
+        focus_sig = next(e for e in location["hidden_evidence"] if e["id"] == "focus_signature")
+        assert "echo reading" in focus_sig["discovery_guidance"].lower()
 
 
 class TestLoadWitnesses:
@@ -175,44 +175,44 @@ class TestLoadWitnesses:
         witnesses = load_witnesses(case_data)
 
         assert isinstance(witnesses, dict)
-        assert "hermione" in witnesses
-        assert "draco" in witnesses
+        assert "elena" in witnesses
+        assert "cassian" in witnesses
 
-    def test_get_witness_hermione(self) -> None:
-        """Get Hermione witness data."""
+    def test_get_witness_elena(self) -> None:
+        """Get Elena witness data."""
         case_data = load_case("case_001")
-        hermione = get_witness(case_data, "hermione")
+        elena = get_witness(case_data, "elena")
 
-        assert hermione["name"] == "Hermione Granger"
-        assert hermione["base_trust"] == 55
-        assert "personality" in hermione
-        assert "knowledge" in hermione
-        assert "secrets" in hermione
-        assert "lies" in hermione
+        assert elena["name"] == "Elena Marsh"
+        assert elena["base_trust"] == 55
+        assert "personality" in elena
+        assert "knowledge" in elena
+        assert "secrets" in elena
+        assert "lies" in elena
 
-    def test_get_witness_draco(self) -> None:
-        """Get Draco witness data."""
+    def test_get_witness_cassian(self) -> None:
+        """Get Cassian witness data."""
         case_data = load_case("case_001")
-        draco = get_witness(case_data, "draco")
+        cassian = get_witness(case_data, "cassian")
 
-        assert draco["name"] == "Draco Malfoy"
-        assert draco["base_trust"] == 30
-        assert "personality" in draco
+        assert cassian["name"] == "Cassian Thorne"
+        assert cassian["base_trust"] == 30
+        assert "personality" in cassian
 
     def test_get_witness_not_found_raises(self) -> None:
         """KeyError for missing witness."""
         case_data = load_case("case_001")
 
         with pytest.raises(KeyError):
-            get_witness(case_data, "voldemort")
+            get_witness(case_data, "moriarty")
 
     def test_list_witnesses(self) -> None:
         """list_witnesses returns witness IDs."""
         case_data = load_case("case_001")
         witness_ids = list_witnesses(case_data)
 
-        assert "hermione" in witness_ids
-        assert "draco" in witness_ids
+        assert "elena" in witness_ids
+        assert "cassian" in witness_ids
         assert len(witness_ids) == 4
 
 
@@ -241,18 +241,18 @@ class TestWitnessStructure:
     def test_witness_knowledge_is_list(self) -> None:
         """Witness knowledge is a list of strings."""
         case_data = load_case("case_001")
-        hermione = get_witness(case_data, "hermione")
+        elena = get_witness(case_data, "elena")
 
-        assert isinstance(hermione["knowledge"], list)
-        assert len(hermione["knowledge"]) >= 3
-        assert all(isinstance(k, str) for k in hermione["knowledge"])
+        assert isinstance(elena["knowledge"], list)
+        assert len(elena["knowledge"]) >= 3
+        assert all(isinstance(k, str) for k in elena["knowledge"])
 
     def test_witness_secrets_structure(self) -> None:
         """Witness secrets have id, trigger, text."""
         case_data = load_case("case_001")
-        hermione = get_witness(case_data, "hermione")
+        elena = get_witness(case_data, "elena")
 
-        for secret in hermione["secrets"]:
+        for secret in elena["secrets"]:
             assert "id" in secret, f"Secret missing 'id': {secret}"
             assert "trigger" in secret, f"Secret missing 'trigger': {secret}"
             assert "text" in secret, f"Secret missing 'text': {secret}"
@@ -260,33 +260,33 @@ class TestWitnessStructure:
     def test_witness_lies_structure(self) -> None:
         """Witness lies have condition, topics, response."""
         case_data = load_case("case_001")
-        draco = get_witness(case_data, "draco")
+        cassian = get_witness(case_data, "cassian")
 
-        for lie in draco["lies"]:
+        for lie in cassian["lies"]:
             assert "condition" in lie, f"Lie missing 'condition': {lie}"
             assert "topics" in lie, f"Lie missing 'topics': {lie}"
             assert "response" in lie, f"Lie missing 'response': {lie}"
             assert isinstance(lie["topics"], list)
 
-    def test_hermione_secret_triggers(self) -> None:
-        """Hermione's secrets have valid triggers."""
+    def test_elena_secret_triggers(self) -> None:
+        """Elena's secrets have valid triggers."""
         case_data = load_case("case_001")
-        hermione = get_witness(case_data, "hermione")
+        elena = get_witness(case_data, "elena")
 
-        secret_ids = [s["id"] for s in hermione["secrets"]]
-        assert "teaching_neville" in secret_ids
+        secret_ids = [s["id"] for s in elena["secrets"]]
+        assert "tutoring_a_peer" in secret_ids
         assert "saw_fleeing_figure" in secret_ids
 
-        saw_fleeing = next(s for s in hermione["secrets"] if s["id"] == "saw_fleeing_figure")
+        saw_fleeing = next(s for s in elena["secrets"] if s["id"] == "saw_fleeing_figure")
         assert "trust>70" in saw_fleeing["trigger"]
 
-    def test_draco_base_trust_lower_than_hermione(self) -> None:
-        """Draco starts with lower trust (hostile)."""
+    def test_cassian_base_trust_lower_than_elena(self) -> None:
+        """Cassian starts with lower trust (hostile)."""
         case_data = load_case("case_001")
-        hermione = get_witness(case_data, "hermione")
-        draco = get_witness(case_data, "draco")
+        elena = get_witness(case_data, "elena")
+        cassian = get_witness(case_data, "cassian")
 
-        assert draco["base_trust"] < hermione["base_trust"]
+        assert cassian["base_trust"] < elena["base_trust"]
 
 
 class TestWitnessesPresentField:
@@ -300,12 +300,12 @@ class TestWitnessesPresentField:
         assert "witnesses_present" in location
         assert isinstance(location["witnesses_present"], list)
 
-    def test_library_has_hermione_present(self) -> None:
-        """Library has Hermione as witness present."""
+    def test_library_has_elena_present(self) -> None:
+        """Library has Elena as witness present."""
         case_data = load_case("case_001")
         location = get_location(case_data, "library")
 
-        assert "hermione" in location["witnesses_present"]
+        assert "elena" in location["witnesses_present"]
 
     def test_witnesses_present_defaults_to_empty(self) -> None:
         """Missing witnesses_present defaults to empty list."""
@@ -359,17 +359,17 @@ class TestEvidenceMetadata:
         hidden_note = next(e for e in location["hidden_evidence"] if e["id"] == "hidden_note")
         assert hidden_note["name"] == "Crumpled Apology Note"
         assert hidden_note["location_found"] == "library"
-        assert "hellebore" in hidden_note["description"].lower()
+        assert "nightshade" in hidden_note["description"].lower()
 
-    def test_wand_signature_metadata(self) -> None:
-        """Wand signature has correct metadata."""
+    def test_focus_signature_metadata(self) -> None:
+        """Focus signature has correct metadata."""
         case_data = load_case("case_001")
         location = get_location(case_data, "library")
 
-        wand_sig = next(e for e in location["hidden_evidence"] if e["id"] == "wand_signature")
-        assert wand_sig["name"] == "Snape's Wand Signature"
-        assert wand_sig["location_found"] == "library"
-        assert "finite incantatem" in wand_sig["description"].lower()
+        focus_sig = next(e for e in location["hidden_evidence"] if e["id"] == "focus_signature")
+        assert focus_sig["name"] == "Professor Vane's Focus Signature"
+        assert focus_sig["location_found"] == "library"
+        assert "dispel" in focus_sig["description"].lower()
 
     def test_frost_pattern_metadata(self) -> None:
         """Frost pattern has correct metadata."""
@@ -456,7 +456,7 @@ class TestLoadSolution:
         solution = load_solution(case_data)
 
         assert "culprit" in solution
-        assert solution["culprit"] == "dobby"
+        assert solution["culprit"] == "wisp"
 
     def test_solution_has_method(self) -> None:
         """Solution has method field."""
@@ -495,30 +495,30 @@ class TestLoadWrongSuspects:
 
         assert isinstance(wrong_suspects, dict)
 
-    def test_hermione_in_wrong_suspects(self) -> None:
-        """Hermione is in wrong suspects dict."""
+    def test_elena_in_wrong_suspects(self) -> None:
+        """Elena is in wrong suspects dict."""
         case_data = load_case("case_001")
         wrong_suspects = load_wrong_suspects(case_data)
 
-        assert "hermione" in wrong_suspects
+        assert "elena" in wrong_suspects
 
     def test_wrong_suspect_has_why_innocent(self) -> None:
         """Wrong suspect has why_innocent field."""
         case_data = load_case("case_001")
         wrong_suspects = load_wrong_suspects(case_data)
 
-        hermione = wrong_suspects["hermione"]
-        assert "why_innocent" in hermione
-        assert "timeline" in hermione["why_innocent"].lower()
+        elena = wrong_suspects["elena"]
+        assert "why_innocent" in elena
+        assert "timeline" in elena["why_innocent"].lower()
 
-    def test_wrong_suspect_has_moody_response(self) -> None:
-        """Wrong suspect has moody_response field."""
+    def test_wrong_suspect_has_graves_response(self) -> None:
+        """Wrong suspect has graves_response field."""
         case_data = load_case("case_001")
         wrong_suspects = load_wrong_suspects(case_data)
 
-        hermione = wrong_suspects["hermione"]
-        assert "moody_response" in hermione
-        assert isinstance(hermione["moody_response"], str)
+        elena = wrong_suspects["elena"]
+        assert "graves_response" in elena
+        assert isinstance(elena["graves_response"], str)
 
 
 class TestLoadConfrontation:
@@ -527,7 +527,7 @@ class TestLoadConfrontation:
     def test_load_confrontation_correct_verdict(self) -> None:
         """Load confrontation for correct verdict."""
         case_data = load_case("case_001")
-        confrontation = load_confrontation(case_data, "dobby", correct=True)
+        confrontation = load_confrontation(case_data, "wisp", correct=True)
 
         assert confrontation is not None
         assert "dialogue" in confrontation
@@ -536,25 +536,25 @@ class TestLoadConfrontation:
     def test_confrontation_dialogue_structure(self) -> None:
         """Confrontation dialogue has speaker and text."""
         case_data = load_case("case_001")
-        confrontation = load_confrontation(case_data, "dobby", correct=True)
+        confrontation = load_confrontation(case_data, "wisp", correct=True)
 
         assert len(confrontation["dialogue"]) >= 3
         for entry in confrontation["dialogue"]:
             assert "speaker" in entry
             assert "text" in entry
 
-    def test_confrontation_has_moody(self) -> None:
-        """Confrontation includes Moody dialogue."""
+    def test_confrontation_has_graves(self) -> None:
+        """Confrontation includes Graves dialogue."""
         case_data = load_case("case_001")
-        confrontation = load_confrontation(case_data, "dobby", correct=True)
+        confrontation = load_confrontation(case_data, "wisp", correct=True)
 
         speakers = [d["speaker"] for d in confrontation["dialogue"]]
-        assert "moody" in speakers
+        assert "graves" in speakers
 
     def test_confrontation_has_aftermath(self) -> None:
         """Confrontation has aftermath text."""
         case_data = load_case("case_001")
-        confrontation = load_confrontation(case_data, "dobby", correct=True)
+        confrontation = load_confrontation(case_data, "wisp", correct=True)
 
         assert len(confrontation["aftermath"]) > 50
 
@@ -569,8 +569,8 @@ class TestLoadConfrontation:
     def test_load_confrontation_incorrect_show_anyway(self) -> None:
         """Load confrontation for incorrect verdict with show_anyway=True."""
         case_data = load_case("case_001")
-        # Hermione has confrontation_anyway: true
-        confrontation = load_confrontation(case_data, "hermione", correct=False)
+        # Elena has confrontation_anyway: true
+        confrontation = load_confrontation(case_data, "elena", correct=False)
 
         assert confrontation is not None
         assert "dialogue" in confrontation
@@ -593,7 +593,7 @@ class TestLoadWrongVerdictInfo:
     def test_load_wrong_verdict_info_existing(self) -> None:
         """Load info for existing wrong suspect."""
         case_data = load_case("case_001")
-        info = load_wrong_verdict_info(case_data, "hermione")
+        info = load_wrong_verdict_info(case_data, "elena")
 
         assert info is not None
         assert "reveal" in info
@@ -603,14 +603,14 @@ class TestLoadWrongVerdictInfo:
     def test_wrong_verdict_info_has_reveal(self) -> None:
         """Wrong verdict info has reveal text."""
         case_data = load_case("case_001")
-        info = load_wrong_verdict_info(case_data, "hermione")
+        info = load_wrong_verdict_info(case_data, "elena")
 
-        assert "dobby" in info["reveal"].lower()
+        assert "wisp" in info["reveal"].lower()
 
     def test_wrong_verdict_info_has_teaching_moment(self) -> None:
         """Wrong verdict info has teaching_moment."""
         case_data = load_case("case_001")
-        info = load_wrong_verdict_info(case_data, "hermione")
+        info = load_wrong_verdict_info(case_data, "elena")
 
         assert len(info["teaching_moment"]) > 20
 
@@ -624,6 +624,6 @@ class TestLoadWrongVerdictInfo:
     def test_load_wrong_verdict_info_case_insensitive(self) -> None:
         """Load info is case-insensitive."""
         case_data = load_case("case_001")
-        info = load_wrong_verdict_info(case_data, "HERMIONE")
+        info = load_wrong_verdict_info(case_data, "ELENA")
 
         assert info is not None

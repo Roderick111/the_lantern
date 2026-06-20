@@ -12,8 +12,13 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Card } from "./ui/Card";
 import { investigateStream, isApiError } from "../api/client";
-import { AurorHandbook } from "./AurorHandbook";
+import { LanternCompendium } from "./LanternCompendium";
 import { renderInlineMarkdown } from "../utils/renderInlineMarkdown";
+import {
+  MATTHEW_QUICK_PROMPT,
+  isMatthewMessage,
+  stripMatthewPrefix,
+} from "../utils/matthewInput";
 import { useTheme } from '../context/useTheme';
 import type {
   LocationResponse,
@@ -56,7 +61,7 @@ interface UnifiedMessage {
   /** Unique key for React */
   key: string;
   /** Message type for rendering */
-  type: "player" | "narrator" | "tom_ghost" | "evidence";
+  type: "player" | "narrator" | "matthew_ghost" | "evidence";
   /** Message text */
   text: string;
   /** Timestamp for sorting */
@@ -65,7 +70,7 @@ interface UnifiedMessage {
   evidenceIds?: string[];
   /** Evidence ID → display name map */
   evidenceNames?: Record<string, string>;
-  /** Tom's tone (for tom_ghost type) */
+  /** Matthew's tone (for matthew_ghost type) */
   tone?: "helpful" | "misleading";
 }
 
@@ -95,12 +100,12 @@ interface LocationViewProps {
   _witnessesPresent?: WitnessPresent[];
   /** Callback when witness is clicked for interview (unused - reserved for future feature) */
   _onWitnessClick?: (witnessId: string) => void;
-  /** Inline messages (player, narrator, tom_ghost) for conversation feed */
+  /** Inline messages (player, narrator, matthew_ghost) for conversation feed */
   inlineMessages?: Message[];
-  /** Callback when player sends message to Tom (detected by "tom" prefix) */
-  onTomMessage?: (message: string) => void;
-  /** Whether Tom is currently processing a response */
-  tomLoading?: boolean;
+  /** Callback when player sends message to Matthew (detected by "Matthew," prefix) */
+  onMatthewMessage?: (message: string) => void;
+  /** Whether Matthew is currently processing a response */
+  matthewLoading?: boolean;
   /** Whether to show the location header (name, description) - Phase 6.5 */
   showLocationHeader?: boolean;
   /** Player ID for API calls */
@@ -131,12 +136,6 @@ const MAX_HISTORY_LENGTH = 5;
 // Component
 // ============================================
 
-// Regex for detecting Tom messages
-// Matches: "Tom, ...", "Tom: ...", "Tom ...", "hey Tom ...", "ask Tom ...",
-// "I ask Tom ...", "I tell Tom ...", "tell Tom ...", "talk to Tom ..."
-// Also supports Cyrillic: "Том, ...", "Том ...", etc.
-const TOM_PREFIX_REGEX = /^(?:(?:hey|i\s+(?:ask|tell|want\s+to\s+(?:ask|tell|talk\s+to))|ask|tell|talk\s+to)\s+)?(?:tom|том)[,:\s]+/i;
-
 export function LocationView({
   caseId,
   locationId,
@@ -144,8 +143,8 @@ export function LocationView({
   onEvidenceDiscovered,
   discoveredEvidence = [],
   inlineMessages = [],
-  onTomMessage,
-  tomLoading = false,
+  onMatthewMessage,
+  matthewLoading = false,
   showLocationHeader = true,
   playerId = 'default',
   hintsEnabled = true,
@@ -180,8 +179,8 @@ export function LocationView({
 
   /**
    * Combine history items and inline messages into a single sorted array
-   * This fixes the bug where Tom messages stack at the bottom
-   * Now: User -> Narrator -> Tom -> User -> Narrator -> Tom (chronological)
+   * This fixes the bug where Matthew messages stack at the bottom
+   * Now: User -> Narrator -> Matthew -> User -> Narrator -> Matthew (chronological)
    */
   const unifiedMessages = useMemo((): UnifiedMessage[] => {
     const messages: UnifiedMessage[] = [];
@@ -254,10 +253,10 @@ export function LocationView({
             timestamp: timestamp + 1,
           });
         }
-      } else if (msg.type === "tom_ghost") {
+      } else if (msg.type === "matthew_ghost") {
         messages.push({
-          key: `inline-tom-${index}-${timestamp}`,
-          type: "tom_ghost",
+          key: `inline-matthew-${index}-${timestamp}`,
+          type: "matthew_ghost",
           text: msg.text,
           tone: msg.tone,
           timestamp,
@@ -281,7 +280,7 @@ export function LocationView({
     // Abort any in-flight stream from the previous location.
     streamControllerRef.current?.abort();
     streamControllerRef.current = null;
-    // Clear local history when switching locations (Phase 5.6)
+    // Clear local history when selecting locations (Phase 5.6)
     setHistory([]);
     setIsLoading(false);
     // Scroll to top of page/component to show description
@@ -327,7 +326,7 @@ export function LocationView({
     });
   }, [isLoading, history]);
 
-  // Keyboard shortcut for Auror's Handbook (Cmd/Ctrl+H) - Phase 4.5
+  // Keyboard shortcut for Lantern Compendium (Cmd/Ctrl+H) - Phase 4.5
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "h") {
@@ -348,17 +347,17 @@ export function LocationView({
     prevHandbookTrigger.current = handbookTrigger;
   }, [handbookTrigger]);
 
-  // Check if input is for Tom
-  const isTomInput = useCallback((input: string): boolean => {
-    return TOM_PREFIX_REGEX.test(input.trim());
-  }, []);
+  const isMatthewInput = useCallback(
+    (input: string): boolean => isMatthewMessage(input),
+    [],
+  );
 
-  // Strip Tom prefix from message
-  const stripTomPrefix = useCallback((input: string): string => {
-    return input.trim().replace(TOM_PREFIX_REGEX, "").trim();
-  }, []);
+  const stripMatthewInputPrefix = useCallback(
+    (input: string): string => stripMatthewPrefix(input),
+    [],
+  );
 
-  // Handle form submission (routes to Tom or narrator)
+  // Handle form submission (routes to Matthew or narrator)
   const handleSubmit = useCallback(async () => {
     const trimmedInput = inputValue.trim();
 
@@ -368,12 +367,12 @@ export function LocationView({
       return;
     }
 
-    // Check if this is a Tom message
-    if (isTomInput(trimmedInput) && onTomMessage) {
-      const tomMessage = stripTomPrefix(trimmedInput);
-      if (tomMessage) {
-        // Route to Tom (async, handled by parent)
-        onTomMessage(tomMessage);
+    // Check if this is a Matthew message
+    if (isMatthewInput(trimmedInput) && onMatthewMessage) {
+      const matthewMessage = stripMatthewInputPrefix(trimmedInput);
+      if (matthewMessage) {
+        // Route to Matthew (async, handled by parent)
+        onMatthewMessage(matthewMessage);
         setInputValue("");
         inputRef.current?.focus();
         return;
@@ -497,9 +496,9 @@ export function LocationView({
     slot,
 
     discoveredEvidence,
-    isTomInput,
-    stripTomPrefix,
-    onTomMessage,
+    isMatthewInput,
+    stripMatthewInputPrefix,
+    onMatthewMessage,
   ]);
 
   // Handle keyboard submit (Enter to submit, Shift+Enter for newline)
@@ -521,7 +520,7 @@ export function LocationView({
 
   // Handle spell selection from handbook (Phase 5.7)
   const handleSpellSelect = useCallback((spellName: string) => {
-    setInputValue(`I cast ${spellName}`);
+    setInputValue(`I perform ${spellName}`);
     setIsHandbookOpen(false);
     inputRef.current?.focus();
   }, []);
@@ -632,15 +631,15 @@ export function LocationView({
               );
             }
 
-            // Tom's ghost message
-            if (message.type === "tom_ghost") {
+            // Matthew spirit companion message
+            if (message.type === "matthew_ghost") {
               return (
                 <div
                   key={message.key}
-                  className={theme.components.message.tom.wrapper}
+                  className={theme.components.message.matthew.wrapper}
                 >
-                  <p className={theme.components.message.tom.text}>
-                    <span className={theme.components.message.tom.label}>{theme.speakers.tom.prefix}</span>
+                  <p className={theme.components.message.matthew.text}>
+                    <span className={theme.components.message.matthew.label}>{theme.speakers.matthew.prefix}</span>
                     {renderInlineMarkdown(message.text)}
                   </p>
                 </div>
@@ -666,11 +665,11 @@ export function LocationView({
       <div className={`relative sticky bottom-0 z-20 space-y-3 pt-2 md:pt-4 pb-2 ${theme.colors.bg.primary}`}>
         {/* Fade gradient above input — dissolves content into input area */}
         <div className={`pointer-events-none absolute left-0 right-0 bottom-full h-8 bg-gradient-to-t ${theme.colors.gradient.fromBg} to-transparent`} />
-        {/* Tom target indicator */}
-        {isTomInput(inputValue) && (
+        {/* Matthew target indicator */}
+        {isMatthewInput(inputValue) && (
           <div className="flex items-center justify-end">
-            <span className={`text-xs ${theme.colors.character.tom.label} ${theme.fonts.ui} ${theme.animation.pulse} uppercase tracking-widest font-bold`}>
-              {theme.messages.spiritResonance("THORNFIELD")}
+            <span className={`text-xs ${theme.colors.character.matthew.label} ${theme.fonts.ui} ${theme.animation.pulse} uppercase tracking-widest font-bold`}>
+              {theme.messages.spiritResonance("MATTHEW")}
             </span>
           </div>
         )}
@@ -688,17 +687,17 @@ export function LocationView({
             onKeyDown={handleKeyDown}
             placeholder="describe your action, or question..."
             rows={2}
-            disabled={isLoading || tomLoading}
+            disabled={isLoading || matthewLoading}
             className={`${theme.components.input.field} md:min-h-[5rem]
-                       ${isTomInput(inputValue)
+                       ${isMatthewInput(inputValue)
                 ? theme.components.input.borderSpecial
                 : theme.components.input.borderDefault
               }`}
-            aria-label="Enter your investigation action or talk to Tom"
+            aria-label="Enter your investigation action or address Matthew"
           />
           <button
             onClick={() => void handleSubmit()}
-            disabled={isLoading || tomLoading || !inputValue.trim()}
+            disabled={isLoading || matthewLoading || !inputValue.trim()}
             className={theme.components.input.sendButton}
             title="Submit Action (Enter)"
             aria-label="Submit Action"
@@ -731,23 +730,23 @@ export function LocationView({
               CHECK WINDOW
             </button>
             <button
-              onClick={() => handleQuickAction("Tom, what do you think?")}
+              onClick={() => handleQuickAction(MATTHEW_QUICK_PROMPT)}
               className={`${theme.components.button.terminalAction} !py-1.5 !px-2.5 !gap-1.5 !text-[10px] md:!py-2.5 md:!px-4 md:!gap-3 md:!text-xs`}
               type="button"
             >
-              <span className={`${theme.colors.character.tom.prefix} ${theme.colors.interactive.hover} transition-colors font-bold`}>
+              <span className={`${theme.colors.character.matthew.prefix} ${theme.colors.interactive.hover} transition-colors font-bold`}>
                 {theme.symbols.bullet}
               </span>
-              ASK TOM
+              ASK MATTHEW
             </button>
           </div>
         )}
 
         {/* Loading indicators */}
         <div className={`${theme.typography.helper} uppercase text-right`}>
-          {tomLoading ? (
-            <span className={`${theme.colors.character.tom.label} ${theme.animation.pulse}`}>
-              Tom processing...
+          {matthewLoading ? (
+            <span className={`${theme.colors.character.matthew.label} ${theme.animation.pulse}`}>
+              Spirit resonance...
             </span>
           ) : isLoading ? (
             <span className={`${theme.colors.text.tertiary} ${theme.animation.pulse}`}>Analyzing...</span>
@@ -755,8 +754,8 @@ export function LocationView({
         </div>
       </div>
 
-      {/* Auror's Handbook Modal (Phase 4.5) */}
-      <AurorHandbook
+      {/* Lantern Compendium Modal (Phase 4.5) */}
+      <LanternCompendium
         isOpen={isHandbookOpen}
         onClose={() => setIsHandbookOpen(false)}
         onSelectSpell={handleSpellSelect}

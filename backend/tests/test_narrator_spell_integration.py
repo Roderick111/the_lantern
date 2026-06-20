@@ -34,9 +34,9 @@ class TestBuildNarratorOrSpellPrompt:
     def spell_contexts(self) -> dict:
         """Sample spell contexts."""
         return {
-            "available_spells": ["revelio", "lumos", "prior_incantato"],
+            "available_spells": ["unveil", "raise_the_lamp", "echo_reading"],
             "special_interactions": {
-                "revelio": {
+                "unveil": {
                     "targets": ["desk", "shelves"],
                     "reveals_evidence": ["hidden_note"],
                 },
@@ -75,13 +75,13 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=[],
             not_present=not_present_items,
-            player_input="cast revelio on desk",
+            player_input="cast unveil on desk",
             spell_contexts=spell_contexts,
         )
 
         assert is_spell is True
-        assert "Revelio" in prompt
-        assert "spell effects" in system_prompt.lower()
+        assert "Unveil" in prompt
+        assert "rite effects" in system_prompt.lower()
 
     def test_spell_includes_location_context(
         self,
@@ -95,7 +95,7 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=[],
             not_present=not_present_items,
-            player_input="cast revelio on desk",
+            player_input="cast unveil on desk",
             spell_contexts=spell_contexts,
         )
 
@@ -114,7 +114,7 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=[],
             not_present=not_present_items,
-            player_input="cast revelio",
+            player_input="cast unveil",
             spell_contexts=spell_contexts,
         )
 
@@ -134,7 +134,7 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=["hidden_note"],
             not_present=not_present_items,
-            player_input="cast revelio on desk",
+            player_input="cast unveil on desk",
             spell_contexts=spell_contexts,
         )
 
@@ -153,12 +153,12 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=[],
             not_present=not_present_items,
-            player_input="I'm casting Lumos",
+            player_input="I'm casting Raise the Lamp",
             spell_contexts=spell_contexts,
         )
 
         assert is_spell is True
-        assert "Lumos" in prompt
+        assert "Raise the Lamp" in prompt
 
     def test_unknown_spell_handled(
         self,
@@ -190,11 +190,11 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=[],
             not_present=not_present_items,
-            player_input="cast revelio",
+            player_input="cast unveil",
         )
 
         assert is_spell is True
-        assert "Revelio" in prompt
+        assert "Unveil" in prompt
 
 
 class TestSpellDetectionEdgeCases:
@@ -219,7 +219,7 @@ class TestSpellDetectionEdgeCases:
             hidden_evidence=[],
             discovered_ids=[],
             not_present=[],
-            player_input="What would revelio show me?",
+            player_input="What would unveil show me?",
         )
 
         assert is_spell is False
@@ -240,11 +240,11 @@ class TestSpellDetectionEdgeCases:
 class TestSpellToEvidenceMapping:
     """Tests for spell to evidence mapping."""
 
-    def test_revelio_maps_to_hidden_note(self) -> None:
-        """Revelio at desk can reveal hidden_note."""
+    def test_unveil_maps_to_hidden_note(self) -> None:
+        """Unveil at desk can reveal hidden_note."""
         spell_contexts = {
             "special_interactions": {
-                "revelio": {
+                "unveil": {
                     "targets": ["desk"],
                     "reveals_evidence": ["hidden_note"],
                 },
@@ -256,32 +256,32 @@ class TestSpellToEvidenceMapping:
             hidden_evidence=[{"id": "hidden_note", "triggers": [], "description": "A note"}],
             discovered_ids=[],
             not_present=[],
-            player_input="cast revelio on desk",
+            player_input="cast unveil on desk",
             spell_contexts=spell_contexts,
         )
 
         assert is_spell is True
         assert "hidden_note" in prompt
 
-    def test_prior_incantato_maps_to_wand_signature(self) -> None:
-        """Prior Incantato on wand can reveal wand_signature."""
+    def test_echo_reading_maps_to_focus_signature(self) -> None:
+        """Echo Reading on focus can reveal focus_signature."""
         spell_contexts = {
             "special_interactions": {
-                "prior_incantato": {
-                    "targets": ["wand", "victim_wand"],
-                    "reveals_evidence": ["wand_signature"],
+                "echo_reading": {
+                    "targets": ["focus", "victim_focus"],
+                    "reveals_evidence": ["focus_signature"],
                 },
             },
         }
 
         prompt, _, is_spell = build_narrator_or_spell_prompt(
             location_desc="The library",
-            hidden_evidence=[{"id": "wand_signature", "triggers": [], "description": "Last spell"}],
+            hidden_evidence=[{"id": "focus_signature", "triggers": [], "description": "Last spell"}],
             discovered_ids=[],
             not_present=[],
-            player_input="cast prior incantato on wand",
+            player_input="cast echo reading on focus",
             spell_contexts=spell_contexts,
         )
 
         assert is_spell is True
-        assert "wand_signature" in prompt
+        assert "focus_signature" in prompt

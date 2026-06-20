@@ -35,8 +35,8 @@ export const API_BASE_URL = getApiBaseUrl();
 // Session / Auth Token
 // ============================================
 
-const TOKEN_KEY = 'hp_player_token';
-const PLAYER_ID_KEY = 'hp_player_id';
+const TOKEN_KEY = 'lantern_player_token';
+const PLAYER_ID_KEY = 'lantern_player_id';
 
 function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -84,7 +84,7 @@ let last401At = 0;
 function notifySessionExpired(): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(
-      new CustomEvent('hp-session-expired', {
+      new CustomEvent('lantern-session-expired', {
         detail: { message: 'Session expired — refreshing' },
       }),
     );
@@ -116,7 +116,7 @@ function handle401(): void {
 // BYOK (Bring Your Own Key) Headers
 // ============================================
 
-const LLM_SETTINGS_KEY = 'hp_llm_settings';
+const LLM_SETTINGS_KEY = 'lantern_llm_settings';
 
 export interface LLMSettings {
   provider: string | null;

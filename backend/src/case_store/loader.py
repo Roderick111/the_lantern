@@ -19,12 +19,13 @@ logger = logging.getLogger(__name__)
 # Case store directory (same directory as this file)
 CASE_STORE_DIR = Path(__file__).parent
 
-# In-memory cache for parsed YAML case files (they don't change at runtime)
+# In-memory cache for parsed YAML case files (invalidated when file mtime changes)
 _case_cache: dict[str, dict[str, Any]] = {}
+_case_mtime: dict[str, float] = {}
 
 
 def load_case(case_id: str) -> dict[str, Any]:
-    """Load a case definition from YAML (cached after first read).
+    """Load a case definition from YAML (cached until file changes on disk).
 
     Args:
         case_id: Case identifier (e.g., "case_001")
@@ -37,9 +38,6 @@ def load_case(case_id: str) -> dict[str, Any]:
         yaml.YAMLError: If YAML is malformed
         ValueError: If case_id contains invalid characters
     """
-    if case_id in _case_cache:
-        return _case_cache[case_id]
-
     # Security: Sanitize case_id to prevent path traversal
     if not re.match(r"^[a-zA-Z0-9_]+$", case_id):
         raise ValueError(f"Invalid case_id format: {case_id}")
@@ -49,11 +47,51 @@ def load_case(case_id: str) -> dict[str, Any]:
     if not case_path.exists():
         raise FileNotFoundError(f"Case file not found: {case_path}")
 
+    mtime = case_path.stat().st_mtime
+    if case_id in _case_cache and _case_mtime.get(case_id) == mtime:
+        return _case_cache[case_id]
+
     with open(case_path, encoding="utf-8") as f:
         data: dict[str, Any] = yaml.safe_load(f)
 
     _case_cache[case_id] = data
+    _case_mtime[case_id] = mtime
     return data
+
+
+def get_case_section(case_data: dict[str, Any]) -> dict[str, Any]:
+    """Return the inner ``case`` dict from loaded case data."""
+    return case_data.get("case", case_data)
+
+
+def get_case_setting(case_data: dict[str, Any]) -> str:
+    """Human-readable setting for narrator/witness prompt framing.
+
+    Prefer explicit ``setting`` in case YAML; fall back to title.
+    """
+    case = get_case_section(case_data)
+    setting = case.get("setting")
+    if setting and str(setting).strip():
+        return str(setting).strip()
+    title = case.get("title")
+    if title:
+        return str(title).strip()
+    return "a Crown Occult Bureau investigation"
+
+
+def get_crime_scene_label(case_data: dict[str, Any]) -> str:
+    """Display name of the primary crime scene for witness prompts."""
+    case = get_case_section(case_data)
+    if scene := case.get("crime_scene"):
+        return str(scene).strip()
+
+    locations: dict[str, dict[str, Any]] = case.get("locations", {})
+    for loc_id in ("library", "sealed_stacks", "crime_scene"):
+        if loc_id in locations:
+            return locations[loc_id].get("name", "the crime scene")
+    if locations:
+        return next(iter(locations.values())).get("name", "the crime scene")
+    return "the crime scene"
 
 
 def get_location(case_data: dict[str, Any], location_id: str) -> dict[str, Any]:
@@ -134,7 +172,7 @@ def get_witness(case_data: dict[str, Any], witness_id: str) -> dict[str, Any]:
 
     Args:
         case_data: Loaded case dictionary
-        witness_id: Witness identifier (e.g., "hermione", "draco")
+        witness_id: Witness identifier (e.g., "elena", "cassian")
 
     Returns:
         Witness dictionary with personality, knowledge, secrets, lies
@@ -295,7 +333,7 @@ def load_wrong_suspects(case_data: dict[str, Any]) -> dict[str, Any]:
         case_data: Loaded case dictionary
 
     Returns:
-        Dict of wrong suspect_id -> data (with why_innocent, moody_response, etc).
+        Dict of wrong suspect_id -> data (with why_innocent, graves_response, etc).
         Empty dict if absent.
     """
     case: dict[str, Any] = case_data.get("case", case_data)

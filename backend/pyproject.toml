@@ -1,7 +1,7 @@
 [project]
-name = "hp-game-backend"
+name = "lantern-backend"
 version = "0.1.0"
-description = "Harry Potter Investigation Game - FastAPI Backend"
+description = "Victorian occult detective Investigation Game - FastAPI Backend"
 license = { text = "MIT" }
 classifiers = [
     "License :: OSI Approved :: MIT License",

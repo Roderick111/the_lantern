@@ -23,14 +23,14 @@ import { VerdictSubmission, type VerdictSubmissionProps } from '../VerdictSubmis
 // ============================================
 
 const mockSuspects = [
-  { id: 'hermione', name: 'Hermione Granger' },
-  { id: 'draco', name: 'Draco Malfoy' },
-  { id: 'neville', name: 'Neville Longbottom' },
+  { id: 'elena', name: 'Elena Marsh' },
+  { id: 'cassian', name: 'Cassian Thorne' },
+  { id: 'rowan', name: 'Rowan Ashford' },
 ];
 
 const mockEvidence = [
   { id: 'frost_pattern', name: 'Frost Pattern' },
-  { id: 'wand_signature', name: 'Wand Signature' },
+  { id: 'focus_signature', name: 'Focus Signature' },
   { id: 'hidden_note', name: 'Hidden Note' },
 ];
 
@@ -73,9 +73,9 @@ describe('VerdictSubmission', () => {
       const select = screen.getByLabelText(/Select suspect/i);
 
       expect(select).toBeInTheDocument();
-      expect(screen.getByText('Hermione Granger')).toBeInTheDocument();
-      expect(screen.getByText('Draco Malfoy')).toBeInTheDocument();
-      expect(screen.getByText('Neville Longbottom')).toBeInTheDocument();
+      expect(screen.getByText('Elena Marsh')).toBeInTheDocument();
+      expect(screen.getByText('Cassian Thorne')).toBeInTheDocument();
+      expect(screen.getByText('Rowan Ashford')).toBeInTheDocument();
     });
 
     it('renders reasoning textarea', () => {
@@ -87,7 +87,7 @@ describe('VerdictSubmission', () => {
       render(<VerdictSubmission {...defaultProps} />);
 
       expect(screen.getByText('Frost Pattern')).toBeInTheDocument();
-      expect(screen.getByText('Wand Signature')).toBeInTheDocument();
+      expect(screen.getByText('Focus Signature')).toBeInTheDocument();
       expect(screen.getByText('Hidden Note')).toBeInTheDocument();
     });
 
@@ -111,9 +111,9 @@ describe('VerdictSubmission', () => {
       render(<VerdictSubmission {...defaultProps} />);
 
       const select = screen.getByLabelText(/Select suspect/i);
-      await user.selectOptions(select, 'draco');
+      await user.selectOptions(select, 'cassian');
 
-      expect(select).toHaveValue('draco');
+      expect(select).toHaveValue('cassian');
     });
 
     it('starts with no suspect selected', () => {
@@ -165,10 +165,10 @@ describe('VerdictSubmission', () => {
       render(<VerdictSubmission {...defaultProps} />);
 
       await user.click(screen.getByRole('checkbox', { name: /frost pattern/i }));
-      await user.click(screen.getByRole('checkbox', { name: /wand signature/i }));
+      await user.click(screen.getByRole('checkbox', { name: /focus signature/i }));
 
       expect(screen.getByRole('checkbox', { name: /frost pattern/i })).toBeChecked();
-      expect(screen.getByRole('checkbox', { name: /wand signature/i })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /focus signature/i })).toBeChecked();
     });
 
     it('allows deselecting evidence', async () => {
@@ -199,7 +199,7 @@ describe('VerdictSubmission', () => {
       const user = userEvent.setup();
       render(<VerdictSubmission {...defaultProps} />);
 
-      await user.selectOptions(screen.getByLabelText(/Select suspect/i), 'draco');
+      await user.selectOptions(screen.getByLabelText(/Select suspect/i), 'cassian');
       await user.type(screen.getByLabelText(/enter your reasoning/i), 'Too short');
 
       expect(screen.getByRole('button', { name: /submit verdict/i })).toBeDisabled();
@@ -209,7 +209,7 @@ describe('VerdictSubmission', () => {
       const user = userEvent.setup();
       render(<VerdictSubmission {...defaultProps} />);
 
-      await user.selectOptions(screen.getByLabelText(/Select suspect/i), 'draco');
+      await user.selectOptions(screen.getByLabelText(/Select suspect/i), 'cassian');
       await user.type(
         screen.getByLabelText(/enter your reasoning/i),
         'This is my detailed reasoning that explains why this suspect is guilty of the crime.'
@@ -222,7 +222,7 @@ describe('VerdictSubmission', () => {
       const user = userEvent.setup();
       render(<VerdictSubmission {...defaultProps} loading={true} />);
 
-      await user.selectOptions(screen.getByLabelText(/Select suspect/i), 'draco');
+      await user.selectOptions(screen.getByLabelText(/Select suspect/i), 'cassian');
 
       expect(screen.getByRole('button', { name: /TRANSMITTING.../i })).toBeDisabled();
     });
@@ -244,18 +244,18 @@ describe('VerdictSubmission', () => {
 
       render(<VerdictSubmission {...defaultProps} onSubmit={mockOnSubmit} />);
 
-      await user.selectOptions(screen.getByLabelText(/Select suspect/i), 'draco');
+      await user.selectOptions(screen.getByLabelText(/Select suspect/i), 'cassian');
       await user.type(
         screen.getByLabelText(/enter your reasoning/i),
-        'Draco is guilty because of the frost pattern and wand signature evidence.'
+        'Cassian is guilty because of the frost pattern and focus signature evidence.'
       );
       await user.click(screen.getByRole('checkbox', { name: /frost pattern/i }));
       await user.click(screen.getByRole('button', { name: /submit verdict/i }));
 
       await waitFor(() => {
         expect(mockOnSubmit).toHaveBeenCalledWith(
-          'draco',
-          'Draco is guilty because of the frost pattern and wand signature evidence.',
+          'cassian',
+          'Cassian is guilty because of the frost pattern and focus signature evidence.',
           ['frost_pattern']
         );
       });

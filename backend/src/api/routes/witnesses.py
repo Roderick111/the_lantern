@@ -1,4 +1,4 @@
-"""Witness interrogation, evidence presentation, and Legilimency endpoints."""
+"""Witness interrogation, evidence presentation, and Mnemonic Delving endpoints."""
 
 import asyncio
 import json
@@ -23,7 +23,7 @@ from src.api.helpers import (
 from src.api.llm_client import LLMClientError as ClaudeClientError
 from src.api.llm_client import get_client
 from src.api.rate_limit import LLM_RATE, limiter
-from src.api.routes.legilimency import handle_programmatic_legilimency
+from src.api.routes.mnemonic_delving import handle_programmatic_mnemonic_delving
 from src.api.schemas import (
     InterrogateRequest,
     InterrogateResponse,
@@ -58,17 +58,16 @@ router = APIRouter()
 
 def _build_witness_case_context(case_data: dict[str, Any]) -> dict[str, Any]:
     """Extract basic case context for witness prompts."""
-    case_inner = case_data.get("case", case_data)
-    victim_info = case_inner.get("victim", {})
-    crime_type = case_inner.get("crime_type", "")
+    from src.case_store.loader import get_case_section, get_case_setting, get_crime_scene_label
 
-    locations = case_inner.get("locations", {})
-    crime_scene_loc = next(iter(locations.values()), {}) if locations else {}
+    case_inner = get_case_section(case_data)
+    victim_info = case_inner.get("victim", {})
 
     return {
         "victim_name": victim_info.get("name", ""),
-        "crime_type": crime_type,
-        "location": crime_scene_loc.get("name", "Unknown location"),
+        "crime_type": case_inner.get("crime_type", ""),
+        "location": get_crime_scene_label(case_data),
+        "setting": get_case_setting(case_data),
     }
 
 
@@ -161,7 +160,7 @@ class WitnessPrep:
     system_prompt: str
     stored_question: str
     evidence_id: str | None = None
-    legilimency_redirect: bool = False
+    mnemonic_delving_redirect: bool = False
 
 
 def _prepare_interrogation(
@@ -201,12 +200,12 @@ def _prepare_interrogation(
     if not evidence_id:
         spell_id, _target = detect_spell_with_fuzzy(body.question)
 
-        if spell_id == "legilimency":
+        if spell_id == "mnemonic_delving":
             return WitnessPrep(
                 prompt="",
                 system_prompt="",
                 stored_question="",
-                legilimency_redirect=True,
+                mnemonic_delving_redirect=True,
             )
 
         if spell_id and spell_id in SAFE_INVESTIGATION_SPELLS:
@@ -328,7 +327,7 @@ async def _finalize_witness_response(
     await asyncio.to_thread(save_slot_state, state, player_id, slot)
 
     event_type = "evidence_presented" if prep.evidence_id else "witness_questioned"
-    log_event(
+    await log_event(
         event_type,
         player_id,
         case_id,
@@ -342,7 +341,7 @@ async def _finalize_witness_response(
         },
     )
     if secrets_revealed:
-        log_event(
+        await log_event(
             "secret_revealed",
             player_id,
             case_id,
@@ -419,7 +418,7 @@ def _stream_witness_llm(
                 if clean:
                     yield f"data: {json.dumps({'text': clean})}\n\n"
         except Exception as e:
-            log_event(
+            await log_event(
                 "llm_error",
                 player_id,
                 case_id,
@@ -475,15 +474,16 @@ async def interrogate_witness_stream(
     witness, state, witness_state = _load_witness_context(body, case_data, player_id)
 
     prep = _prepare_interrogation(body, case_data, witness, state, witness_state)
-    if prep.legilimency_redirect:
-        # Legilimency has its own non-streaming handler; wrap as single SSE event
-        result = await handle_programmatic_legilimency(
+    if prep.mnemonic_delving_redirect:
+        # Mnemonic Delving has its own non-streaming handler; wrap as single SSE event
+        result = await handle_programmatic_mnemonic_delving(
             body=body,
             witness=witness,
             state=state,
             witness_state=witness_state,
             llm_config=llm_config,
             slot=body.slot,
+            player_id=player_id,
         )
         return _wrap_interrogate_as_sse(result, llm_config.model)
 
@@ -515,14 +515,15 @@ async def interrogate_witness(
     witness, state, witness_state = _load_witness_context(body, case_data, player_id)
 
     prep = _prepare_interrogation(body, case_data, witness, state, witness_state)
-    if prep.legilimency_redirect:
-        return await handle_programmatic_legilimency(
+    if prep.mnemonic_delving_redirect:
+        return await handle_programmatic_mnemonic_delving(
             body=body,
             witness=witness,
             state=state,
             witness_state=witness_state,
             llm_config=llm_config,
             slot=body.slot,
+            player_id=player_id,
         )
 
     try:
@@ -536,7 +537,7 @@ async def interrogate_witness(
     except ClaudeClientError:
         raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
 
-    trust_delta, clean_response, secrets_revealed, secret_texts = _finalize_witness_response(
+    trust_delta, clean_response, secrets_revealed, secret_texts = await _finalize_witness_response(
         response,
         witness,
         witness_state,
@@ -623,7 +624,7 @@ async def present_evidence(
     except ClaudeClientError:
         raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
 
-    trust_delta, clean_response, secrets_revealed, secret_texts = _finalize_witness_response(
+    trust_delta, clean_response, secrets_revealed, secret_texts = await _finalize_witness_response(
         response,
         witness,
         witness_state,

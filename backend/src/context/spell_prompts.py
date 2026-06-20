@@ -9,7 +9,7 @@ from typing import Any
 from src.spells.definitions import get_spell
 
 
-def build_legilimency_narration_prompt(
+def build_mnemonic_delving_narration_prompt(
     outcome: str,
     detected: bool,
     witness_name: str,
@@ -21,7 +21,7 @@ def build_legilimency_narration_prompt(
     secrets_revealed: list[str] | None = None,
     secret_texts: dict[str, str] | None = None,
 ) -> str:
-    """Build narration prompt for Legilimency outcomes (Phase 4.8).
+    """Build narration prompt for Mnemonic Delving outcomes (Phase 4.8).
 
     Simplified to 2 outcomes (success/failure) with detection status.
 
@@ -102,12 +102,12 @@ IMPORTANT: Use [EVIDENCE: id] tag ONLY if narrative supports it.
             else "Tense, detected mid-search, consequence"
         )
 
-        return f"""You are narrating the outcome of a Legilimency spell cast on {witness_name}.
+        return f"""You are narrating the outcome of a Mnemonic Delving rite performed on {witness_name}.
 {character_profile}
 {secrets_context}
 {evidence_context}
 == OUTCOME ==
-Legilimency: SUCCESSFUL
+Mnemonic Delving: SUCCESSFUL
 {detection_status}
 {search_status}
 
@@ -138,7 +138,7 @@ Respond as narrator:"""
             f"Search target: {search_intent} (not found)" if search_intent else "Search: FAILED"
         )
         barrier_note = (
-            "Barrier: Mind is closed, Occlumency shields strong"
+            "Barrier: Mind is closed, Mind-shield shields strong"
             if not detected
             else "Detection: They sense intrusion immediately"
         )
@@ -149,10 +149,10 @@ Respond as narrator:"""
         )
         style = "Frustration, empty search" if not detected else "Detected, tense, consequence"
 
-        return f"""You are narrating the outcome of a failed Legilimency spell on {witness_name}.
+        return f"""You are narrating the outcome of a failed Mnemonic Delving rite on {witness_name}.
 {character_profile}
 == OUTCOME ==
-Legilimency: FAILED
+Mnemonic Delving: FAILED
 {detection_status}
 {search_status}
 
@@ -189,21 +189,21 @@ def build_spell_system_prompt(language: str = "en") -> str:
     """
     from src.config.language import get_language_instruction
 
-    return f"""You are an immersive narrator for spell effects in a Harry Potter Auror investigation game.
+    return f"""You are an immersive narrator for investigation rite effects in a Victorian occult detective Lantern Inspector game.
 
 Your role:
-- Describe spell effects atmospherically but concisely (1-2 sentences max)
-- Reveal evidence ONLY when spell targets match the location's hidden evidence
-- Include [EVIDENCE: id] tags when a spell reveals evidence
+- Describe rite effects atmospherically but concisely (1-2 sentences max)
+- Reveal evidence ONLY when rite targets match the location's hidden evidence
+- Include [EVIDENCE: id] tags when a rite reveals evidence
 - Never invent evidence not defined in the allowed evidence list
-- For Legilimency: Give natural warnings before risky mind-reading attempts
+- For Mnemonic Delving: Give natural warnings before risky mind-reading attempts
 - Maintain mystery and tension appropriate for a detective story
 
 Style:
-- Second person present tense ("Your wand glows...", "The spell reveals...")
+- Second person present tense ("Your focus glows...", "The rite reveals...")
 - Evocative but brief descriptions
-- Harry Potter universe vocabulary and atmosphere
-- Professional Auror training tone{get_language_instruction(language)}"""
+- Victorian occult detective universe vocabulary and atmosphere
+- Professional Lantern Investigator field tone{get_language_instruction(language)}"""
 
 
 def build_spell_effect_prompt(
@@ -217,10 +217,10 @@ def build_spell_effect_prompt(
     """Build prompt for spell effect narration.
 
     Args:
-        spell_name: Spell ID (e.g., "revelio", "legilimency")
-        target: Optional target of the spell (e.g., "desk", "hermione")
+        spell_name: Spell ID (e.g., "unveil", "mnemonic_delving")
+        target: Optional target of the spell (e.g., "desk", "elena")
         location_context: Dict with location info and available evidence
-        witness_context: Optional witness info for Legilimency (includes occlumency_skill)
+        witness_context: Optional witness info for Mnemonic Delving (includes mind_shield_skill)
         player_context: Optional player state (discovered_evidence, etc.)
         spell_outcome: "SUCCESS" | "FAILURE" | None (Phase 4.7 spell success)
 
@@ -249,47 +249,47 @@ def build_spell_effect_prompt(
 
     outcome_section = _build_spell_outcome_section(spell_outcome)
 
-    prompt = f"""You are narrating the effect of a spell in an Auror investigation.
+    prompt = f"""You are narrating the effect of an investigation rite in a Lantern Inspector investigation.
 
-== SPELL CAST ==
-Spell: {spell["name"]}
+== RITE PERFORMED ==
+Rite: {spell["name"]}
 Effect: {spell["description"]}
 Category: {spell["category"]}
 Target: {target or "general area"}
 
-== SPELL OUTCOME (Phase 4.7) ==
+== RITE OUTCOME (Phase 4.7) ==
 {outcome_section}
 
 == CURRENT LOCATION ==
 {location_desc.strip()}
 
-== VALID TARGETS FOR THIS SPELL AT THIS LOCATION ==
+== VALID TARGETS FOR THIS RITE AT THIS LOCATION ==
 {", ".join(valid_targets) if valid_targets else "No specific targets defined"}
 
-== EVIDENCE THIS SPELL CAN REVEAL (if target matches AND spell succeeded) ==
+== EVIDENCE THIS RITE CAN REVEAL (if target matches AND rite succeeded) ==
 {evidence_section}
 
 == ALREADY DISCOVERED (do not repeat) ==
 {", ".join(discovered_evidence) if discovered_evidence else "None"}
 
 == RULES ==
-1. IMPORTANT: Check SPELL OUTCOME first!
-   - If outcome is "FAILURE" -> "The spell fizzles and dissipates. Nothing revealed." (regardless of target)
+1. IMPORTANT: Check RITE OUTCOME first!
+   - If outcome is "FAILURE" -> "The rite fizzles and dissipates. Nothing revealed." (regardless of target)
    - If outcome is "SUCCESS" -> proceed to evidence revelation rules below
    - If outcome is not specified -> use old behavior (treat as always succeeds)
 2. On SUCCESS: If target matches valid targets AND undiscovered evidence exists -> reveal with [EVIDENCE: id] tag
-3. MAXIMUM 2 evidence per spell cast. Even if more evidence is available, reveal at most 2.
-4. On SUCCESS: If target is valid but no undiscovered evidence -> describe atmospheric spell effect only
-5. On SUCCESS: If target is not in valid targets list -> "The spell finds nothing of note here."
+3. MAXIMUM 2 evidence per rite. Even if more evidence is available, reveal at most 2.
+4. On SUCCESS: If target is valid but no undiscovered evidence -> describe atmospheric rite effect only
+5. On SUCCESS: If target is not in valid targets list -> "The rite finds nothing of note here."
 6. Keep responses to 2-4 sentences - atmospheric but concise
 7. NEVER invent evidence not in the revealable list
-8. Stay in character as immersive Auror training narrator
+8. Stay in character as immersive field investigation narrator
 9. NEVER mention mechanical terms like "roll", "percentage", "success rate" - describe naturally
 """
 
     prompt += f"""
-== PLAYER CAST ==
-Player casts {spell["name"]}{f" on {target}" if target else ""}.
+== PLAYER ACTION ==
+Player performs {spell["name"]}{f" on {target}" if target else ""}.
 
 Respond as the narrator (2-4 sentences):"""
 
@@ -307,14 +307,14 @@ def _build_spell_outcome_section(spell_outcome: str | None) -> str:
     """
     if spell_outcome == "SUCCESS":
         return """Outcome: SUCCESS
-The spell executes successfully. Proceed with evidence revelation rules below."""
+The rite executes successfully. Proceed with evidence revelation rules below."""
     elif spell_outcome == "FAILURE":
         return """Outcome: FAILURE
-The spell fails to manifest properly. The charm sputters and fades.
-Response: Describe the spell fizzling out atmospherically. NO evidence revealed regardless of target."""
+The rite fails to manifest properly. The cantrip sputters and fades.
+Response: Describe the rite fizzling out atmospherically. NO evidence revealed regardless of target."""
     else:
         return """Outcome: Not calculated (legacy flow)
-Use old behavior - treat spell as always succeeding, check target validity for evidence."""
+Use old behavior - treat rite as always succeeding, check target validity for evidence."""
 
 
 def _build_unknown_spell_prompt(spell_name: str) -> str:
@@ -326,10 +326,10 @@ def _build_unknown_spell_prompt(spell_name: str) -> str:
     Returns:
         Prompt for handling unknown spell
     """
-    return f"""The player attempted to cast "{spell_name}" but this spell is not recognized.
+    return f"""The player attempted to perform "{spell_name}" but this rite is not recognized.
 
-Respond briefly (1-2 sentences) that the spell is unknown or not available for investigation use.
-Stay in character as an Auror training narrator."""
+Respond briefly (1-2 sentences) that the rite is unknown or not available for investigation use.
+Stay in character as a field investigation narrator."""
 
 
 def _format_revealable_evidence(
@@ -348,7 +348,7 @@ def _format_revealable_evidence(
         Formatted string describing revealable evidence
     """
     if not evidence_ids:
-        return "No new evidence can be revealed by this spell here."
+        return "No new evidence can be revealed by this rite here."
 
     target_matches = False
     if target:
@@ -359,6 +359,6 @@ def _format_revealable_evidence(
                 break
 
     if not target_matches and target:
-        return f"Target '{target}' is not a valid target for this spell at this location."
+        return f"Target '{target}' is not a valid target for this rite at this location."
 
     return f"Can reveal: {', '.join(evidence_ids)}"

@@ -19,9 +19,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Auror Academy: Case Files',
-        short_name: 'Auror Academy',
-        description: 'Interactive detective investigation game',
+        name: 'The Lantern: Case Files',
+        short_name: 'The Lantern',
+        description: 'Victorian occult detective investigations at Blackwood Collegiate',
         theme_color: '#111827',
         background_color: '#111827',
         display: 'standalone',
@@ -53,7 +53,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        // Use 127.0.0.1 — localhost resolves to IPv6 [::1], which can hit a stale
+        // hp_game backend also bound to :8000 while this repo listens on IPv4 only.
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
     },

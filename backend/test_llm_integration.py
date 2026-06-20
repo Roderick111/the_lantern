@@ -134,12 +134,12 @@ async def test_mentor_integration():
     print("=" * 70)
 
     try:
-        from src.context.mentor import build_moody_feedback_llm
+        from src.context.mentor import build_graves_feedback_llm
 
-        print("📡 Testing Moody feedback generation (this may take 5-10 seconds)")
+        print("📡 Testing Graves feedback generation (this may take 5-10 seconds)")
 
         # Simple test case
-        feedback = await build_moody_feedback_llm(
+        feedback = await build_graves_feedback_llm(
             case_id="case_001",
             hypothesis_id="h1_murder",
             user_reasoning="The victim was poisoned because there was a vial found.",
@@ -168,11 +168,11 @@ async def test_briefing_integration():
     print("=" * 70)
 
     try:
-        from src.context.briefing import ask_moody_question
+        from src.context.briefing import ask_graves_question
 
-        print("📡 Testing Moody briefing question (this may take 5-10 seconds)")
+        print("📡 Testing Graves briefing question (this may take 5-10 seconds)")
 
-        response = await ask_moody_question(
+        response = await ask_graves_question(
             case_id="case_001",
             question="What should I know about this case?",
             conversation_history=[],

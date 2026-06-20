@@ -25,10 +25,10 @@ class TestFormatHiddenEvidence:
                 "tag": "[EVIDENCE: hidden_note]",
             },
             {
-                "id": "wand_signature",
-                "triggers": ["examine wand", "prior incantato"],
+                "id": "focus_signature",
+                "triggers": ["examine focus", "echo reading"],
                 "description": "The last spell cast was Stupefy.",
-                "tag": "[EVIDENCE: wand_signature]",
+                "tag": "[EVIDENCE: focus_signature]",
             },
         ]
 
@@ -37,7 +37,7 @@ class TestFormatHiddenEvidence:
         result = format_hidden_evidence(sample_evidence, discovered_ids=[])
 
         assert "hidden_note" in result
-        assert "wand_signature" in result
+        assert "focus_signature" in result
         assert "under desk" in result
         assert "[EVIDENCE: hidden_note]" in result
 
@@ -49,13 +49,13 @@ class TestFormatHiddenEvidence:
         )
 
         assert "hidden_note" not in result
-        assert "wand_signature" in result
+        assert "focus_signature" in result
 
     def test_all_discovered(self, sample_evidence: list[dict]) -> None:
         """All evidence discovered."""
         result = format_hidden_evidence(
             sample_evidence,
-            discovered_ids=["hidden_note", "wand_signature"],
+            discovered_ids=["hidden_note", "focus_signature"],
         )
 
         assert result == "All evidence has been discovered."
@@ -157,6 +157,24 @@ class TestBuildNarratorPrompt:
         )
 
         assert "The dusty library stretches before you." in prompt
+
+    def test_includes_case_setting(
+        self,
+        sample_evidence: list[dict],
+        not_present_items: list[dict],
+    ) -> None:
+        """Prompt includes parameterized case setting, not a hardcoded site."""
+        prompt = build_narrator_prompt(
+            location_desc="A candlelit vault.",
+            hidden_evidence=sample_evidence,
+            discovered_ids=[],
+            not_present=not_present_items,
+            player_input="look around",
+            case_setting="Ironwright Vaults, winter 1888",
+        )
+
+        assert "Ironwright Vaults, winter 1888" in prompt
+        assert "Blackwood Collegiate" not in prompt
 
     def test_includes_player_input(
         self,
@@ -336,15 +354,16 @@ class TestBuildSystemPrompt:
         prompt = build_system_prompt()
 
         assert "narrator" in prompt.lower()
-        assert "Harry Potter" in prompt
+        assert "Victorian occult detective" in prompt
 
     def test_system_prompt_has_hard_rules(self) -> None:
         """System prompt includes hard rules for evidence handling."""
-        prompt = build_system_prompt()
+        prompt = build_system_prompt(case_setting="Candlewick Lane, 1886")
 
         assert "EVIDENCE" in prompt
         assert "Never invent" in prompt
-        assert "YOUR NARRATOR VOICE" in prompt
+        assert "rite to perform" in prompt
+        assert "Candlewick Lane, 1886" in prompt
 
     def test_system_prompt_no_hallucination(self) -> None:
         """System prompt prevents hallucination."""
@@ -482,12 +501,12 @@ class TestBuildNarratorOrSpellPromptWithSpellOutcome:
             hidden_evidence=[],
             discovered_ids=[],
             not_present=[],
-            player_input="cast revelio on desk",
+            player_input="cast unveil on desk",
             spell_outcome="SUCCESS",
         )
 
         assert is_spell is True
-        assert "SPELL OUTCOME" in prompt
+        assert "RITE OUTCOME" in prompt
         assert "SUCCESS" in prompt
 
     def test_spell_outcome_failure_passed(self) -> None:
@@ -499,7 +518,7 @@ class TestBuildNarratorOrSpellPromptWithSpellOutcome:
             hidden_evidence=[],
             discovered_ids=[],
             not_present=[],
-            player_input="cast lumos",
+            player_input="cast raise_the_lamp",
             spell_outcome="FAILURE",
         )
 
@@ -516,12 +535,12 @@ class TestBuildNarratorOrSpellPromptWithSpellOutcome:
             hidden_evidence=[],
             discovered_ids=[],
             not_present=[],
-            player_input="cast revelio",
+            player_input="cast unveil",
             # spell_outcome not passed (None)
         )
 
         assert is_spell is True
-        assert "SPELL OUTCOME" in prompt
+        assert "RITE OUTCOME" in prompt
         assert "legacy" in prompt.lower() or "Not calculated" in prompt
 
     def test_non_spell_ignores_outcome(self) -> None:
@@ -538,7 +557,7 @@ class TestBuildNarratorOrSpellPromptWithSpellOutcome:
         )
 
         assert is_spell is False
-        assert "SPELL OUTCOME" not in prompt
+        assert "RITE OUTCOME" not in prompt
         assert "SUCCESS" not in prompt
 
     def test_backward_compatible_without_spell_outcome(self) -> None:
@@ -551,8 +570,8 @@ class TestBuildNarratorOrSpellPromptWithSpellOutcome:
             hidden_evidence=[],
             discovered_ids=[],
             not_present=[],
-            player_input="cast revelio",
+            player_input="cast unveil",
         )
 
         assert is_spell is True
-        assert "SPELL OUTCOME" in prompt
+        assert "RITE OUTCOME" in prompt

@@ -10,7 +10,7 @@ import pytest
 from starlette.requests import Request
 
 # Set test DB path BEFORE any imports that may touch persistence
-os.environ.setdefault("HP_GAME_DB_PATH", "saves/hp_game_test.db")
+os.environ.setdefault("LANTERN_DB_PATH", "saves/lantern_test.db")
 
 # PLAYER_TOKEN for tests
 os.environ.setdefault(
@@ -103,7 +103,7 @@ def _mock_init_db() -> None:
 def clean_test_db():
     """Autouse: ensure test DB table exists and truncate saves between tests.
 
-    Tests now hit real SQLite at HP_GAME_DB_PATH.
+    Tests now hit real SQLite at LANTERN_DB_PATH.
     """
     from src.state.persistence import init_db, _get_conn
 
@@ -123,7 +123,7 @@ def _cleanup_test_db():
         from src.state.persistence import close_db
 
         close_db()
-        db_path = os.environ.get("HP_GAME_DB_PATH", "saves/hp_game_test.db")
+        db_path = os.environ.get("LANTERN_DB_PATH", "saves/lantern_test.db")
         p = Path(db_path)
         if p.exists():
             p.unlink()
@@ -154,6 +154,9 @@ def override_auth_dependency():
     from src.main import app
 
     async def _test_auth(request: Request) -> str:
+        import re
+        from fastapi import HTTPException
+
         token = request.headers.get("x-player-token")
         if token:
             from src.api.auth import verify_token
@@ -165,6 +168,8 @@ def override_auth_dependency():
 
         if "player_id" in request.query_params:
             pid = request.query_params["player_id"]
+            if not re.match(r"^[a-zA-Z0-9_-]+$", pid):
+                raise HTTPException(status_code=422, detail="Invalid player_id format")
             request.state.player_id = pid
             return pid
 
@@ -172,8 +177,12 @@ def override_auth_dependency():
             body = await request.json()
             if isinstance(body, dict) and "player_id" in body:
                 pid = body["player_id"]
+                if not re.match(r"^[a-zA-Z0-9_-]+$", pid):
+                    raise HTTPException(status_code=422, detail="Invalid player_id format")
                 request.state.player_id = pid
                 return pid
+        except HTTPException:
+            raise
         except Exception:
             pass
 

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def format_common_mistakes(common_mistakes: list[dict[str, str]]) -> str:
-    """Format common mistakes for Moody prompt."""
+    """Format common mistakes for Graves prompt."""
     if not common_mistakes:
         return "No common mistakes defined."
     lines = []
@@ -23,7 +23,7 @@ def format_common_mistakes(common_mistakes: list[dict[str, str]]) -> str:
 
 
 def format_fallacies_to_catch(fallacies: list[dict[str, str]]) -> str:
-    """Format fallacies to catch for Moody prompt."""
+    """Format fallacies to catch for Graves prompt."""
     if not fallacies:
         return "No specific fallacies defined."
     return "\n".join(
@@ -35,7 +35,7 @@ def format_fallacies_to_catch(fallacies: list[dict[str, str]]) -> str:
 
 
 def format_timeline(timeline: list[dict[str, Any]]) -> str:
-    """Format timeline for Moody alibi evaluation."""
+    """Format timeline for Graves alibi evaluation."""
     if not timeline:
         return "No timeline available."
     lines = []
@@ -54,12 +54,12 @@ def _format_bullet_list(items: list[str], empty_msg: str = "None defined.") -> s
 
 
 def format_deductions_required(deductions: list[str]) -> str:
-    """Format required deductions for Moody prompt."""
+    """Format required deductions for Graves prompt."""
     return _format_bullet_list(deductions, "No specific deductions required.")
 
 
 def format_correct_reasoning(reasoning_list: list[str]) -> str:
-    """Format correct reasoning requirements for Moody prompt."""
+    """Format correct reasoning requirements for Graves prompt."""
     return _format_bullet_list(reasoning_list, "No specific reasoning requirements.")
 
 
@@ -189,7 +189,7 @@ def build_mentor_feedback(
     feedback_templates: dict[str, Any],
     attempts_remaining: int,
 ) -> dict[str, Any]:
-    """Build Moody's mentor feedback (template-based)."""
+    """Build Graves's mentor feedback (template-based)."""
     quality = _determine_quality(score)
     reasoning_preview = reasoning[:100] + "..." if len(reasoning) > 100 else reasoning
     analysis = f"You accused {accused_id} because: {reasoning_preview}"
@@ -240,15 +240,15 @@ def _build_fallacies_detailed(
 
 
 def _generate_praise(score: int, correct: bool, fallacies: list[str]) -> str:
-    """Generate praise for what player did well (Moody-style conditional)."""
+    """Generate praise for what player did well (Graves-style conditional)."""
     if score >= 90:
-        return "Outstanding. This is what I expect from a competent Auror."
+        return "Outstanding. This is what I expect from a competent Lantern Inspector."
     elif score >= 75:
         return "Good work. You cited relevant evidence and reasoned clearly."
     elif score >= 60:
         return "Adequate. You got there, but barely."
     elif correct and len(fallacies) == 0:
-        return "Correct, but I've seen better reasoning from first-years."
+        return "Correct, but I've seen better reasoning from probationary recruits."
     elif correct:
         return "Right answer, wrong path. Don't rely on luck."
     else:
@@ -261,14 +261,14 @@ def _generate_critique(
     solution: dict[str, Any],
     fallacies: list[str],
 ) -> str:
-    """Generate critique for what player missed (Moody-style harsh)."""
+    """Generate critique for what player missed (Graves-style harsh)."""
     if correct and len(fallacies) == 0:
         return "Acceptable work. But don't let it go to your head."
     elif correct:
         fallacy_str = ", ".join(fallacies) if fallacies else "some logical gaps"
         return (
             f"Right answer, WRONG reasoning. Your logic was riddled with "
-            f"{fallacy_str}. Sloppy work, Auror."
+            f"{fallacy_str}. Sloppy work, Lantern Inspector."
         )
     else:
         actual_culprit = solution.get("culprit", "unknown")
@@ -308,7 +308,7 @@ def get_wrong_suspect_response(
     return None
 
 
-def build_moody_roast_prompt(
+def build_graves_roast_prompt(
     player_reasoning: str,
     accused_suspect: str,
     actual_culprit: str,  # Keep param for signature compat but don't use
@@ -324,7 +324,7 @@ def build_moody_roast_prompt(
     evaluator_result: dict[str, Any] | None = None,
     language: str = "en",
 ) -> str:
-    """Build LLM prompt for Moody's harsh feedback on incorrect verdict."""
+    """Build LLM prompt for Graves's harsh feedback on incorrect verdict."""
     cited_str = ", ".join(evidence_cited) if evidence_cited else "None"
     missed_str = ", ".join(key_evidence_missed) if key_evidence_missed else "None"
 
@@ -340,7 +340,7 @@ TIMELINE (for evaluating alibi arguments):
 {format_timeline(timeline)}
 """
 
-    return f"""You are Alastor "Mad-Eye" Moody, a gruff veteran Auror trainer.
+    return f"""You are Inspector Alastor Graves, a gruff veteran Lantern Inspector trainer.
 {context_section}{enhanced_section}{victim_section}{timeline_section}{evaluator_section}
 A student submitted an INCORRECT verdict (attempt #{attempt_number}):
 - Accused: {accused_suspect} (WRONG - but don't reveal who IS guilty)
@@ -363,10 +363,10 @@ RULES:
 - NEVER list evidence as tags or IDs. Always refer to evidence naturally in prose (e.g. "the torn letter" not "torn_letter").
 - NEVER include examples, parenthetical notes, meta-commentary, or instructions.
 - Use paragraph breaks (double newlines) for readability.
-- Stay fully in character as Moody. Output ONLY Moody's words.{get_language_instruction(language)}"""
+- Stay fully in character as Graves. Output ONLY Graves's words.{get_language_instruction(language)}"""
 
 
-def build_moody_praise_prompt(
+def build_graves_praise_prompt(
     player_reasoning: str,
     accused_suspect: str,
     evidence_cited: list[str],
@@ -379,7 +379,7 @@ def build_moody_praise_prompt(
     evaluator_result: dict[str, Any] | None = None,
     language: str = "en",
 ) -> str:
-    """Build LLM prompt for Moody's feedback on correct verdict."""
+    """Build LLM prompt for Graves's feedback on correct verdict."""
     cited_str = ", ".join(evidence_cited) if evidence_cited else "None"
 
     context_section = _build_case_context_section(briefing_context, "for natural reference")
@@ -389,7 +389,7 @@ def build_moody_praise_prompt(
         evaluator_result, include_strengths=True, trust_note="— trust the score"
     )
 
-    return f"""You are Alastor "Mad-Eye" Moody, a gruff veteran Auror trainer.
+    return f"""You are Inspector Alastor Graves, a gruff veteran Lantern Inspector trainer.
 {context_section}{enhanced_section}{victim_section}{evaluator_section}
 A student just submitted a CORRECT verdict (attempt #{attempt_number}):
 - Accused: {accused_suspect} (CORRECT)
@@ -400,7 +400,7 @@ A student just submitted a CORRECT verdict (attempt #{attempt_number}):
 Your task: Acknowledge they got it right, then calibrate your tone to the score.
 
 TONE TIERS (follow the score STRICTLY):
-- Score >=85: Grudging respect. Briefly acknowledge solid detective work, but stay gruff. Never gush. "Not bad" is high praise from Moody.
+- Score >=85: Grudging respect. Briefly acknowledge solid detective work, but stay gruff. Never gush. "Not bad" is high praise from Graves.
 - Score 70-84: Gruff acknowledgment with mild criticism. They did decent work but missed some things. Point out what they could improve. A nod, not praise.
 - Score 50-69: Dismissive. They stumbled into the right answer with weak reasoning. Mock the sloppy parts. Dare them to try again and prove it wasn't a fluke.
 - Score <50: Savage. They got LUCKY and you know it. Tear apart every weak argument. Taunt them to try again with actual evidence-backed reasoning.
@@ -415,10 +415,10 @@ RULES:
 - NEVER include examples, parenthetical notes, meta-commentary, or instructions to the player.
 - NEVER start with "Good work" or praise if score < 85.
 - Use paragraph breaks (double newlines) for readability.
-- Stay fully in character as Moody. Output ONLY Moody's words.{get_language_instruction(language)}"""
+- Stay fully in character as Graves. Output ONLY Graves's words.{get_language_instruction(language)}"""
 
 
-async def build_moody_feedback_llm(
+async def build_graves_feedback_llm(
     correct: bool,
     score: int,
     fallacies: list[str],
@@ -434,7 +434,7 @@ async def build_moody_feedback_llm(
     evaluator_result: dict[str, Any] | None = None,
     language: str = "en",
 ) -> str:
-    """Generate Moody's feedback via Claude Haiku with template fallback."""
+    """Generate Graves's feedback via Claude Haiku with template fallback."""
     try:
         from src.api.llm_client import get_client
         from src.case_store.loader import load_case
@@ -449,7 +449,7 @@ async def build_moody_feedback_llm(
         attempt_number = 10 - attempts_remaining + 1
 
         if correct:
-            prompt = build_moody_praise_prompt(
+            prompt = build_graves_praise_prompt(
                 player_reasoning=reasoning,
                 accused_suspect=accused_id,
                 evidence_cited=evidence_cited,
@@ -468,7 +468,7 @@ async def build_moody_feedback_llm(
             key_missed = [e for e in critical_evidence if e not in cited_set]
             actual_culprit = solution.get("culprit", "unknown")
 
-            prompt = build_moody_roast_prompt(
+            prompt = build_graves_roast_prompt(
                 player_reasoning=reasoning,
                 accused_suspect=accused_id,
                 actual_culprit=actual_culprit,

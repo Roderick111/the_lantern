@@ -11,6 +11,7 @@ Multi-slot save system:
 
 import json
 import logging
+import os
 import re
 import sqlite3
 from datetime import UTC, datetime
@@ -24,13 +25,20 @@ logger = logging.getLogger(__name__)
 # Valid save slots
 VALID_SLOTS = {"slot_1", "slot_2", "slot_3", "autosave", "default"}
 
-# SQLite database path — Docker volume at /app/saves, local dev fallback
-_SAVES_DIR = Path("/app/saves")
-_DB_PATH = (
-    _SAVES_DIR / "hp_game.db"
-    if _SAVES_DIR.exists()
-    else Path(__file__).parent.parent.parent / "saves" / "hp_game.db"
-)
+
+def _resolve_db_path() -> Path:
+    """Resolve SQLite path: env override, Docker volume, or local dev fallback."""
+    env_path = os.environ.get("LANTERN_DB_PATH")
+    if env_path:
+        return Path(env_path)
+
+    saves_dir = Path("/app/saves")
+    if saves_dir.exists():
+        return saves_dir / "lantern.db"
+    return Path(__file__).parent.parent.parent / "saves" / "lantern.db"
+
+
+_DB_PATH = _resolve_db_path()
 
 _conn: sqlite3.Connection | None = None
 
@@ -93,7 +101,7 @@ def save_player_state(
     player_id: str,
     state: PlayerState,
     slot: str = "default",
-) -> None:
+) -> bool:
     """Save player state to specific slot. Raises on failure."""
     if slot not in VALID_SLOTS:
         raise ValueError(f"Invalid slot: {slot}. Must be one of {VALID_SLOTS}")
@@ -119,6 +127,7 @@ def save_player_state(
             (player_id, case_id, slot, state_json, now),
         )
         conn.commit()
+        return True
 
     except Exception as e:
         logger.error(f"Save failed: {e}")
@@ -249,9 +258,9 @@ def list_player_saves(
 # ============================================================================
 
 
-def save_state(state: PlayerState, player_id: str) -> None:
+def save_state(state: PlayerState, player_id: str) -> bool:
     """Legacy save — delegates to save_player_state with autosave slot. Raises on failure."""
-    save_player_state(state.case_id, player_id, state, "autosave")
+    return save_player_state(state.case_id, player_id, state, "autosave")
 
 
 def load_state(case_id: str, player_id: str) -> PlayerState | None:

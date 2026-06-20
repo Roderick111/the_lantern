@@ -104,8 +104,8 @@ def extract_flags_from_response(response: str) -> list[str]:
     spell consequences like relationship damage or mental strain.
 
     Example flags:
-        - [FLAG: relationship_damaged] - Legilimency detected by target
-        - [FLAG: mental_strain] - Backlash from Occlumency shields
+        - [FLAG: relationship_damaged] - Mnemonic Delving detected by target
+        - [FLAG: mental_strain] - Backlash from Mind-shield shields
 
     Args:
         response: LLM narrator response text

@@ -416,7 +416,7 @@ class BriefingQuestionRequest(BaseModel):
         ...,
         min_length=1,
         max_length=1000,
-        description="Player's question for Moody (max 1000 chars, ~250 tokens)",
+        description="Player's question for Graves (max 1000 chars, ~250 tokens)",
     )
     slot: str = Field(
         default="autosave",
@@ -428,7 +428,7 @@ class BriefingQuestionRequest(BaseModel):
 class BriefingQuestionResponse(BaseModel):
     """Response from briefing question endpoint."""
 
-    answer: str = Field(..., description="Moody's response")
+    answer: str = Field(..., description="Graves's response")
     updated_state: dict[str, Any] | None = None
 
 
@@ -440,7 +440,7 @@ class BriefingCompleteResponse(BaseModel):
 
 
 # ============================================
-# Inner Voice (Tom) models
+# Spirit companion (Matthew) models
 # ============================================
 
 
@@ -454,16 +454,16 @@ class InnerVoiceTriggerResponse(BaseModel):
     """Response from inner voice check endpoint (LEGACY YAML system)."""
 
     id: str = Field(..., description="Trigger ID")
-    text: str = Field(..., description="Tom's message text")
+    text: str = Field(..., description="Matthew's message text")
     type: str = Field(..., description="Trigger type (helpful/misleading/etc.)")
     tier: int = Field(..., ge=1, le=3, description="Trigger tier (1/2/3)")
     updated_state: dict[str, Any] | None = None
 
 
-class TomAutoCommentRequest(BaseModel):
-    """Request for Tom auto-comment after evidence discovery."""
+class MatthewAutoCommentRequest(BaseModel):
+    """Request for Matthew auto-comment after evidence discovery."""
 
-    is_critical: bool = Field(default=False, description="Force Tom to comment?")
+    is_critical: bool = Field(default=False, description="Force Matthew to comment?")
     last_evidence_id: str | None = Field(
         default=None,
         max_length=64,
@@ -472,21 +472,21 @@ class TomAutoCommentRequest(BaseModel):
     )
 
 
-class TomChatRequest(BaseModel):
-    """Request for direct Tom conversation."""
+class MatthewChatRequest(BaseModel):
+    """Request for direct Matthew conversation."""
 
     message: str = Field(
         ...,
         min_length=1,
         max_length=1000,
-        description="Player's question to Tom (max 1000 chars, ~250 tokens)",
+        description="Player's question to Matthew (max 1000 chars, ~250 tokens)",
     )
 
 
-class TomResponseModel(BaseModel):
-    """Tom's response (LLM-powered)."""
+class MatthewResponseModel(BaseModel):
+    """Matthew's response (LLM-powered)."""
 
-    text: str = Field(..., description="Tom's comment/response")
+    text: str = Field(..., description="Matthew's comment/response")
     mode: str = Field(
         ..., description="Response mode: 'auto', 'direct_chat', 'helpful', 'misleading'"
     )

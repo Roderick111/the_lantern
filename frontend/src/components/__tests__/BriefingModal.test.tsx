@@ -30,17 +30,17 @@ import type {
 const mockBriefing: BriefingContent = {
   case_id: 'case_001',
   dossier: {
-    title: 'The Restricted Section',
+    title: 'The Sealed Stacks',
     victim: 'Third-year student',
-    location: 'Hogwarts Library, Restricted Section',
+    location: 'Blackwood Collegiate Library, Sealed Stacks',
     time: 'Approximately 9:15pm last night',
-    status: 'Found petrified near frost-covered window',
-    synopsis: `*Mad-Eye Moody tosses a thin case file onto the desk*
+    status: 'Found held in stillness near frost-covered window',
+    synopsis: `*Inspector Graves tosses a thin case file onto the desk*
 
 VICTIM: Third-year student
-LOCATION: Hogwarts Library, Restricted Section
+LOCATION: Blackwood Collegiate Library, Sealed Stacks
 TIME: Approximately 9:15pm last night
-STATUS: Found petrified near frost-covered window`,
+STATUS: Found held in stillness near frost-covered window`,
   },
   teaching_questions: [
     {
@@ -61,7 +61,7 @@ Out of 100 school incidents ruled "accidents," how many actually ARE accidents?`
         {
           id: '85_percent',
           text: '85%',
-          response: '*nods* Correct. 85%. Hogwarts is dangerous.',
+          response: '*nods* Correct. 85%. Blackwood Collegiate is dangerous.',
         },
         {
           id: 'almost_all',
@@ -75,14 +75,14 @@ Out of 100 school incidents ruled "accidents," how many actually ARE accidents?`
   ],
   transition: `Now get to work. The library's waiting.
 
-CONSTANT VIGILANCE.`,
+TRUST NOTHING UNSEEN.`,
   briefing_completed: false,
 };
 
 const mockConversation: BriefingConversation[] = [
   {
     question: 'What are base rates?',
-    answer: 'Base rates are prior probabilities. Most Hogwarts accidents are just accidents.',
+    answer: 'Base rates are prior probabilities. Most Blackwood Collegiate accidents are just accidents.',
   },
 ];
 
@@ -116,19 +116,19 @@ describe('BriefingModal', () => {
   // ------------------------------------------
 
   describe('Dialogue Feed', () => {
-    it('renders case assignment as Moody message', () => {
+    it('renders case assignment as Graves message', () => {
       render(<BriefingModal {...defaultProps} />);
 
       expect(screen.getByText(/VICTIM: Third-year student/)).toBeInTheDocument();
     });
 
-    it.todo('displays MOODY label for case assignment');
+    it.todo('displays GRAVES label for case assignment');
 
     it.todo('renders teaching question prompt');
 
     it.todo('hides transition text when no questions asked');
 
-    it.todo('hides CONSTANT VIGILANCE when no questions asked');
+    it.todo('hides TRUST NOTHING UNSEEN when no questions asked');
 
     it('displays transition text after asking question', () => {
       render(<BriefingModal {...defaultProps} initialStep={2} conversation={mockConversation} />);
@@ -136,10 +136,10 @@ describe('BriefingModal', () => {
       expect(screen.getByText(/Now get to work/)).toBeInTheDocument();
     });
 
-    it('displays CONSTANT VIGILANCE after asking question', () => {
+    it('displays TRUST NOTHING UNSEEN after asking question', () => {
       render(<BriefingModal {...defaultProps} initialStep={2} conversation={mockConversation} />);
 
-      expect(screen.getByText(/CONSTANT VIGILANCE/)).toBeInTheDocument();
+      expect(screen.getByText(/TRUST NOTHING UNSEEN/)).toBeInTheDocument();
     });
 
     it('preserves whitespace in messages', () => {
@@ -189,7 +189,7 @@ describe('BriefingModal', () => {
         <BriefingModal
           {...defaultProps}
           selectedChoice="85_percent"
-          choiceResponse="*nods* Correct. 85%. Hogwarts is dangerous."
+          choiceResponse="*nods* Correct. 85%. Blackwood Collegiate is dangerous."
         />
       );
 
@@ -201,7 +201,7 @@ describe('BriefingModal', () => {
 
     it.todo('shows YOU label for player choice');
 
-    it.todo('shows Moody response after selection');
+    it.todo('shows Graves response after selection');
 
     it.todo('shows concept summary after response');
 
@@ -247,7 +247,7 @@ describe('BriefingModal', () => {
         />,
       );
 
-      const textarea = screen.getByPlaceholderText(/ask Moody/i);
+      const textarea = screen.getByPlaceholderText(/ask Graves/i);
       await user.type(textarea, 'What are base rates?');
       await user.click(screen.getByRole('button', { name: 'Send Message' }));
 
@@ -268,7 +268,7 @@ describe('BriefingModal', () => {
         />,
       );
 
-      const textarea = screen.getByPlaceholderText(/ask Moody/i);
+      const textarea = screen.getByPlaceholderText(/ask Graves/i);
       await user.type(textarea, 'What are base rates?');
       await user.click(screen.getByRole('button', { name: 'Send Message' }));
 
@@ -420,7 +420,7 @@ describe('BriefingModal', () => {
       render(<BriefingModal {...defaultProps} initialStep={2} conversation={mockConversation} />);
 
       expect(screen.getByText(/Now get to work/)).toBeInTheDocument();
-      expect(screen.getByText(/CONSTANT VIGILANCE/)).toBeInTheDocument();
+      expect(screen.getByText(/TRUST NOTHING UNSEEN/)).toBeInTheDocument();
     });
 
     it.todo('shows transition after player asks first question');

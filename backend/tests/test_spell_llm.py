@@ -19,7 +19,7 @@ class TestBuildSpellSystemPrompt:
         """System prompt defines spell narrator role."""
         prompt = build_spell_system_prompt()
         assert "narrator" in prompt.lower()
-        assert "spell effects" in prompt.lower()
+        assert "rite effects" in prompt.lower()
 
     def test_has_evidence_rules(self) -> None:
         """System prompt includes evidence rules."""
@@ -27,10 +27,10 @@ class TestBuildSpellSystemPrompt:
         assert "[EVIDENCE: id]" in prompt
         assert "Never invent evidence" in prompt
 
-    def test_has_legilimency_warning(self) -> None:
-        """System prompt mentions Legilimency warnings."""
+    def test_has_mnemonic_delving_warning(self) -> None:
+        """System prompt mentions Mnemonic Delving warnings."""
         prompt = build_spell_system_prompt()
-        assert "Legilimency" in prompt
+        assert "Mnemonic Delving" in prompt
         assert "warning" in prompt.lower()
 
 
@@ -44,13 +44,13 @@ class TestBuildSpellEffectPrompt:
             "description": "The dusty library stretches before you.",
             "spell_contexts": {
                 "special_interactions": {
-                    "revelio": {
+                    "unveil": {
                         "targets": ["desk", "shelves", "window"],
                         "reveals_evidence": ["hidden_note"],
                     },
-                    "prior_incantato": {
-                        "targets": ["wand", "victim_wand"],
-                        "reveals_evidence": ["wand_signature"],
+                    "echo_reading": {
+                        "targets": ["focus", "victim_focus"],
+                        "reveals_evidence": ["focus_signature"],
                     },
                 },
             },
@@ -59,18 +59,18 @@ class TestBuildSpellEffectPrompt:
     def test_includes_spell_name(self, location_context: dict) -> None:
         """Prompt includes spell name."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target="desk",
             location_context=location_context,
         )
 
-        assert "Revelio" in prompt
-        assert "SPELL CAST" in prompt
+        assert "Unveil" in prompt
+        assert "RITE PERFORMED" in prompt
 
     def test_includes_target(self, location_context: dict) -> None:
         """Prompt includes target."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target="desk",
             location_context=location_context,
         )
@@ -80,7 +80,7 @@ class TestBuildSpellEffectPrompt:
     def test_includes_location_description(self, location_context: dict) -> None:
         """Prompt includes location description."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target="desk",
             location_context=location_context,
         )
@@ -90,7 +90,7 @@ class TestBuildSpellEffectPrompt:
     def test_includes_valid_targets(self, location_context: dict) -> None:
         """Prompt includes valid targets for spell."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target="desk",
             location_context=location_context,
         )
@@ -102,7 +102,7 @@ class TestBuildSpellEffectPrompt:
     def test_includes_revealable_evidence(self, location_context: dict) -> None:
         """Prompt includes evidence that can be revealed."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target="desk",
             location_context=location_context,
             player_context={"discovered_evidence": []},
@@ -113,7 +113,7 @@ class TestBuildSpellEffectPrompt:
     def test_excludes_discovered_evidence(self, location_context: dict) -> None:
         """Prompt excludes already discovered evidence."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target="desk",
             location_context=location_context,
             player_context={"discovered_evidence": ["hidden_note"]},
@@ -134,7 +134,7 @@ class TestBuildSpellEffectPrompt:
     def test_no_target_handled(self, location_context: dict) -> None:
         """No target handled gracefully."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target=None,
             location_context=location_context,
         )
@@ -146,45 +146,45 @@ class TestParseSpellFromInput:
     """Tests for parse_spell_from_input function."""
 
     def test_cast_spell_simple(self) -> None:
-        """Parse 'cast revelio'."""
-        spell_id, target = parse_spell_from_input("cast revelio")
+        """Parse 'cast unveil'."""
+        spell_id, target = parse_spell_from_input("cast unveil")
 
-        assert spell_id == "revelio"
+        assert spell_id == "unveil"
         assert target is None
 
     def test_cast_spell_with_target(self) -> None:
-        """Parse 'cast revelio on desk'."""
-        spell_id, target = parse_spell_from_input("cast revelio on desk")
+        """Parse 'cast unveil on desk'."""
+        spell_id, target = parse_spell_from_input("cast unveil on desk")
 
-        assert spell_id == "revelio"
+        assert spell_id == "unveil"
         assert target == "desk"
 
     def test_casting_spell_simple(self) -> None:
-        """Parse "I'm casting Lumos"."""
-        spell_id, target = parse_spell_from_input("I'm casting Lumos")
+        """Parse "I'm casting Raise the Lamp"."""
+        spell_id, target = parse_spell_from_input("I'm casting Raise the Lamp")
 
-        assert spell_id == "lumos"
+        assert spell_id == "raise_the_lamp"
         assert target is None
 
     def test_casting_spell_with_target(self) -> None:
-        """Parse "I'm casting Prior Incantato on the wand"."""
-        spell_id, target = parse_spell_from_input("I'm casting Prior Incantato on the wand")
+        """Parse "I'm casting Echo Reading on the focus"."""
+        spell_id, target = parse_spell_from_input("I'm casting Echo Reading on the focus")
 
-        assert spell_id == "prior_incantato"
-        assert target == "the wand"
+        assert spell_id == "echo_reading"
+        assert target == "the focus"
 
     def test_spell_name_with_target(self) -> None:
-        """Parse 'revelio on shelves'."""
-        spell_id, target = parse_spell_from_input("revelio on shelves")
+        """Parse 'unveil on shelves'."""
+        spell_id, target = parse_spell_from_input("unveil on shelves")
 
-        assert spell_id == "revelio"
+        assert spell_id == "unveil"
         assert target == "shelves"
 
     def test_just_spell_name(self) -> None:
         """Parse just spell name."""
-        spell_id, target = parse_spell_from_input("lumos")
+        spell_id, target = parse_spell_from_input("raise_the_lamp")
 
-        assert spell_id == "lumos"
+        assert spell_id == "raise_the_lamp"
         assert target is None
 
     def test_unknown_spell(self) -> None:
@@ -203,25 +203,25 @@ class TestParseSpellFromInput:
 
     def test_case_insensitive(self) -> None:
         """Spell parsing is case insensitive."""
-        spell_id1, _ = parse_spell_from_input("cast REVELIO")
-        spell_id2, _ = parse_spell_from_input("cast Revelio")
-        spell_id3, _ = parse_spell_from_input("cast revelio")
+        spell_id1, _ = parse_spell_from_input("cast Unveil")
+        spell_id2, _ = parse_spell_from_input("cast Unveil")
+        spell_id3, _ = parse_spell_from_input("cast unveil")
 
-        assert spell_id1 == spell_id2 == spell_id3 == "revelio"
+        assert spell_id1 == spell_id2 == spell_id3 == "unveil"
 
     def test_multi_word_spell(self) -> None:
         """Parse multi-word spell name."""
-        spell_id, target = parse_spell_from_input("cast prior incantato on wand")
+        spell_id, target = parse_spell_from_input("cast echo reading on focus")
 
-        assert spell_id == "prior_incantato"
-        assert target == "wand"
+        assert spell_id == "echo_reading"
+        assert target == "focus"
 
-    def test_legilimency(self) -> None:
-        """Parse legilimency spell."""
-        spell_id, target = parse_spell_from_input("cast legilimency on hermione")
+    def test_mnemonic_delving(self) -> None:
+        """Parse mnemonic_delving spell."""
+        spell_id, target = parse_spell_from_input("cast mnemonic_delving on elena")
 
-        assert spell_id == "legilimency"
-        assert target == "hermione"
+        assert spell_id == "mnemonic_delving"
+        assert target == "elena"
 
 
 class TestNormalizeSpellName:
@@ -229,19 +229,19 @@ class TestNormalizeSpellName:
 
     def test_direct_match(self) -> None:
         """Direct spell ID match."""
-        assert _normalize_spell_name("revelio") == "revelio"
+        assert _normalize_spell_name("unveil") == "unveil"
 
     def test_match_by_name(self) -> None:
         """Match by display name."""
-        assert _normalize_spell_name("Revelio") == "revelio"
+        assert _normalize_spell_name("Unveil") == "unveil"
 
     def test_multi_word_with_space(self) -> None:
         """Multi-word spell with space."""
-        assert _normalize_spell_name("prior incantato") == "prior_incantato"
+        assert _normalize_spell_name("echo reading") == "echo_reading"
 
     def test_partial_match(self) -> None:
         """Partial name match."""
-        assert _normalize_spell_name("prior") == "prior_incantato"
+        assert _normalize_spell_name("echo") == "echo_reading"
 
     def test_unknown_returns_none(self) -> None:
         """Unknown spell returns None."""
@@ -252,12 +252,12 @@ class TestIsSpellInput:
     """Tests for is_spell_input function."""
 
     def test_cast_spell_is_spell(self) -> None:
-        """'cast revelio' is spell input."""
-        assert is_spell_input("cast revelio") is True
+        """'cast unveil' is spell input."""
+        assert is_spell_input("cast unveil") is True
 
     def test_casting_is_spell(self) -> None:
-        """'I'm casting Lumos' is spell input."""
-        assert is_spell_input("I'm casting Lumos") is True
+        """'I'm casting Raise the Lamp' is spell input."""
+        assert is_spell_input("I'm casting Raise the Lamp") is True
 
     def test_examine_not_spell(self) -> None:
         """'examine desk' is not spell input."""
@@ -300,15 +300,15 @@ class TestDetectSpellWithFuzzy:
         """Exact spell name detection."""
         from src.context.spell_llm import detect_spell_with_fuzzy
 
-        spell_id, target = detect_spell_with_fuzzy("use legilimency")
-        assert spell_id == "legilimency"
+        spell_id, target = detect_spell_with_fuzzy("use mnemonic_delving")
+        assert spell_id == "mnemonic_delving"
 
     def test_spell_name_with_target(self) -> None:
         """Spell detection with target extraction."""
         from src.context.spell_llm import detect_spell_with_fuzzy
 
-        spell_id, target = detect_spell_with_fuzzy("cast revelio on desk")
-        assert spell_id == "revelio"
+        spell_id, target = detect_spell_with_fuzzy("cast unveil on desk")
+        assert spell_id == "unveil"
         assert target == "desk"
 
     def test_fuzzy_match_typo(self) -> None:
@@ -317,16 +317,16 @@ class TestDetectSpellWithFuzzy:
 
         # Common typo: legulemancy
         spell_id, target = detect_spell_with_fuzzy("legulemancy on her")
-        assert spell_id == "legilimency"
+        assert spell_id == "mnemonic_delving"
         assert target == "her"
 
-    def test_fuzzy_match_legilimency_typo(self) -> None:
-        """Fuzzy matching detects legilimency with typo (user requirement: fuzzy only)."""
+    def test_fuzzy_match_mnemonic_delving_typo(self) -> None:
+        """Fuzzy matching detects mnemonic_delving with typo (user requirement: fuzzy only)."""
         from src.context.spell_llm import detect_spell_with_fuzzy
 
-        spell_id, target = detect_spell_with_fuzzy("I cast legulemancy on hermione")
-        assert spell_id == "legilimency"
-        assert target == "hermione"
+        spell_id, target = detect_spell_with_fuzzy("I cast legulemancy on elena")
+        assert spell_id == "mnemonic_delving"
+        assert target == "elena"
 
     def test_no_false_positive_conversational(self) -> None:
         """Conversational phrases don't trigger detection."""
@@ -345,17 +345,17 @@ class TestDetectSpellWithFuzzy:
         assert target is None
 
     def test_all_7_spells_detected(self) -> None:
-        """All 7 spells can be detected by name."""
+        """All 7 rites can be detected by name."""
         from src.context.spell_llm import detect_spell_with_fuzzy
 
         spells = [
-            ("cast revelio", "revelio"),
-            ("lumos", "lumos"),
-            ("homenum revelio", "homenum_revelio"),
-            ("specialis revelio", "specialis_revelio"),
-            ("prior incantato", "prior_incantato"),
-            ("reparo on vase", "reparo"),
-            ("legilimency", "legilimency"),
+            ("cast unveil", "unveil"),
+            ("raise_the_lamp", "raise_the_lamp"),
+            ("homenum unveil", "sense_presence"),
+            ("specialis unveil", "identify_substance"),
+            ("echo reading", "echo_reading"),
+            ("mend on vase", "mend"),
+            ("mnemonic_delving", "mnemonic_delving"),
         ]
 
         for text, expected_id in spells:
@@ -370,21 +370,21 @@ class TestExtractTargetFromInput:
         """Extracts target after 'on'."""
         from src.context.spell_llm import extract_target_from_input
 
-        target = extract_target_from_input("cast revelio on the desk")
+        target = extract_target_from_input("cast unveil on the desk")
         assert target == "the desk"
 
     def test_at_target(self) -> None:
         """Extracts target after 'at'."""
         from src.context.spell_llm import extract_target_from_input
 
-        target = extract_target_from_input("cast lumos at the corner")
+        target = extract_target_from_input("cast raise_the_lamp at the corner")
         assert target == "the corner"
 
     def test_no_target(self) -> None:
         """Returns None if no target specified."""
         from src.context.spell_llm import extract_target_from_input
 
-        target = extract_target_from_input("cast revelio")
+        target = extract_target_from_input("cast unveil")
         assert target is None
 
 
@@ -395,86 +395,86 @@ class TestExtractIntentFromInput:
         """Extracts intent from 'to find out about X'."""
         from src.context.spell_llm import extract_intent_from_input
 
-        intent = extract_intent_from_input("read her mind to find out about draco")
-        assert intent == "draco"
+        intent = extract_intent_from_input("read her mind to find out about cassian")
+        assert intent == "cassian"
 
     def test_about_pattern(self) -> None:
         """Extracts intent from 'about X'."""
         from src.context.spell_llm import extract_intent_from_input
 
-        intent = extract_intent_from_input("legilimency about the crime")
+        intent = extract_intent_from_input("mnemonic_delving about the crime")
         assert intent == "the crime"
 
     def test_no_intent(self) -> None:
         """Returns None if no intent specified."""
         from src.context.spell_llm import extract_intent_from_input
 
-        intent = extract_intent_from_input("use legilimency on her")
+        intent = extract_intent_from_input("use mnemonic_delving on her")
         assert intent is None
 
 
-class TestDetectFocusedLegilimency:
-    """Tests for detect_focused_legilimency function (Phase 4.6.2)."""
+class TestDetectFocusedMnemonicDelving:
+    """Tests for detect_focused_mnemonic_delving function (Phase 4.6.2)."""
 
     def test_focused_with_intent(self) -> None:
-        """Focused Legilimency detected with search intent."""
-        from src.context.spell_llm import detect_focused_legilimency
+        """Focused Mnemonic Delving detected with search intent."""
+        from src.context.spell_llm import detect_focused_mnemonic_delving
 
-        is_focused, target = detect_focused_legilimency("read her mind to find out about draco")
+        is_focused, target = detect_focused_mnemonic_delving("read her mind to find out about cassian")
         assert is_focused is True
-        assert target == "draco"
+        assert target == "cassian"
 
     def test_unfocused_no_intent(self) -> None:
-        """Unfocused Legilimency detected without search intent."""
-        from src.context.spell_llm import detect_focused_legilimency
+        """Unfocused Mnemonic Delving detected without search intent."""
+        from src.context.spell_llm import detect_focused_mnemonic_delving
 
-        is_focused, target = detect_focused_legilimency("use legilimency on hermione")
+        is_focused, target = detect_focused_mnemonic_delving("use mnemonic_delving on elena")
         assert is_focused is False
         assert target is None
 
 
-class TestBuildLegilimencyNarrationPrompt:
-    """Tests for build_legilimency_narration_prompt function (Phase 4.8)."""
+class TestBuildMnemonicDelvingNarrationPrompt:
+    """Tests for build_mnemonic_delving_narration_prompt function (Phase 4.8)."""
 
     def test_success_with_intent_template(self) -> None:
         """Success template includes search intent and witness name."""
-        from src.context.spell_llm import build_legilimency_narration_prompt
+        from src.context.spell_llm import build_mnemonic_delving_narration_prompt
 
-        prompt = build_legilimency_narration_prompt(
+        prompt = build_mnemonic_delving_narration_prompt(
             outcome="success",
             detected=False,
-            witness_name="Hermione",
-            search_intent="Draco",
+            witness_name="Elena",
+            search_intent="Cassian",
         )
 
-        assert "Hermione" in prompt
-        assert "Draco" in prompt
+        assert "Elena" in prompt
+        assert "Cassian" in prompt
         assert "success" in prompt.lower()
 
     def test_failure_undetected_template(self) -> None:
         """Failure undetected template included."""
-        from src.context.spell_llm import build_legilimency_narration_prompt
+        from src.context.spell_llm import build_mnemonic_delving_narration_prompt
 
-        prompt = build_legilimency_narration_prompt(
+        prompt = build_mnemonic_delving_narration_prompt(
             outcome="failure",
             detected=False,
-            witness_name="Ron",
+            witness_name="Rowan",
         )
 
-        assert "Ron" in prompt
+        assert "Rowan" in prompt
         assert "fail" in prompt.lower()
 
     def test_failure_detected_template(self) -> None:
         """Failure detected template shows detection status."""
-        from src.context.spell_llm import build_legilimency_narration_prompt
+        from src.context.spell_llm import build_mnemonic_delving_narration_prompt
 
-        prompt = build_legilimency_narration_prompt(
+        prompt = build_mnemonic_delving_narration_prompt(
             outcome="failure",
             detected=True,
-            witness_name="Harry",
+            witness_name="Elena",
         )
 
-        assert "Harry" in prompt
+        assert "Elena" in prompt
         assert "detect" in prompt.lower()
 
 
@@ -490,85 +490,85 @@ class TestCalculateSpecificityBonus:
         """Plain spell name has no bonus."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("Revelio")
+        bonus = calculate_specificity_bonus("Unveil")
         assert bonus == 0
 
     def test_target_bonus_on(self) -> None:
         """Target with 'on X' gives +10%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("Revelio on desk")
+        bonus = calculate_specificity_bonus("Unveil on desk")
         assert bonus == 10
 
     def test_target_bonus_at(self) -> None:
         """Target with 'at X' gives +10%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("Lumos at the corner")
+        bonus = calculate_specificity_bonus("Raise the Lamp at the corner")
         assert bonus == 10
 
     def test_target_bonus_toward(self) -> None:
         """Target with 'toward X' gives +10%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("cast revelio toward window")
+        bonus = calculate_specificity_bonus("cast unveil toward window")
         assert bonus == 10
 
     def test_target_bonus_against(self) -> None:
         """Target with 'against X' gives +10%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("specialis revelio against substance")
+        bonus = calculate_specificity_bonus("specialis unveil against substance")
         assert bonus == 10
 
     def test_intent_bonus_to_find(self) -> None:
         """Intent with 'to find' gives +10%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("Revelio to find hidden objects")
+        bonus = calculate_specificity_bonus("Unveil to find hidden objects")
         assert bonus == 10
 
     def test_intent_bonus_to_reveal(self) -> None:
         """Intent with 'to reveal' gives +10%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("Revelio to reveal secrets")
+        bonus = calculate_specificity_bonus("Unveil to reveal secrets")
         assert bonus == 10
 
     def test_intent_bonus_to_show(self) -> None:
         """Intent with 'to show' gives +10%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("Lumos to show the way")
+        bonus = calculate_specificity_bonus("Raise the Lamp to show the way")
         assert bonus == 10
 
     def test_intent_bonus_to_uncover(self) -> None:
         """Intent with 'to uncover' gives +10%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("Revelio to uncover evidence")
+        bonus = calculate_specificity_bonus("Unveil to uncover evidence")
         assert bonus == 10
 
     def test_intent_bonus_to_detect(self) -> None:
         """Intent with 'to detect' gives +10%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("Homenum Revelio to detect people")
+        bonus = calculate_specificity_bonus("Sense Presence to detect people")
         assert bonus == 10
 
     def test_both_target_and_intent(self) -> None:
         """Both target and intent gives +20%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus = calculate_specificity_bonus("Revelio on desk to find letters")
+        bonus = calculate_specificity_bonus("Unveil on desk to find letters")
         assert bonus == 20
 
     def test_case_insensitive(self) -> None:
         """Bonus detection is case insensitive."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        bonus1 = calculate_specificity_bonus("revelio ON desk TO FIND clues")
-        bonus2 = calculate_specificity_bonus("Revelio on desk to find clues")
+        bonus1 = calculate_specificity_bonus("unveil ON desk TO FIND clues")
+        bonus2 = calculate_specificity_bonus("Unveil on desk to find clues")
         assert bonus1 == bonus2 == 20
 
 
@@ -583,12 +583,12 @@ class TestCalculateSpellSuccess:
 
         # Roll 65 < 70% base rate = success
         with patch("src.context.spell_detection.random.random", return_value=0.65):
-            result = calculate_spell_success("revelio", "Revelio", 0, "library")
+            result = calculate_spell_success("unveil", "Unveil", 0, "library")
             assert result is True
 
         # Roll 75 > 70% base rate = failure
         with patch("src.context.spell_detection.random.random", return_value=0.75):
-            result = calculate_spell_success("revelio", "Revelio", 0, "library")
+            result = calculate_spell_success("unveil", "Unveil", 0, "library")
             assert result is False
 
     def test_specificity_bonus_applied(self) -> None:
@@ -600,7 +600,7 @@ class TestCalculateSpellSuccess:
         # Roll 85 - without bonus (70%) would fail, with +20% bonus (90%) succeeds
         with patch("src.context.spell_detection.random.random", return_value=0.85):
             result = calculate_spell_success(
-                "revelio", "Revelio on desk to find clues", 0, "library"
+                "unveil", "Unveil on desk to find clues", 0, "library"
             )
             assert result is True
 
@@ -612,8 +612,8 @@ class TestCalculateSpellSuccess:
 
         # Roll 65 - 1st attempt (70%) succeeds, 2nd attempt (60%) fails
         with patch("src.context.spell_detection.random.random", return_value=0.65):
-            result1 = calculate_spell_success("revelio", "Revelio", 0, "library")
-            result2 = calculate_spell_success("revelio", "Revelio", 1, "library")
+            result1 = calculate_spell_success("unveil", "Unveil", 0, "library")
+            result2 = calculate_spell_success("unveil", "Unveil", 1, "library")
             assert result1 is True  # 70% base > 65% roll
             assert result2 is False  # 60% (70-10) < 65% roll
 
@@ -626,12 +626,12 @@ class TestCalculateSpellSuccess:
         # 7th attempt: 70 - 60 = 10% (floor)
         # Roll 5 < 10% = success
         with patch("src.context.spell_detection.random.random", return_value=0.05):
-            result = calculate_spell_success("revelio", "Revelio", 6, "library")
+            result = calculate_spell_success("unveil", "Unveil", 6, "library")
             assert result is True
 
         # Roll 15 > 10% = failure
         with patch("src.context.spell_detection.random.random", return_value=0.15):
-            result = calculate_spell_success("revelio", "Revelio", 6, "library")
+            result = calculate_spell_success("unveil", "Unveil", 6, "library")
             assert result is False
 
     def test_floor_even_with_many_attempts(self) -> None:
@@ -642,7 +642,7 @@ class TestCalculateSpellSuccess:
 
         # 10th attempt would be 70 - 90 = -20%, but floor keeps it at 10%
         with patch("src.context.spell_detection.random.random", return_value=0.05):
-            result = calculate_spell_success("revelio", "Revelio", 9, "library")
+            result = calculate_spell_success("unveil", "Unveil", 9, "library")
             assert result is True  # 10% floor > 5% roll
 
     def test_second_attempt_rate(self) -> None:
@@ -652,11 +652,11 @@ class TestCalculateSpellSuccess:
         from src.context.spell_llm import calculate_spell_success
 
         with patch("src.context.spell_detection.random.random", return_value=0.55):
-            result = calculate_spell_success("revelio", "Revelio", 1, "library")
+            result = calculate_spell_success("unveil", "Unveil", 1, "library")
             assert result is True  # 60% > 55%
 
         with patch("src.context.spell_detection.random.random", return_value=0.65):
-            result = calculate_spell_success("revelio", "Revelio", 1, "library")
+            result = calculate_spell_success("unveil", "Unveil", 1, "library")
             assert result is False  # 60% < 65%
 
     def test_third_attempt_rate(self) -> None:
@@ -666,11 +666,11 @@ class TestCalculateSpellSuccess:
         from src.context.spell_llm import calculate_spell_success
 
         with patch("src.context.spell_detection.random.random", return_value=0.45):
-            result = calculate_spell_success("revelio", "Revelio", 2, "library")
+            result = calculate_spell_success("unveil", "Unveil", 2, "library")
             assert result is True  # 50% > 45%
 
         with patch("src.context.spell_detection.random.random", return_value=0.55):
-            result = calculate_spell_success("revelio", "Revelio", 2, "library")
+            result = calculate_spell_success("unveil", "Unveil", 2, "library")
             assert result is False  # 50% < 55%
 
     def test_all_safe_spells(self) -> None:
@@ -694,14 +694,14 @@ class TestCalculateSpellSuccess:
         # Roll 89 < 90% = success
         with patch("src.context.spell_detection.random.random", return_value=0.89):
             result = calculate_spell_success(
-                "revelio", "Revelio on desk to find letters", 0, "library"
+                "unveil", "Unveil on desk to find letters", 0, "library"
             )
             assert result is True
 
         # Roll 91 > 90% = failure
         with patch("src.context.spell_detection.random.random", return_value=0.91):
             result = calculate_spell_success(
-                "revelio", "Revelio on desk to find letters", 0, "library"
+                "unveil", "Unveil on desk to find letters", 0, "library"
             )
             assert result is False
 
@@ -710,28 +710,28 @@ class TestSafeInvestigationSpells:
     """Tests for SAFE_INVESTIGATION_SPELLS constant (Phase 4.7)."""
 
     def test_six_safe_spells(self) -> None:
-        """Exactly 6 safe investigation spells defined."""
+        """Exactly 6 safe investigation rites defined."""
         from src.context.spell_llm import SAFE_INVESTIGATION_SPELLS
 
         assert len(SAFE_INVESTIGATION_SPELLS) == 6
 
-    def test_excludes_legilimency(self) -> None:
-        """Legilimency is not in safe spells (uses trust-based system)."""
+    def test_excludes_mnemonic_delving(self) -> None:
+        """Mnemonic Delving is not in safe spells (uses trust-based system)."""
         from src.context.spell_llm import SAFE_INVESTIGATION_SPELLS
 
-        assert "legilimency" not in SAFE_INVESTIGATION_SPELLS
+        assert "mnemonic_delving" not in SAFE_INVESTIGATION_SPELLS
 
     def test_includes_expected_spells(self) -> None:
-        """All expected investigation spells included."""
+        """All expected investigation rites included."""
         from src.context.spell_llm import SAFE_INVESTIGATION_SPELLS
 
         expected = {
-            "revelio",
-            "lumos",
-            "homenum_revelio",
-            "specialis_revelio",
-            "prior_incantato",
-            "reparo",
+            "unveil",
+            "raise_the_lamp",
+            "sense_presence",
+            "identify_substance",
+            "echo_reading",
+            "mend",
         }
         assert SAFE_INVESTIGATION_SPELLS == expected
 
@@ -774,7 +774,7 @@ class TestBuildSpellEffectPromptWithOutcome:
             "description": "The dusty library stretches before you.",
             "spell_contexts": {
                 "special_interactions": {
-                    "revelio": {
+                    "unveil": {
                         "targets": ["desk", "shelves", "window"],
                         "reveals_evidence": ["hidden_note"],
                     },
@@ -785,33 +785,33 @@ class TestBuildSpellEffectPromptWithOutcome:
     def test_success_outcome_in_prompt(self, location_context: dict) -> None:
         """Spell prompt includes SUCCESS outcome."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target="desk",
             location_context=location_context,
             spell_outcome="SUCCESS",
         )
 
-        assert "SPELL OUTCOME" in prompt
+        assert "RITE OUTCOME" in prompt
         assert "SUCCESS" in prompt
         assert "executes successfully" in prompt.lower()
 
     def test_failure_outcome_in_prompt(self, location_context: dict) -> None:
         """Spell prompt includes FAILURE outcome."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target="desk",
             location_context=location_context,
             spell_outcome="FAILURE",
         )
 
-        assert "SPELL OUTCOME" in prompt
+        assert "RITE OUTCOME" in prompt
         assert "FAILURE" in prompt
         assert "fizzles" in prompt.lower()
 
     def test_no_mechanical_language_rule(self, location_context: dict) -> None:
         """Prompt includes rule against mechanical language."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target="desk",
             location_context=location_context,
             spell_outcome="SUCCESS",
@@ -824,11 +824,11 @@ class TestBuildSpellEffectPromptWithOutcome:
     def test_backward_compatible_without_outcome(self, location_context: dict) -> None:
         """Prompt works without spell_outcome (backward compatible)."""
         prompt = build_spell_effect_prompt(
-            spell_name="revelio",
+            spell_name="unveil",
             target="desk",
             location_context=location_context,
             # No spell_outcome parameter
         )
 
-        assert "SPELL OUTCOME" in prompt
+        assert "RITE OUTCOME" in prompt
         assert "legacy" in prompt.lower() or "Not calculated" in prompt

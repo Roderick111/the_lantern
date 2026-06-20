@@ -13,25 +13,25 @@ import { screen } from '@testing-library/react';
 import { BriefingMessage } from '../BriefingMessage';
 
 describe('BriefingMessage', () => {
-  describe('Moody Messages', () => {
-    it.todo('renders Moody label');
+  describe('Graves Messages', () => {
+    it.todo('renders Graves label');
 
     it('renders message text', () => {
-      render(<BriefingMessage speaker="moody" text="Test message content" />);
+      render(<BriefingMessage speaker="graves" text="Test message content" />);
 
       expect(screen.getByText('Test message content')).toBeInTheDocument();
     });
 
-    it.todo('has amber color for Moody label');
+    it.todo('has amber color for Graves label');
 
-    it('has gray-200 text for Moody messages', () => {
-      render(<BriefingMessage speaker="moody" text="Test message" />);
+    it('has gray-200 text for Graves messages', () => {
+      render(<BriefingMessage speaker="graves" text="Test message" />);
 
       const content = screen.getByText('Test message');
       expect(content).toHaveClass('text-gray-200');
     });
 
-    it.todo('does not have left margin for Moody messages');
+    it.todo('does not have left margin for Graves messages');
   });
 
   describe('Player Messages', () => {
@@ -54,14 +54,14 @@ describe('BriefingMessage', () => {
     it.todo('preserves whitespace');
 
     it('has relaxed line height', () => {
-      render(<BriefingMessage speaker="moody" text="Test message" />);
+      render(<BriefingMessage speaker="graves" text="Test message" />);
 
       const content = screen.getByText('Test message');
       expect(content).toHaveClass('leading-[28px]');
     });
 
     it('has small text size', () => {
-      render(<BriefingMessage speaker="moody" text="Test message" />);
+      render(<BriefingMessage speaker="graves" text="Test message" />);
 
       const content = screen.getByText('Test message');
       expect(content).toHaveClass('text-base');
@@ -79,7 +79,7 @@ describe('BriefingMessage', () => {
       const multilineText = `Line 1
 Line 2
 Line 3`;
-      render(<BriefingMessage speaker="moody" text={multilineText} />);
+      render(<BriefingMessage speaker="graves" text={multilineText} />);
 
       expect(screen.getByText(/Line 1/)).toBeInTheDocument();
     });

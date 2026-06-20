@@ -9,7 +9,7 @@ Detects spell casts from player input using multi-priority matching:
 Fuzzy (detect_spell_with_fuzzy) is the source of truth for spell detection.
 Legacy is_spell_input/parse_spell_from_input now delegate to it (A2 unification).
 
-Phase 4.6.2: Single-stage fuzzy + semantic phrase detection for all 7 spells.
+Phase 4.6.2: Single-stage fuzzy + semantic phrase detection for all 7 rites.
 Phase 4.7: Spell success calculation with specificity bonuses.
 Phase 5.7: Intent validation to reduce false positives.
 """
@@ -32,9 +32,12 @@ logger = logging.getLogger(__name__)
 # Priority 2: Exact match spell ID
 # Priority 3: Semantic phrase substring match
 SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
-    "legilimency": [
-        "legilimency",
-        "legilimens",
+    "mnemonic_delving": [
+        "mnemonic_delving",
+        "mnemonic delving",
+        "mnemonic_delving",
+        "mnemonic delving",
+        "legulemancy",
         "read mind",
         "read her mind",
         "read his mind",
@@ -47,44 +50,54 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
         "invade mind",
         "see thought",
     ],
-    "revelio": [
-        "revelio",
+    "unveil": [
+        "unveil",
+        "unveil",
         "reveal hidden",
         "show hidden",
         "uncover hidden",
         "make visible",
     ],
-    "lumos": [
-        "lumos",
+    "raise_the_lamp": [
+        "raise_the_lamp",
+        "raise the lamp",
+        "raise_the_lamp",
         "light up",
         "illuminate",
         "brighten",
         "cast light",
     ],
-    "homenum_revelio": [
-        "homenum revelio",
+    "sense_presence": [
+        "sense_presence",
+        "sense presence",
+        "homenum unveil",
+        "homenum unveil",
         "homenum",
         "detect people",
         "detect person",
         "find people",
         "locate people",
     ],
-    "specialis_revelio": [
-        "specialis revelio",
+    "identify_substance": [
+        "identify_substance",
+        "specialis unveil",
+        "specialis unveil",
         "specialis",
         "identify substance",
         "identify potion",
         "analyze substance",
     ],
-    "prior_incantato": [
-        "prior incantato",
-        "prior incantato",
+    "echo_reading": [
+        "echo_reading",
+        "echo reading",
+        "echo reading",
         "last spell",
-        "wand history",
+        "focus history",
         "previous spell",
     ],
-    "reparo": [
-        "reparo",
+    "mend": [
+        "mend",
+        "mend",
         "repair this",
         "fix this",
         "mend this",
@@ -92,14 +105,14 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
     ],
 }
 
-# 6 safe investigation spells (excludes Legilimency which uses trust-based system)
+# 6 safe investigation rites (excludes Mnemonic Delving which uses trust-based system)
 SAFE_INVESTIGATION_SPELLS = {
-    "revelio",
-    "lumos",
-    "homenum_revelio",
-    "specialis_revelio",
-    "prior_incantato",
-    "reparo",
+    "unveil",
+    "raise_the_lamp",
+    "sense_presence",
+    "identify_substance",
+    "echo_reading",
+    "mend",
 }
 
 # Intent phrases that grant +10% bonus
@@ -141,10 +154,10 @@ def extract_target_from_input(text: str) -> str | None:
         Target string or None
 
     Examples:
-        >>> extract_target_from_input("cast revelio on desk")
+        >>> extract_target_from_input("cast unveil on desk")
         'desk'
-        >>> extract_target_from_input("use legilimency on hermione")
-        'hermione'
+        >>> extract_target_from_input("use mnemonic_delving on elena")
+        'elena'
     """
     match = re.search(r"\b(?:on|at)\s+(.+)$", text, re.IGNORECASE)
     if match:
@@ -154,7 +167,7 @@ def extract_target_from_input(text: str) -> str | None:
 
 
 def extract_intent_from_input(text: str) -> str | None:
-    """Extract search intent from Legilimency input.
+    """Extract search intent from Mnemonic Delving input.
 
     Simplified approach: detect strong intent verbs + capture everything after.
 
@@ -170,13 +183,13 @@ def extract_intent_from_input(text: str) -> str | None:
         Intent string or None
 
     Examples:
-        >>> extract_intent_from_input("read her mind to find out about draco")
-        'draco'
-        >>> extract_intent_from_input("legilimency to find out where he was")
+        >>> extract_intent_from_input("read her mind to find out about cassian")
+        'cassian'
+        >>> extract_intent_from_input("mnemonic_delving to find out where he was")
         'where he was'
-        >>> extract_intent_from_input("to learn hermione's secrets")
-        "hermione's secrets"
-        >>> extract_intent_from_input("legilimency about the crime")
+        >>> extract_intent_from_input("to learn elena's secrets")
+        "elena's secrets"
+        >>> extract_intent_from_input("mnemonic_delving about the crime")
         'the crime'
     """
     patterns = [
@@ -210,11 +223,11 @@ def calculate_specificity_bonus(player_input: str) -> int:
         0, 10, or 20 (percentage points)
 
     Examples:
-        >>> calculate_specificity_bonus("Revelio")
+        >>> calculate_specificity_bonus("Unveil")
         0
-        >>> calculate_specificity_bonus("Revelio on desk")
+        >>> calculate_specificity_bonus("Unveil on desk")
         10  # +10% for target
-        >>> calculate_specificity_bonus("Revelio on desk to find letters")
+        >>> calculate_specificity_bonus("Unveil on desk to find letters")
         20  # +10% target + 10% intent
     """
     bonus = 0
@@ -241,7 +254,7 @@ def calculate_spell_success(
     Base rate 70%, specificity bonus 0-20%, decline -10% per attempt, floor 10%.
 
     Args:
-        spell_id: "revelio", "lumos", etc.
+        spell_id: "unveil", "raise_the_lamp", etc.
         player_input: Full player input text
         attempts_in_location: Number of times THIS spell cast in THIS location
         location_id: Current location (for logging/debugging)
@@ -250,9 +263,9 @@ def calculate_spell_success(
         True if spell succeeds, False if fails
 
     Examples:
-        >>> calculate_spell_success("revelio", "Revelio on desk to find clues", 0, "library")
+        >>> calculate_spell_success("unveil", "Unveil on desk to find clues", 0, "library")
         # 70 + 10 + 10 - 0 = 90% -> likely True
-        >>> calculate_spell_success("revelio", "Revelio", 6, "library")
+        >>> calculate_spell_success("unveil", "Unveil", 6, "library")
         # 70 + 0 + 0 - 60 = 10% (floor) -> likely False
     """
     base_rate = 70
@@ -274,12 +287,12 @@ def calculate_spell_success(
 
 
 # =============================================================================
-# Legilimency Success Calculation
+# Mnemonic Delving Success Calculation
 # =============================================================================
 
 
-def calculate_legilimency_specificity_bonus(player_input: str) -> int:
-    """Calculate specificity bonus for Legilimency.
+def calculate_mnemonic_delving_specificity_bonus(player_input: str) -> int:
+    """Calculate specificity bonus for Mnemonic Delving.
 
     Returns 0 or 30:
     - +30% if intent specified ("to find out about X", "about X")
@@ -292,23 +305,23 @@ def calculate_legilimency_specificity_bonus(player_input: str) -> int:
         0 or 30 (percentage points)
 
     Examples:
-        >>> calculate_legilimency_specificity_bonus("legilimency")
+        >>> calculate_mnemonic_delving_specificity_bonus("mnemonic_delving")
         0
-        >>> calculate_legilimency_specificity_bonus("legilimency to find out about draco")
+        >>> calculate_mnemonic_delving_specificity_bonus("mnemonic_delving to find out about cassian")
         30
-        >>> calculate_legilimency_specificity_bonus("legilimency about the crime")
+        >>> calculate_mnemonic_delving_specificity_bonus("mnemonic_delving about the crime")
         30
     """
     intent = extract_intent_from_input(player_input)
     return 30 if intent else 0
 
 
-def calculate_legilimency_success(
+def calculate_mnemonic_delving_success(
     player_input: str,
     attempts_on_witness: int,
     witness_id: str,
 ) -> tuple[bool, int, int, int, float]:
-    """Calculate Legilimency success rate.
+    """Calculate Mnemonic Delving success rate.
 
     Base rate: 30% (risky spell, lower than safe 70%)
     Specificity bonus: +30% if intent specified (no target - always witness)
@@ -324,7 +337,7 @@ def calculate_legilimency_success(
         Tuple of (success, success_rate, specificity_bonus, decline_penalty, roll)
     """
     base_rate = 30
-    specificity_bonus = calculate_legilimency_specificity_bonus(player_input)
+    specificity_bonus = calculate_mnemonic_delving_specificity_bonus(player_input)
     decline_penalty = attempts_on_witness * 10
     success_rate = base_rate + specificity_bonus - decline_penalty
     success_rate = max(10, success_rate)
@@ -356,8 +369,8 @@ def _is_valid_spell_cast(
 
     Args:
         text: Player input text
-        spell_name: Canonical spell name (e.g., "revelio")
-        spell_id: Spell ID (e.g., "revelio")
+        spell_name: Canonical spell name (e.g., "unveil")
+        spell_id: Spell ID (e.g., "unveil")
         matched_word: The actual word matched (for typos, e.g., "revelo")
 
     Returns:
@@ -408,14 +421,14 @@ def _is_valid_spell_cast(
 def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
     """Single-stage spell detection using fuzzy matching + semantic phrases.
 
-    Detects ANY of the 7 spells with typo tolerance and natural language.
+    Detects ANY of the 7 rites with typo tolerance and natural language.
     Performance: 1-2ms per call (acceptable overhead vs 800ms LLM call)
 
     Phase 5.7: Added intent validation to reduce false positives.
     Now requires action verb, target, or sentence-start position.
 
     Priority order:
-    1. Exact match multi-word spell names first (homenum revelio, etc.)
+    1. Exact match multi-word spell names first (homenum unveil, etc.)
     2. Fuzzy match spell name (70% threshold for typos)
     3. Exact match spell ID in text
     4. Semantic phrase substring match
@@ -427,19 +440,19 @@ def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
         (spell_id, target) or (None, None) if no spell detected
 
     Examples:
-        >>> detect_spell_with_fuzzy("use legilimency on hermione")
-        ('legilimency', 'hermione')
+        >>> detect_spell_with_fuzzy("use mnemonic_delving on elena")
+        ('mnemonic_delving', 'elena')
 
-        >>> detect_spell_with_fuzzy("cast revelio on desk")
-        ('revelio', 'desk')
+        >>> detect_spell_with_fuzzy("cast unveil on desk")
+        ('unveil', 'desk')
 
-        >>> detect_spell_with_fuzzy("Revelio!")
-        ('revelio', None)
+        >>> detect_spell_with_fuzzy("Unveil!")
+        ('unveil', None)
 
-        >>> detect_spell_with_fuzzy("Do you know revelio?")
+        >>> detect_spell_with_fuzzy("Do you know unveil?")
         (None, None)  # Question - no cast intent
 
-        >>> detect_spell_with_fuzzy("I used revelio earlier")
+        >>> detect_spell_with_fuzzy("I used unveil earlier")
         (None, None)  # Past tense mention - no cast intent
     """
     text_lower = text.lower().strip()
@@ -450,13 +463,13 @@ def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
 
     # Order spells with multi-word names first to avoid partial matches
     spell_order = [
-        "homenum_revelio",
-        "specialis_revelio",
-        "prior_incantato",
-        "legilimency",
-        "revelio",
-        "lumos",
-        "reparo",
+        "sense_presence",
+        "identify_substance",
+        "echo_reading",
+        "mnemonic_delving",
+        "unveil",
+        "raise_the_lamp",
+        "mend",
     ]
 
     # Priority 1: Exact match multi-word spell names (before fuzzy)
@@ -488,12 +501,12 @@ def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
         words = text_lower.split()
         for word in words:
             if word.startswith(("reveal", "repair")) and len(word) <= 7:
-                continue  # common partial words fuzz-close to revelio/reparo; skip to avoid false positives on "reveal something"
+                continue  # common partial words fuzz-close to unveil/mend; skip to avoid false positives on "reveal something"
             matched = False
             if fuzz.ratio(word, spell_name) > 70:
                 matched = True
             else:
-                # Also fuzzy words vs semantic phrases (supports "homnum" -> homenum_revelio)
+                # Also fuzzy words vs semantic phrases (supports "homnum" -> sense_presence)
                 phrases = SPELL_SEMANTIC_PHRASES.get(spell_id, [])
                 for phrase in phrases:
                     if len(phrase) >= 3 and fuzz.ratio(word, phrase) > 70:
@@ -537,11 +550,11 @@ def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
     return None, None
 
 
-def detect_focused_legilimency(text: str) -> tuple[bool, str | None]:
-    """Detect if Legilimency has specific search intent.
+def detect_focused_mnemonic_delving(text: str) -> tuple[bool, str | None]:
+    """Detect if Mnemonic Delving has specific search intent.
 
-    Focused: "read her mind to find out about draco"
-    Unfocused: "use legilimency on her"
+    Focused: "read her mind to find out about cassian"
+    Unfocused: "use mnemonic_delving on her"
 
     Args:
         text: Player input
@@ -550,9 +563,9 @@ def detect_focused_legilimency(text: str) -> tuple[bool, str | None]:
         (is_focused, search_target)
 
     Examples:
-        >>> detect_focused_legilimency("read her mind to find out about draco")
-        (True, 'draco')
-        >>> detect_focused_legilimency("use legilimency on hermione")
+        >>> detect_focused_mnemonic_delving("read her mind to find out about cassian")
+        (True, 'cassian')
+        >>> detect_focused_mnemonic_delving("use mnemonic_delving on elena")
         (False, None)
     """
     intent = extract_intent_from_input(text)
@@ -583,7 +596,7 @@ def _normalize_spell_name(spell_raw: str) -> str | None:
     """Normalize spell name to spell ID.
 
     Args:
-        spell_raw: Raw spell name from input (e.g., "prior incantato", "revelio")
+        spell_raw: Raw spell name from input (e.g., "echo reading", "unveil")
 
     Returns:
         Spell ID or None if not found

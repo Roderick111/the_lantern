@@ -1,8 +1,8 @@
 /**
  * BriefingEngagement Component
  *
- * Final slide of the Briefing Wizard.
- * Allows Q&A with Moody and initiating the investigation.
+ * Final slide of the Briefing Initiate.
+ * Allows Q&A with Graves and initiating the investigation.
  *
  * @module components/BriefingEngagement
  */
@@ -73,14 +73,14 @@ export function BriefingEngagement({
             <div className={`max-h-80 overflow-y-auto mb-6 pr-2 space-y-3 scrollbar-thin ${theme.colors.bg.primary}`}>
                 {/* Default Start Message */}
                 <BriefingMessage
-                    speaker="moody"
+                    speaker="graves"
                     text="Any questions before I send you in, recruit? Don't ask me to solve it for you."
                 />
 
                 {conversation.map((msg, i) => (
                     <div key={i} className="animate-fadeIn">
                         <BriefingMessage speaker="player" text={msg.question} />
-                        <BriefingMessage speaker="moody" text={msg.answer} />
+                        <BriefingMessage speaker="graves" text={msg.answer} />
                     </div>
                 ))}
 
@@ -103,7 +103,7 @@ export function BriefingEngagement({
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="ask Moody a question..."
+                            placeholder="ask Graves a question..."
                             disabled={loading}
                             rows={3}
                             className={`${theme.components.input.field} ${theme.components.input.borderDefault}`}

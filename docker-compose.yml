@@ -1,5 +1,5 @@
 # =============================================================================
-# Docker Compose - Auror Academy Production Stack
+# Docker Compose - The Lantern Production Stack
 # =============================================================================
 # Works with nginx-proxy + letsencrypt companion
 
@@ -11,7 +11,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    container_name: auror-backend
+    container_name: lantern-backend
     restart: unless-stopped
     env_file:
       - .env.production
@@ -26,7 +26,7 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - auror-network
+      - lantern-network
 
   # ---------------------------------------------------------------------------
   # Frontend - React + nginx (handles /api proxy internally)
@@ -35,22 +35,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
-    container_name: auror-frontend
+    container_name: lantern-frontend
     restart: unless-stopped
     expose:
       - "3000"
     environment:
       # nginx-proxy config
-      - VIRTUAL_HOST=auror-academy.beautiful-apps.com
+      - VIRTUAL_HOST=the-lantern.beautiful-apps.com
       - VIRTUAL_PORT=3000
       # letsencrypt-companion config
-      - LETSENCRYPT_HOST=auror-academy.beautiful-apps.com
+      - LETSENCRYPT_HOST=the-lantern.beautiful-apps.com
       - LETSENCRYPT_EMAIL=admin@beautiful-apps.com
     depends_on:
       backend:
         condition: service_healthy
     networks:
-      - auror-network
+      - lantern-network
       - proxy
 
 # -----------------------------------------------------------------------------
@@ -58,11 +58,11 @@ services:
 # -----------------------------------------------------------------------------
 volumes:
   saves_data:
-    name: auror-saves
+    name: lantern-saves
 
 networks:
-  auror-network:
-    name: auror-network
+  lantern-network:
+    name: lantern-network
     driver: bridge
   proxy:
     external: true

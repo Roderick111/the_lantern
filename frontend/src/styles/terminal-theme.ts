@@ -114,8 +114,8 @@ export const TERMINAL_THEME_DARK = {
         border: "border-gray-400",
         bg: "bg-gray-800/30",
       },
-      /** Tom Riddle's ghost (amber with special styling) */
-      tom: {
+      /** Matthew spirit companion (amber with special styling) */
+      matthew: {
         text: "text-gray-300",
         prefix: "text-amber-500",
         border: "border-amber-600",
@@ -222,10 +222,10 @@ export const TERMINAL_THEME_DARK = {
     witness: {
       format: (name: string) => `:: ${name.toUpperCase()} ::`,
     },
-    /** Tom Riddle format */
-    tom: {
-      prefix: "TOM:",
-      label: "TOM",
+    /** Spirit companion format */
+    matthew: {
+      prefix: "MATTHEW:",
+      label: "SPIRIT",
     },
     /** System messages */
     system: {
@@ -239,8 +239,7 @@ export const TERMINAL_THEME_DARK = {
     /** Secret discovered format */
     secretDiscovered: "[ SECRET DISCOVERED ]",
     /** Spirit resonance format */
-    spiritResonance: (name: string) =>
-      `[ SPIRIT RESONANCE: ${name.toUpperCase()} ]`,
+    spiritResonance: (_name: string) => `[ SPIRIT RESONANCE ]`,
     /** Evidence discovered format */
     evidenceDiscovered: (id: string) => `+ Evidence: ${id}`,
   },
@@ -314,7 +313,7 @@ export const TERMINAL_THEME_DARK = {
         "w-full bg-gray-900 text-gray-100 border rounded-sm p-3 pl-8 pr-10 placeholder-gray-600 focus:outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-base font-sans tracking-wide",
       /** Default border state */
       borderDefault: "border-gray-600 focus:border-gray-400 focus:bg-gray-800",
-      /** Special border (Tom/amber) */
+      /** Special border (Matthew/amber) */
       borderSpecial:
         "border-amber-600/50 focus:border-amber-500 focus:bg-gray-800",
       /** Send button */
@@ -334,8 +333,8 @@ export const TERMINAL_THEME_DARK = {
         wrapper: "py-1",
         text: "text-gray-200 text-base font-serif leading-[28px] tracking-[0.1px] whitespace-pre-line text-justify",
       },
-      /** Tom's ghost message */
-      tom: {
+      /** Matthew spirit companion message */
+      matthew: {
         wrapper: "border-l border-amber-600/40 pl-3 py-1",
         text: "text-base font-serif leading-[28px] tracking-[0.1px] text-gray-200 text-justify",
         label: "text-amber-500 font-sans font-bold mr-2",
@@ -478,8 +477,8 @@ export const TERMINAL_THEME_LIGHT = {
         border: "border-gray-400",
         bg: "bg-gray-100/50",
       },
-      /** Tom Riddle's ghost (amber with special styling) */
-      tom: {
+      /** Matthew spirit companion (amber with special styling) */
+      matthew: {
         text: "text-gray-700",
         prefix: "text-amber-600",
         border: "border-amber-400",
@@ -586,7 +585,7 @@ export const TERMINAL_THEME_LIGHT = {
         "w-full bg-white text-gray-900 border rounded-sm p-3 pl-8 pr-10 placeholder-gray-400 focus:outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-base font-sans tracking-wide",
       /** Default border state */
       borderDefault: "border-gray-300 focus:border-gray-400 focus:bg-white",
-      /** Special border (Tom/amber) */
+      /** Special border (Matthew/amber) */
       borderSpecial:
         "border-amber-400/50 focus:border-amber-500 focus:bg-amber-50/20",
       /** Send button */
@@ -606,8 +605,8 @@ export const TERMINAL_THEME_LIGHT = {
         wrapper: "py-1",
         text: "text-gray-900 text-base font-serif leading-[28px] tracking-[0.1px] whitespace-pre-line text-justify",
       },
-      /** Tom's ghost message */
-      tom: {
+      /** Matthew spirit companion message */
+      matthew: {
         wrapper: "border-l border-amber-400/40 pl-3 py-1",
         text: "text-base font-serif leading-[28px] tracking-[0.1px] text-gray-900 text-justify",
         label: "text-amber-700 font-sans font-bold mr-2",

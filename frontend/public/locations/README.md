@@ -1,6 +1,6 @@
 # Location Illustrations
 
-This directory contains location illustrations for the Auror Academy game.
+This directory contains location illustrations for the The Lantern game.
 
 ## Modern Format Support (2025) ✅
 
@@ -25,9 +25,9 @@ Name images by their location ID:
 ```
 locations/
   library.{avif,webp,png}              # Library Main Hall
-  restricted_section.{avif,webp,png}   # The Restricted Section - Crime Scene
+  restricted_section.{avif,webp,png}   # The Sealed Stacks - Crime Scene
   study_alcove.{avif,webp,png}         # Study Alcove (Hidden)
-  madam_pince_office.{avif,webp,png}   # Madam Pince's Office
+  librarian_office.{avif,webp,png}     # Miss Hawthorne's Office
 ```
 
 ## Auto-Loading

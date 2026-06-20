@@ -1,5 +1,5 @@
 /**
- * Types for the Magic System (Phase 4.5)
+ * Types for the Rite System (Phase 4.5)
  *
  * Spell definitions matching backend/src/spells/definitions.py
  *
@@ -27,9 +27,9 @@ export type SpellCategory = "detection" | "analysis" | "restoration" | "mental";
  * Spell definition matching backend SPELL_DEFINITIONS structure
  */
 export interface SpellDefinition {
-  /** Spell ID (lowercase, e.g., "revelio") */
+  /** Spell ID (lowercase, e.g., "unveil") */
   id: string;
-  /** Display name (e.g., "Revelio") */
+  /** Display name (e.g., "Unveil") */
   name: string;
   /** Spell description/effect */
   description: string;

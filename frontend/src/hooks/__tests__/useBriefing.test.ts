@@ -26,11 +26,11 @@ vi.mock('../../api/client');
 const mockBriefing: BriefingContent = {
   case_id: 'case_001',
   dossier: {
-    title: 'The Restricted Section',
+    title: 'The Sealed Stacks',
     victim: 'Third-year student',
     location: 'Library',
     time: '9:15pm',
-    status: 'Petrified',
+    status: 'Held in stillness',
     synopsis: 'VICTIM: Third-year student\nLOCATION: Library',
   },
   teaching_questions: [
@@ -45,7 +45,7 @@ const mockBriefing: BriefingContent = {
       concept_summary: "That's base rates, recruit.",
     },
   ],
-  transition: 'Now get to work. CONSTANT VIGILANCE.',
+  transition: 'Now get to work. TRUST NOTHING UNSEEN.',
   briefing_completed: false,
 };
 

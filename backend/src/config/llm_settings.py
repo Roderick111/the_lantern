@@ -38,7 +38,7 @@ class LLMSettings(BaseSettings):
     DEFAULT_MODEL: str = "openrouter/deepseek/deepseek-v4-flash"
 
     # OpenRouter metadata (optional, for analytics)
-    OR_SITE_URL: str = "https://github.com/yourusername/hp-investigation-game"
+    OR_SITE_URL: str = "https://github.com/yourusername/the-lantern"
     OR_APP_NAME: str = "HP Investigation Game"
 
     # Fallback configuration

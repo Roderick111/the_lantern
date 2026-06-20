@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCases, resetCase, loadState } from '../api/client';
+import { getCases, resetCase } from '../api/client';
 import { usePlayerId } from '../utils/playerId';
 import { useTheme } from '../context/useTheme';
 import type { CaseMetadata, ApiCaseMetadata } from '../types/investigation';
@@ -111,14 +111,11 @@ export function LandingPage({ onLoadGame }: LandingPageProps) {
     void fetchCases();
   }, [fetchCases]);
 
-  // Start case handler — checks for existing autosave before navigating
+  // Start case handler — always reset so "Start Case" is a fresh investigation
   const handleStartCase = useCallback(async (caseId: string) => {
-    const existing = await loadState(caseId, playerId, "autosave").catch(() => null);
-    if (!existing) {
-      await resetCase(caseId).catch(() => undefined);
-    }
+    await resetCase(caseId).catch(() => undefined);
     void navigate(`/case/${caseId}`);
-  }, [navigate, playerId]);
+  }, [navigate]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -175,7 +172,7 @@ export function LandingPage({ onLoadGame }: LandingPageProps) {
       <div className={`min-h-screen ${theme.colors.bg.primary} ${theme.colors.text.secondary} flex flex-col items-center justify-center p-8`}>
         <div className="text-center">
           <h1 className={`text-4xl font-bold ${theme.colors.text.primary} ${theme.fonts.ui} tracking-widest mb-1`}>
-            AUROR ACADEMY
+            THE LANTERN
           </h1>
           <p className={`${theme.colors.text.muted} text-sm ${theme.fonts.ui} mb-8`}>
             Case Investigation System v1.0
@@ -196,7 +193,7 @@ export function LandingPage({ onLoadGame }: LandingPageProps) {
       <div className={`min-h-screen ${theme.colors.bg.primary} ${theme.colors.text.secondary} flex flex-col items-center justify-center p-8`}>
         <div className="text-center max-w-md">
           <h1 className={`text-4xl font-bold ${theme.colors.text.primary} ${theme.fonts.ui} tracking-widest mb-1`}>
-            AUROR ACADEMY
+            THE LANTERN
           </h1>
           <p className={`${theme.colors.text.muted} text-sm ${theme.fonts.ui} mb-8`}>
             Case Investigation System v1.0
@@ -223,7 +220,7 @@ export function LandingPage({ onLoadGame }: LandingPageProps) {
       <div className={`min-h-screen ${theme.colors.bg.primary} ${theme.colors.text.secondary} flex flex-col items-center justify-center p-8`}>
         <div className="text-center">
           <h1 className={`text-4xl font-bold ${theme.colors.text.primary} ${theme.fonts.ui} tracking-widest mb-1`}>
-            AUROR ACADEMY
+            THE LANTERN
           </h1>
           <p className={`${theme.colors.text.muted} text-sm ${theme.fonts.ui} mb-8`}>
             Case Investigation System v1.0
@@ -247,7 +244,7 @@ export function LandingPage({ onLoadGame }: LandingPageProps) {
       {/* Title */}
       <div className="text-center mb-4 md:mb-8">
         <h1 className={`text-2xl md:text-4xl font-bold ${theme.colors.text.primary} ${theme.fonts.ui} tracking-widest mb-1`}>
-          AUROR ACADEMY
+          THE LANTERN
         </h1>
         <p className={`${theme.colors.text.muted} text-sm ${theme.fonts.ui}`}>
           Case Investigation System v1.0

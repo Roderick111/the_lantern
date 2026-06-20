@@ -40,7 +40,7 @@ export interface ConfrontationDialogueProps {
 function getSpeakerColor(speaker: string, theme: TerminalTheme): string {
   const speakerLower = speaker.toLowerCase();
   const charTheme = theme.colors.character;
-  if (speakerLower === "moody") return charTheme.detective.text;
+  if (speakerLower === "graves") return charTheme.detective.text;
   if (speakerLower === "player" || speakerLower === "you")
     return charTheme.detective.text;
   return charTheme.witness.text;

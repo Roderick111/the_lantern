@@ -1,6 +1,6 @@
 # Witness Portraits
 
-This directory contains character portrait images for the Auror Academy game.
+This directory contains character portrait images for the The Lantern game.
 
 ## Modern Format Support (2025) ✅
 
@@ -8,9 +8,9 @@ All portraits have been converted to modern formats with automatic fallback:
 
 ```
 portraits/
-  hermione.avif             # AVIF - Best compression (79-125KB, ~75-93% smaller)
-  hermione.webp             # WebP - Good compression (78-120KB, ~75-93% smaller)
-  hermione.png              # PNG - Legacy fallback (400KB-1.7MB)
+  elena.avif             # AVIF - Best compression (79-125KB, ~75-93% smaller)
+  elena.webp             # WebP - Good compression (78-120KB, ~75-93% smaller)
+  elena.png              # PNG - Legacy fallback (400KB-1.7MB)
 ```
 
 **Conversion completed:**
@@ -24,10 +24,13 @@ Name portraits by their witness ID:
 
 ```
 portraits/
-  hermione.{avif,webp,png}
-  draco.{avif,webp,png}
-  mcgonagall.{avif,webp,png}
-  argus_filch.{avif,webp,png}
+  elena.{avif,webp,png}
+  cassian.{avif,webp,png}
+  whitmore.{avif,webp,png}
+  wisp.{avif,webp,png}
+  whitmore.{avif,webp,png}
+  argus_crankshaw.{avif,webp,png}
+  miss_hawthorne.{avif,webp,png}
 ```
 
 ## Auto-Loading

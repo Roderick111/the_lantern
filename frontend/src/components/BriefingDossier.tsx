@@ -2,7 +2,7 @@
  * BriefingDossier Component
  *
  * Displays structured case information (Dossier) as the first slide
- * of the standardized briefing wizard.
+ * of the standardized briefing initiate.
  *
  * @module components/BriefingDossier
  */
@@ -14,9 +14,14 @@ import type { BriefingContent } from '../types/investigation';
 interface BriefingDossierProps {
     dossier: BriefingContent['dossier'];
     onContinue: () => void;
+    continueLabel?: string;
 }
 
-export function BriefingDossier({ dossier, onContinue }: BriefingDossierProps) {
+export function BriefingDossier({
+    dossier,
+    onContinue,
+    continueLabel = "ACKNOWLEDGE & CONTINUE",
+}: BriefingDossierProps) {
     const { theme } = useTheme();
 
     return (
@@ -75,7 +80,7 @@ export function BriefingDossier({ dossier, onContinue }: BriefingDossierProps) {
                     onClick={onContinue}
                     className={`${theme.components.button.base} w-auto px-8 py-3 ${theme.colors.bg.semiTransparent} ${theme.colors.interactive.text} border ${theme.colors.interactive.border} hover:brightness-90 font-bold tracking-widest uppercase transition-all duration-200 group`}
                 >
-                    <span className="mr-2 group-hover:mr-4 transition-all">ACKNOWLEDGE & CONTINUE</span>
+                    <span className="mr-2 group-hover:mr-4 transition-all">{continueLabel}</span>
                     {theme.symbols.current}
                 </button>
             </div>

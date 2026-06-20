@@ -3,7 +3,7 @@
  *
  * Manages briefing state and API interactions:
  * - Load briefing content from backend
- * - Ask Moody questions (LLM dialogue)
+ * - Ask Graves questions (LLM dialogue)
  * - Track conversation history
  * - Handle teaching question choice selection
  * - Mark briefing as complete
@@ -42,7 +42,7 @@ export interface UseBriefingReturn {
   conversation: BriefingConversation[];
   /** Selected choice ID (null if not yet answered) */
   selectedChoice: string | null;
-  /** Moody's response to selected choice */
+  /** Graves's response to selected choice */
   choiceResponse: string | null;
   /** Whether an API call is in progress */
   loading: boolean;
@@ -56,7 +56,7 @@ export interface UseBriefingReturn {
   selectChoice: (choiceId: string, questionIndex: number) => void;
   /** Reset choice selection state */
   resetChoice: () => void;
-  /** Ask Moody a question */
+  /** Ask Graves a question */
   askQuestion: (question: string) => Promise<void>;
   /** Mark briefing as complete */
   markComplete: () => Promise<void>;
@@ -126,7 +126,7 @@ export function useBriefing({
     setChoiceResponse(null);
   }, []);
 
-  // Ask Moody a question
+  // Ask Graves a question
   const askQuestion = useCallback(
     async (question: string): Promise<void> => {
       if (!question.trim()) {
@@ -142,7 +142,7 @@ export function useBriefing({
         // Add to conversation history
         setConversation((prev) => [...prev, { question, answer: response.answer }]);
       } catch (err) {
-        setError(isApiError(err) ? err.message : 'Failed to get response from Moody');
+        setError(isApiError(err) ? err.message : 'Failed to get response from Graves');
       } finally {
         setLoading(false);
       }

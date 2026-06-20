@@ -1,7 +1,7 @@
 {
   "state_id": "76bc7a31-30e1-4ac9-82d8-ae68450d36d5",
   "case_id": "case_002",
-  "current_location": "pince_office",
+  "current_location": "librarian_office",
   "version": "1.0.0",
   "last_saved": "2026-01-24T17:04:34.414041Z",
   "discovered_evidence": [
@@ -12,7 +12,7 @@
     "restricted_section",
     "library_main_hall",
     "study_alcove",
-    "pince_office",
+    "librarian_office",
     "library_entrance"
   ],
   "conversation_history": [],

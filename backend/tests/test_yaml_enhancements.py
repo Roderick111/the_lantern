@@ -22,9 +22,9 @@ from src.context.narrator import (
     format_hidden_evidence,
     format_victim_context,
 )
-from src.context.tom_llm import (
+from src.context.matthew_llm import (
     format_evidence_by_strength,
-    format_victim_for_tom,
+    format_victim_for_matthew,
 )
 from src.context.witness import format_wants_fears
 from src.state.player_state import (
@@ -47,14 +47,14 @@ class TestVictimModel:
         """Victim model accepts all fields."""
         victim = Victim(
             name="Marcus Webb",
-            age="Fourth-year Ravenclaw",
+            age="Fourth-year Candlewick",
             humanization="Known for helping first-years with homework.",
             memorable_trait="Always carried a lucky quill.",
             time_of_death="10:30 PM",
             cause_of_death="Freezing curse",
         )
         assert victim.name == "Marcus Webb"
-        assert victim.age == "Fourth-year Ravenclaw"
+        assert victim.age == "Fourth-year Candlewick"
         assert victim.memorable_trait == "Always carried a lucky quill."
 
     def test_victim_with_defaults(self) -> None:
@@ -81,13 +81,13 @@ class TestEvidenceEnhancedModel:
             type="magical",
             significance="Proves freezing curse used at scene.",
             strength=90,
-            points_to=["draco"],
-            contradicts=["hermione_theory"],
+            points_to=["cassian"],
+            contradicts=["elena_theory"],
         )
         assert evidence.id == "frost_pattern"
         assert evidence.strength == 90
         assert evidence.type == "magical"
-        assert "draco" in evidence.points_to
+        assert "cassian" in evidence.points_to
 
     def test_evidence_enhanced_defaults(self) -> None:
         """EvidenceEnhanced provides sensible defaults."""
@@ -112,8 +112,8 @@ class TestWitnessEnhancedModel:
     def test_witness_enhanced_with_depth(self) -> None:
         """WitnessEnhanced accepts psychological depth fields."""
         witness = WitnessEnhanced(
-            id="hermione",
-            name="Hermione Granger",
+            id="elena",
+            name="Elena Marsh",
             personality="Intelligent, rule-following, anxious under pressure.",
             wants="To help find the truth and clear her name.",
             fears="Being blamed unfairly despite her innocence.",
@@ -138,12 +138,12 @@ class TestTimelineEntryModel:
         """TimelineEntry accepts all fields."""
         entry = TimelineEntry(
             time="10:05 PM",
-            event="Hermione leaves library",
-            witnesses=["filch"],
+            event="Elena leaves library",
+            witnesses=["crankshaw"],
             evidence=["hallway_log"],
         )
         assert entry.time == "10:05 PM"
-        assert "filch" in entry.witnesses
+        assert "crankshaw" in entry.witnesses
 
     def test_timeline_entry_defaults(self) -> None:
         """TimelineEntry defaults witnesses/evidence to empty lists."""
@@ -158,20 +158,20 @@ class TestSolutionEnhancedModel:
     def test_solution_enhanced_full(self) -> None:
         """SolutionEnhanced accepts all teaching fields."""
         solution = SolutionEnhanced(
-            culprit="draco",
+            culprit="cassian",
             method="Freezing curse",
             motive="Revenge for perceived slight",
-            key_evidence=["frost_pattern", "wand_signature"],
+            key_evidence=["frost_pattern", "focus_signature"],
             deductions_required=[
                 "Connect frost pattern to freezing curse",
-                "Identify wand signature as Draco's",
+                "Identify focus signature as Cassian's",
             ],
             correct_reasoning_requires=[
-                "Understanding that Hermione's alibi is solid",
+                "Understanding that Elena's alibi is solid",
             ],
             common_mistakes=[
                 {
-                    "error": "Accusing Hermione",
+                    "error": "Accusing Elena",
                     "reason": "She was in the library",
                     "why_wrong": "Presence does not equal guilt",
                 },
@@ -180,7 +180,7 @@ class TestSolutionEnhancedModel:
                 {"fallacy": "Confirmation bias", "example": "Ignoring exonerating evidence"},
             ],
         )
-        assert solution.culprit == "draco"
+        assert solution.culprit == "cassian"
         assert len(solution.deductions_required) == 2
         assert len(solution.common_mistakes) == 1
 
@@ -385,14 +385,14 @@ class TestMentorFormatters:
         """format_common_mistakes formats mistake list."""
         mistakes = [
             {
-                "error": "Accusing Hermione",
+                "error": "Accusing Elena",
                 "reason": "She was present",
                 "why_wrong": "Presence is not guilt",
             }
         ]
         result = format_common_mistakes(mistakes)
 
-        assert "Accusing Hermione" in result
+        assert "Accusing Elena" in result
         assert "Why players make this" in result
         assert "Why it's wrong" in result
 
@@ -409,17 +409,17 @@ class TestMentorFormatters:
     def test_format_timeline(self) -> None:
         """format_timeline formats timeline entries."""
         timeline = [
-            {"time": "10:00 PM", "event": "Victim enters", "witnesses": ["filch"]},
+            {"time": "10:00 PM", "event": "Victim enters", "witnesses": ["crankshaw"]},
         ]
         result = format_timeline(timeline)
 
         assert "10:00 PM" in result
         assert "Victim enters" in result
-        assert "filch" in result
+        assert "crankshaw" in result
 
 
-class TestTomFormatters:
-    """Tests for tom_llm.py Phase 5.5 formatters."""
+class TestMatthewFormatters:
+    """Tests for matthew_llm.py Phase 5.5 formatters."""
 
     def test_format_evidence_by_strength_categorizes(self) -> None:
         """format_evidence_by_strength categorizes by strength."""
@@ -433,22 +433,22 @@ class TestTomFormatters:
         assert "CRITICAL" in result
         assert "WEAK/CIRCUMSTANTIAL" in result
 
-    def test_format_victim_for_tom_emotional(self) -> None:
-        """format_victim_for_tom includes emotional hook."""
+    def test_format_victim_for_matthew_emotional(self) -> None:
+        """format_victim_for_matthew includes emotional hook."""
         victim = {
             "name": "Marcus Webb",
             "humanization": "A kind student who helped others.",
         }
-        result = format_victim_for_tom(victim)
+        result = format_victim_for_matthew(victim)
 
         assert "Marcus Webb" in result
-        assert "Marcus" in result  # Connection to Tom's story
+        assert "Marcus" in result  # Victim humanization in Matthew context
         assert "kind student" in result
 
-    def test_format_victim_for_tom_empty_if_no_name(self) -> None:
-        """format_victim_for_tom returns empty if no victim name."""
-        result = format_victim_for_tom(None)
+    def test_format_victim_for_matthew_empty_if_no_name(self) -> None:
+        """format_victim_for_matthew returns empty if no victim name."""
+        result = format_victim_for_matthew(None)
         assert result == ""
 
-        result = format_victim_for_tom({})
+        result = format_victim_for_matthew({})
         assert result == ""

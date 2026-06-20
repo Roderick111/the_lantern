@@ -3,7 +3,7 @@
  *
  * Provides music state management for background audio playback.
  * Persists volume/mute preferences to localStorage.
- * Supports track switching with manifest-based track list.
+ * Supports track selecting with manifest-based track list.
  *
  * @module context/MusicContext
  * @since Phase 6.5 (Music Ambience)
@@ -23,10 +23,10 @@ import {
 // Constants
 // ============================================
 
-const STORAGE_KEY_VOLUME = "hp-detective-music-volume";
-const STORAGE_KEY_MUTED = "hp-detective-music-muted";
-const STORAGE_KEY_ENABLED = "hp-detective-music-enabled";
-const STORAGE_KEY_TRACK_PREFIX = "hp-detective-music-track-";
+const STORAGE_KEY_VOLUME = "lantern-music-volume";
+const STORAGE_KEY_MUTED = "lantern-music-muted";
+const STORAGE_KEY_ENABLED = "lantern-music-enabled";
+const STORAGE_KEY_TRACK_PREFIX = "lantern-music-track-";
 
 const DEFAULT_VOLUME = 15;
 

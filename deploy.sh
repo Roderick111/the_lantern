@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# Deploy Script - Auror Academy
+# Deploy Script - The Lantern
 # =============================================================================
 # Usage: ./deploy.sh [server-ip]
 # 
@@ -14,9 +14,9 @@ set -e
 # Configuration
 SERVER_IP="${1:-188.34.196.228}"
 SERVER_USER="root"
-DEPLOY_DIR="/opt/auror-academy"
+DEPLOY_DIR="/opt/the-lantern"
 
-echo "🚀 Deploying Auror Academy to $SERVER_USER@$SERVER_IP"
+echo "🚀 Deploying The Lantern to $SERVER_USER@$SERVER_IP"
 echo "   Target directory: $DEPLOY_DIR"
 echo ""
 
@@ -74,6 +74,6 @@ ssh "$SERVER_USER@$SERVER_IP" "cd $DEPLOY_DIR && docker compose ps"
 
 echo ""
 echo "✅ Deployment complete!"
-echo "   🌐 https://auror-academy.beautiful-apps.com"
+echo "   🌐 https://the-lantern.beautiful-apps.com"
 echo ""
 echo "   View logs: ssh $SERVER_USER@$SERVER_IP 'cd $DEPLOY_DIR && docker compose logs -f'"

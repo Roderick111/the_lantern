@@ -5,7 +5,7 @@
  * - Loading with conversation_history -> Messages mapped correctly
  * - Loading with empty conversation_history -> No errors
  * - Message keys unique and stable
- * - Type conversion (tom -> tom_ghost)
+ * - Type conversion (matthew/tom -> matthew_ghost)
  */
 
 import { renderHook, waitFor } from '@testing-library/react';
@@ -24,7 +24,7 @@ vi.mock('../../api/client', () => ({
 describe('useInvestigation Hook', () => {
   const mockLocation: LocationResponse = {
     id: 'library',
-    name: 'Hogwarts Library',
+    name: 'Blackwood Collegiate Library',
     description: 'A grand library',
     surface_elements: ['desk', 'bookshelf'],
   };
@@ -101,14 +101,14 @@ describe('useInvestigation Hook', () => {
       expect(result.current.restoredMessages).toHaveLength(3);
     });
 
-    it('converts tom type to tom_ghost for rendering', async () => {
+    it('converts matthew type to matthew_ghost for rendering', async () => {
       const savedState: LoadResponse = {
         case_id: 'case_001',
         current_location: 'library',
         discovered_evidence: [],
         visited_locations: ['library'],
         conversation_history: [
-          { type: 'tom', text: 'A ghostly whisper...', timestamp: 1000 },
+          { type: 'matthew', text: 'A ghostly whisper...', timestamp: 1000 },
         ],
       };
 
@@ -124,8 +124,35 @@ describe('useInvestigation Hook', () => {
 
       const messages = result.current.restoredMessages;
       expect(messages).not.toBeNull();
-      expect(messages![0].type).toBe('tom_ghost');
+      expect(messages![0].type).toBe('matthew_ghost');
       expect(messages![0].text).toBe('A ghostly whisper...');
+    });
+
+    it('converts legacy tom type to matthew_ghost for rendering', async () => {
+      const savedState: LoadResponse = {
+        case_id: 'case_001',
+        current_location: 'library',
+        discovered_evidence: [],
+        visited_locations: ['library'],
+        conversation_history: [
+          { type: 'tom', text: 'Legacy whisper...', timestamp: 1000 },
+        ],
+      };
+
+      vi.mocked(client.loadState).mockResolvedValue(savedState);
+
+      const { result } = renderHook(() =>
+        useInvestigation({ caseId: 'case_001', locationId: 'library' })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      const messages = result.current.restoredMessages;
+      expect(messages).not.toBeNull();
+      expect(messages![0].type).toBe('matthew_ghost');
+      expect(messages![0].text).toBe('Legacy whisper...');
     });
 
     it('preserves player message type', async () => {

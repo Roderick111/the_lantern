@@ -1,57 +1,57 @@
-"""Spell definitions for Auror investigations.
+"""Spell definitions for Lantern Inspector investigations.
 
-Central spell metadata for the magic system. KISS principle - simple dict,
+Central spell metadata for the rite system. KISS principle - simple dict,
 no Pydantic classes needed.
 
-7 spells total:
-- 6 safe investigation spells (Revelio, Homenum Revelio, Specialis Revelio,
-  Lumos, Prior Incantato, Reparo)
-- 1 restricted spell (Legilimency)
+7 rites total:
+- 6 safe investigation rites (Unveil, Sense Presence, Identify Substance,
+  Raise the Lamp, Echo Reading, Mend)
+- 1 restricted spell (Mnemonic Delving)
 """
 
 from typing import Any
 
 # Spell definitions - central source of truth
 SPELL_DEFINITIONS: dict[str, dict[str, Any]] = {
-    "revelio": {
-        "name": "Revelio",
-        "description": "What's hidden wants to stay hidden. This charm convinces it otherwise—invisible ink bleeds into view, concealment charms flicker and fade, disguised objects remember their true form.",
+    "unveil": {
+        "name": "Unveil",
+        "description": "What's hidden wants to stay hidden. This charm convinces it otherwise—invisible ink bleeds into view, concealment cantrips flicker and fade, disguised objects remember their true form.",
         "safety_level": "safe",
         "category": "detection",
     },
-    "homenum_revelio": {
-        "name": "Homenum Revelio",
+    "sense_presence": {
+        "name": "Sense Presence",
         "description": "The air shivers when someone's near. This charm reads that shiver—even through walls, even under cloaks meant to deceive. Useful when you suspect you're not alone.",
         "safety_level": "safe",
         "category": "detection",
     },
-    "specialis_revelio": {
-        "name": "Specialis Revelio",
-        "description": "Scarpin's gift to investigators. Whisper this over a suspect potion and watch its secrets unravel—enchantments glow, poisons betray themselves, cursed objects confess their nature.",
+    "identify_substance": {
+        "name": "Identify Substance",
+        "description": "Alchemist's gift to investigators. Whisper this over a suspect potion and watch its secrets unravel—enchantments glow, poisons betray themselves, cursed objects confess their nature.",
         "safety_level": "safe",
         "category": "analysis",
     },
-    "lumos": {
-        "name": "Lumos",
-        "description": "Light reveals what darkness protects. More than mere illumination—wandlight clings to bloodstains, traces the ghost of fire, shows you the things that hide between shadow and sight.",
+    "raise_the_lamp": {
+        "name": "Raise the Lamp",
+        "description": "Light reveals what darkness protects. More than mere illumination—lamplight clings to bloodstains, traces the ghost of fire, shows you the things that hide between shadow and sight.",
         "safety_level": "safe",
         "category": "detection",
     },
-    "prior_incantato": {
-        "name": "Prior Incantato",
-        "description": "Every wand remembers. Force it to speak and ghostly echoes rise—the last spells it cast, shadows of magic long finished. The wand must be in your hand for it to confess.",
+    "echo_reading": {
+        "name": "Echo Reading",
+        "description": "Every focus remembers. Force it to speak and ghostly echoes rise—the last spells it cast, shadows of magic long finished. The focus must be in your hand for it to confess.",
         "safety_level": "safe",
         "category": "analysis",
     },
-    "reparo": {
-        "name": "Reparo",
+    "mend": {
+        "name": "Mend",
         "description": "Shattered things yearn to be whole. As the pieces float back together, watch closely—the way glass breaks tells you how it was broken. Violence leaves patterns.",
         "safety_level": "safe",
         "category": "restoration",
     },
-    "legilimency": {
-        "name": "Legilimency",
-        "description": "The mind has no lock a skilled Legilimens cannot pick. Slip past the eyes into memory itself—but tread carefully. Minds resist intrusion, and some remember being violated long after you've withdrawn.",
+    "mnemonic_delving": {
+        "name": "Mnemonic Delving",
+        "description": "The mind has no lock a skilled Mnemonic Delver cannot pick. Slip past the eyes into memory itself—but tread carefully. Minds resist intrusion, and some remember being violated long after you've withdrawn.",
         "safety_level": "restricted",
         "category": "mental",
     },
@@ -62,7 +62,7 @@ def get_spell(spell_id: str) -> dict[str, Any] | None:
     """Get spell definition by ID.
 
     Args:
-        spell_id: Spell identifier (lowercase, e.g., "revelio")
+        spell_id: Spell identifier (lowercase, e.g., "unveil")
 
     Returns:
         Spell definition dict or None if not found

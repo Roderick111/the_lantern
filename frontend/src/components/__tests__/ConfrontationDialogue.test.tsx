@@ -25,11 +25,11 @@ import { ConfrontationDialogue, type ConfrontationDialogueProps, type DialogueLi
 
 const mockDialogue: DialogueLine[] = [
   {
-    speaker: 'moody',
-    text: 'We need to discuss what happened, Draco.',
+    speaker: 'graves',
+    text: 'We need to discuss what happened, Cassian.',
   },
   {
-    speaker: 'draco',
+    speaker: 'cassian',
     text: 'I... I never meant for this to happen.',
     tone: 'remorseful',
   },
@@ -38,12 +38,12 @@ const mockDialogue: DialogueLine[] = [
     text: 'The evidence was clear from the start.',
   },
   {
-    speaker: 'moody',
+    speaker: 'graves',
     text: 'Good work, recruit. Take him to holding.',
   },
 ];
 
-const mockAftermath = 'Draco Malfoy was sentenced to two years in Azkaban. His father\'s connections could not save him this time.';
+const mockAftermath = 'Cassian Thorne was sentenced to two years in Dreadmoor Penitentiary. His father\'s connections could not save him this time.';
 
 const defaultProps: ConfrontationDialogueProps = {
   dialogue: mockDialogue,
@@ -82,7 +82,7 @@ describe('ConfrontationDialogue', () => {
 
     it('renders aftermath text', () => {
       render(<ConfrontationDialogue {...defaultProps} />);
-      expect(screen.getByText(/sentenced to two years in Azkaban/i)).toBeInTheDocument();
+      expect(screen.getByText(/sentenced to two years in Dreadmoor Penitentiary/i)).toBeInTheDocument();
     });
 
     it.todo('renders close button');
@@ -95,9 +95,9 @@ describe('ConfrontationDialogue', () => {
   describe('Speaker Display', () => {
     it('renders speaker names', () => {
       render(<ConfrontationDialogue {...defaultProps} />);
-      expect(screen.getAllByText(/Moody/i).length).toBeGreaterThanOrEqual(1);
-      // Draco appears as both speaker and in text, so check for multiple matches
-      expect(screen.getAllByText(/Draco/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Graves/i).length).toBeGreaterThanOrEqual(1);
+      // Cassian appears as both speaker and in text, so check for multiple matches
+      expect(screen.getAllByText(/Cassian/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/Player/i)).toBeInTheDocument();
     });
 
@@ -113,7 +113,7 @@ describe('ConfrontationDialogue', () => {
 
     it('does not render tone when not present', () => {
       const dialogueWithoutTone: DialogueLine[] = [
-        { speaker: 'moody', text: 'Test message without tone.' },
+        { speaker: 'graves', text: 'Test message without tone.' },
       ];
       render(<ConfrontationDialogue {...defaultProps} dialogue={dialogueWithoutTone} />);
       expect(screen.queryByText(/\(.*\)/)).not.toBeInTheDocument();
@@ -205,7 +205,7 @@ describe('ConfrontationDialogue', () => {
   describe('Long Dialogue', () => {
     it('handles many dialogue lines', () => {
       const longDialogue: DialogueLine[] = Array.from({ length: 10 }, (_, i) => ({
-        speaker: i % 2 === 0 ? 'moody' : 'suspect',
+        speaker: i % 2 === 0 ? 'graves' : 'suspect',
         text: `Line ${i + 1} of the dialogue.`,
       }));
 

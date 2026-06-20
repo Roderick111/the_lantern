@@ -38,7 +38,7 @@ import { useInvestigation } from "./hooks/useInvestigation";
 import { useWitnessInterrogation } from "./hooks/useWitnessInterrogation";
 import { useVerdictFlow } from "./hooks/useVerdictFlow";
 import { useBriefing } from "./hooks/useBriefing";
-import { useTomChat } from "./hooks/useTomChat";
+import { useMatthewChat } from "./hooks/useMatthewChat";
 import { useLocation } from "./hooks/useLocation";
 import { useSaveSlots } from "./hooks/useSaveSlots";
 import { useGameModals } from "./hooks/useGameModals";
@@ -80,8 +80,8 @@ export default function App() {
       setSessionToast(msg);
       setTimeout(() => setSessionToast(null), 2500);
     };
-    window.addEventListener("hp-session-expired", handler as EventListener);
-    return () => window.removeEventListener("hp-session-expired", handler as EventListener);
+    window.addEventListener("lantern-session-expired", handler as EventListener);
+    return () => window.removeEventListener("lantern-session-expired", handler as EventListener);
   }, []);
 
   return (
@@ -267,7 +267,7 @@ function InvestigationView({
   const briefingHook = useBriefing({ caseId, playerId });
   const { briefing, conversation: briefingConversation, selectedChoice: briefingSelectedChoice, choiceResponse: briefingChoiceResponse, loading: briefingLoading, selectChoice: selectBriefingChoice, resetChoice: resetBriefingChoice, askQuestion: askBriefingQuestion } = briefingHook;
 
-  const tomHook = useTomChat({ caseId, playerId });
+  const matthewHook = useMatthewChat({ caseId, playerId });
 
   const saveSlots = useSaveSlots(caseId, playerId);
   const { slots, loading: saveSlotsLoading } = saveSlots;
@@ -285,7 +285,7 @@ function InvestigationView({
     witnesses: { selectWitness: witnessHook.selectWitness, clearConversation: witnessHook.clearConversation },
     verdict: { reset: verdictHook.reset, confirmConfrontation },
     briefing: { loadBriefing: briefingHook.loadBriefing, markComplete: briefingHook.markComplete },
-    tom: { checkAutoComment: tomHook.checkAutoComment, sendMessage: tomHook.sendMessage },
+    matthew: { checkAutoComment: matthewHook.checkAutoComment, sendMessage: matthewHook.sendMessage },
     saveSlots: { saveToSlot: saveSlots.saveToSlot, loadFromSlot: saveSlots.loadFromSlot, refreshSlots: saveSlots.refreshSlots, error: saveSlots.error },
   });
 
@@ -329,7 +329,7 @@ function InvestigationView({
             type="button"
             aria-label="Open system menu"
           >
-            AUROR ACADEMY
+            THE LANTERN
           </button>
 
           {/* Location Tabs — large screens only, fills center */}
@@ -411,12 +411,12 @@ function InvestigationView({
               locationId={currentLocationId}
               locationData={location}
               onEvidenceDiscovered={(ids) =>
-                void actions.handleEvidenceDiscoveredWithTom(ids)
+                void actions.handleEvidenceDiscoveredWithMatthew(ids)
               }
               discoveredEvidence={[...(state?.discovered_evidence ?? [])]}
               inlineMessages={actions.inlineMessages}
-              onTomMessage={(msg) => void actions.handleTomMessage(msg)}
-              tomLoading={tomHook.loading}
+              onMatthewMessage={(msg) => void actions.handleMatthewMessage(msg)}
+              matthewLoading={matthewHook.loading}
               showLocationHeader={false}
               hintsEnabled={actions.hintsEnabled}
               isFirstLocation={currentLocationId === locations[0]?.id}
@@ -555,7 +555,7 @@ function InvestigationView({
                 isOpen={true}
                 onClose={actions.handleCloseVerdictModal}
                 variant="terminal"
-                title="Moody's Feedback"
+                title="Graves's Feedback"
               >
                 <MentorFeedback
                   feedback={verdictState.feedback}

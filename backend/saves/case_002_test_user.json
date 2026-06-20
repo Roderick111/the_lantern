@@ -14,7 +14,7 @@
     },
     {
       "type": "narrator",
-      "text": "Your eyes adjust to the dimness as you move deeper into the library's heart. The towering bookshelves loom above you like silent sentinels, their spines catching fragments of wandlight, while ahead the iron gate to the Restricted Section creaks slightly in an unseen draft. The scattered student desks take on new detail\u2014papers askew, quills abandoned mid-thought. Something about this scene suggests recent activity, urgency even.\n\nWhat would you like to investigate more closely?",
+      "text": "Your eyes adjust to the dimness as you move deeper into the library's heart. The towering bookshelves loom above you like silent sentinels, their spines catching fragments of lamplight, while ahead the iron gate to the Sealed Stacks creaks slightly in an unseen draft. The scattered student desks take on new detail\u2014papers askew, quills abandoned mid-thought. Something about this scene suggests recent activity, urgency even.\n\nWhat would you like to investigate more closely?",
       "timestamp": 1768344040356
     },
     {
@@ -32,7 +32,7 @@
   "narrator_conversation_history": [
     {
       "question": "Look closely",
-      "response": "Your eyes adjust to the dimness as you move deeper into the library's heart. The towering bookshelves loom above you like silent sentinels, their spines catching fragments of wandlight, while ahead the iron gate to the Restricted Section creaks slightly in an unseen draft. The scattered student desks take on new detail\u2014papers askew, quills abandoned mid-thought. Something about this scene suggests recent activity, urgency even.\n\nWhat would you like to investigate more closely?",
+      "response": "Your eyes adjust to the dimness as you move deeper into the library's heart. The towering bookshelves loom above you like silent sentinels, their spines catching fragments of lamplight, while ahead the iron gate to the Sealed Stacks creaks slightly in an unseen draft. The scattered student desks take on new detail\u2014papers askew, quills abandoned mid-thought. Something about this scene suggests recent activity, urgency even.\n\nWhat would you like to investigate more closely?",
       "timestamp": "2026-01-13T22:40:40.356778Z",
       "trust_delta": 0
     },
@@ -52,7 +52,7 @@
       },
       {
         "type": "narrator",
-        "text": "Your eyes adjust to the dimness as you move deeper into the library's heart. The towering bookshelves loom above you like silent sentinels, their spines catching fragments of wandlight, while ahead the iron gate to the Restricted Section creaks slightly in an unseen draft. The scattered student desks take on new detail\u2014papers askew, quills abandoned mid-thought. Something about this scene suggests recent activity, urgency even.\n\nWhat would you like to investigate more closely?",
+        "text": "Your eyes adjust to the dimness as you move deeper into the library's heart. The towering bookshelves loom above you like silent sentinels, their spines catching fragments of lamplight, while ahead the iron gate to the Sealed Stacks creaks slightly in an unseen draft. The scattered student desks take on new detail\u2014papers askew, quills abandoned mid-thought. Something about this scene suggests recent activity, urgency even.\n\nWhat would you like to investigate more closely?",
         "timestamp": 1768344040356
       }
     ],
@@ -73,7 +73,7 @@
     "library_main_hall": [
       {
         "question": "Look closely",
-        "response": "Your eyes adjust to the dimness as you move deeper into the library's heart. The towering bookshelves loom above you like silent sentinels, their spines catching fragments of wandlight, while ahead the iron gate to the Restricted Section creaks slightly in an unseen draft. The scattered student desks take on new detail\u2014papers askew, quills abandoned mid-thought. Something about this scene suggests recent activity, urgency even.\n\nWhat would you like to investigate more closely?",
+        "response": "Your eyes adjust to the dimness as you move deeper into the library's heart. The towering bookshelves loom above you like silent sentinels, their spines catching fragments of lamplight, while ahead the iron gate to the Sealed Stacks creaks slightly in an unseen draft. The scattered student desks take on new detail\u2014papers askew, quills abandoned mid-thought. Something about this scene suggests recent activity, urgency even.\n\nWhat would you like to investigate more closely?",
         "timestamp": "2026-01-13T22:40:40.356786Z",
         "trust_delta": 0
       }

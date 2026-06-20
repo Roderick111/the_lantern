@@ -3,7 +3,7 @@
 # =============================================================================
 # Caddy automatically provisions Let's Encrypt certificates
 
-auror-academy.beautiful-apps.com {
+the-lantern.beautiful-apps.com {
     # API requests -> backend
     handle /api/* {
         reverse_proxy backend:8000

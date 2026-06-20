@@ -1,4 +1,4 @@
-"""Investigation endpoints: explore locations, cast spells, discover evidence."""
+"""Investigation endpoints: explore locations, perform rites, discover evidence."""
 
 import asyncio
 import json
@@ -16,7 +16,7 @@ from src.api.helpers import (
     calculate_spell_outcome,
     check_spell_already_discovered,
     extract_new_evidence,
-    find_witness_for_legilimency,
+    find_witness_for_mnemonic_delving,
     load_case_or_404,
     load_slot_state,
     process_spell_flags,
@@ -29,7 +29,7 @@ from src.api.llm_client import LLMClientError as ClaudeClientError
 from src.api.llm_client import get_client
 from src.api.rate_limit import LLM_RATE, limiter
 from src.api.schemas import InvestigateRequest, InvestigateResponse
-from src.case_store.loader import list_locations
+from src.case_store.loader import get_case_setting, list_locations
 from src.context.narrator import (
     build_narrator_or_spell_prompt,
     build_narrator_prompt,
@@ -102,6 +102,7 @@ class InvestigationContext:
     surface_elements: list[dict[str, Any]]
     discovered_ids: list[str]
     world_context: str | None
+    case_setting: str
 
 
 def _setup_investigation(body: InvestigateRequest, player_id: str) -> InvestigationContext:
@@ -137,6 +138,7 @@ def _setup_investigation(body: InvestigateRequest, player_id: str) -> Investigat
         surface_elements=location.get("surface_elements", []),
         discovered_ids=state.discovered_evidence,
         world_context=case_section.get("world_context"),
+        case_setting=get_case_setting(case_data),
     )
 
 
@@ -166,7 +168,7 @@ def _build_narrator_hints(
         )
         if already:
             return (
-                "The player is re-casting a spell on evidence they already discovered. "
+                "The player is re-performing a rite on evidence they already discovered. "
                 "Acknowledge briefly that they already found this. Do NOT reveal any new evidence."
             )
     elif check_already_discovered(body.player_input, ctx.hidden_evidence, ctx.discovered_ids):
@@ -191,7 +193,7 @@ def _resolve_spell_mechanics(
     spell_id: str | None,
     target: str | None,
 ) -> tuple[str | None, dict[str, Any] | None]:
-    """Calculate spell outcome and witness context for legilimency."""
+    """Calculate spell outcome and witness context for mnemonic_delving."""
     if not spell_id:
         return None, None
 
@@ -200,8 +202,8 @@ def _resolve_spell_mechanics(
 
     if spell_id.lower() in SAFE_INVESTIGATION_SPELLS:
         spell_outcome = calculate_spell_outcome(spell_id, body.player_input, ctx.state)
-    if spell_id.lower() == "legilimency":
-        witness_context = find_witness_for_legilimency(target, ctx.case_data)
+    if spell_id.lower() == "mnemonic_delving":
+        witness_context = find_witness_for_mnemonic_delving(target, ctx.case_data)
 
     return spell_outcome, witness_context
 
@@ -238,6 +240,7 @@ def _build_investigation_prompt(
             spell_outcome=spell_outcome,
             verbosity=ctx.state.narrator_verbosity,
             world_context=ctx.world_context,
+            case_setting=ctx.case_setting,
             narrator_hint=narrator_hint,
             language=ctx.state.language,
             spell_id=spell_id,
@@ -256,16 +259,19 @@ def _build_investigation_prompt(
             ),
             verbosity=ctx.state.narrator_verbosity,
             world_context=ctx.world_context,
+            case_setting=ctx.case_setting,
             narrator_hint=narrator_hint,
         )
         system_prompt = build_system_prompt(
-            ctx.state.narrator_verbosity, language=ctx.state.language
+            ctx.state.narrator_verbosity,
+            case_setting=ctx.case_setting,
+            language=ctx.state.language,
         )
 
     return prompt, system_prompt
 
 
-def _process_investigation_response(
+async def _process_investigation_response(
     response: str,
     body: InvestigateRequest,
     ctx: InvestigationContext,
@@ -284,7 +290,7 @@ def _process_investigation_response(
 
     evidence_names = _build_evidence_names(new_evidence, ctx.hidden_evidence)
 
-    log_event(
+    await log_event(
         "investigate_action",
         player_id,
         body.case_id,
@@ -296,7 +302,7 @@ def _process_investigation_response(
         },
     )
     if new_evidence:
-        log_event(
+        await log_event(
             "evidence_discovered",
             player_id,
             body.case_id,
@@ -405,7 +411,7 @@ async def investigate_stream(
         try:
             llm_elapsed_ms = int((time.monotonic() - t0) * 1000)
 
-            new_evidence, evidence_names = _process_investigation_response(
+            new_evidence, evidence_names = await _process_investigation_response(
                 full_response,
                 body,
                 ctx,
@@ -558,13 +564,14 @@ async def investigate(
     except ClaudeClientError:
         raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
 
-    new_evidence, evidence_names = _process_investigation_response(
+    new_evidence, evidence_names = await _process_investigation_response(
         narrator_response,
         body,
         ctx,
         is_spell,
         spell_id,
         target,
+        player_id,
     )
 
     return save_conversation_and_return(

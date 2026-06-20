@@ -69,7 +69,7 @@ export interface SaveResponse {
  */
 export interface ConversationMessage {
   /** Message type */
-  type: 'player' | 'narrator' | 'tom';
+  type: 'player' | 'narrator' | 'matthew' | 'tom';
   /** Message text content */
   text: string;
   /** Unix timestamp in milliseconds */
@@ -342,7 +342,7 @@ export interface MentorFeedbackData {
  * Single line of dialogue in confrontation
  */
 export interface DialogueLine {
-  /** Speaker identifier (moody, player, suspect name) */
+  /** Speaker identifier (graves, player, suspect name) */
   speaker: string;
   /** Dialogue text */
   text: string;
@@ -410,7 +410,7 @@ export interface TeachingChoice {
   id: string;
   /** Display text for the choice */
   text: string;
-  /** Moody's response when this choice is selected */
+  /** Graves's response when this choice is selected */
   response: string;
 }
 
@@ -474,7 +474,7 @@ export interface BriefingContent {
 export interface BriefingConversation {
   /** Player's question */
   question: string;
-  /** Moody's answer */
+  /** Graves's answer */
   answer: string;
 }
 
@@ -482,7 +482,7 @@ export interface BriefingConversation {
  * Response from POST /api/briefing/{case_id}/question
  */
 export interface BriefingQuestionResponse {
-  /** Moody's answer to the question */
+  /** Graves's answer to the question */
   answer: string;
 }
 
@@ -495,13 +495,13 @@ export interface BriefingCompleteResponse {
 }
 
 // ============================================
-// Phase 4: Tom's Inner Voice Types
+// Phase 4: Matthew spirit companion types
 // ============================================
 
 /**
- * Tom trigger types for categorizing his messages
+ * Matthew trigger types for categorizing companion messages
  */
-export type TomTriggerType =
+export type MatthewTriggerType =
   | 'helpful'
   | 'misleading'
   | 'self_aware'
@@ -509,15 +509,15 @@ export type TomTriggerType =
   | 'emotional';
 
 /**
- * Tom's inner voice trigger from backend
+ * Matthew spirit companion trigger from backend
  */
-export interface InnerVoiceTrigger {
+export interface MatthewTrigger {
   /** Unique trigger identifier */
   id: string;
-  /** Tom's message text */
+  /** Matthew's message text */
   text: string;
   /** Whether message is helpful or misleading */
-  type: TomTriggerType;
+  type: MatthewTriggerType;
   /** Evidence tier (1=early, 2=mid, 3=late) */
   tier: 1 | 2 | 3;
 }
@@ -530,17 +530,17 @@ export interface InnerVoiceTrigger {
 export type Message =
   | { type: 'player'; text: string; timestamp?: number }
   | { type: 'narrator'; text: string; timestamp?: number }
-  | { type: 'tom_ghost'; text: string; tone?: 'helpful' | 'misleading'; mode?: string; trust_level?: number; timestamp?: number };
+  | { type: 'matthew_ghost'; text: string; tone?: 'helpful' | 'misleading'; mode?: string; trust_level?: number; timestamp?: number };
 
 // ============================================
-// Phase 4.1: Tom LLM Chat Types
+// Phase 4.1: Matthew LLM chat types
 // ============================================
 
 /**
- * Response from Tom LLM endpoints (auto-comment and direct chat)
+ * Response from Matthew LLM endpoints (auto-comment and direct chat)
  */
-export interface TomResponse {
-  /** Tom's message text */
+export interface MatthewResponse {
+  /** Matthew's message text */
   text: string;
   /** Response mode: 'auto_helpful', 'auto_misleading', 'direct_chat_helpful', etc */
   mode: string;
@@ -651,7 +651,7 @@ export interface DeleteSlotResponse {
 export interface ApiCaseMetadata {
   /** Case identifier (e.g., "case_001") */
   id: string;
-  /** Display title (e.g., "The Restricted Section") */
+  /** Display title (e.g., "The Sealed Stacks") */
   title: string;
   /** Difficulty level from backend */
   difficulty: 'beginner' | 'intermediate' | 'advanced';
@@ -667,7 +667,7 @@ export interface ApiCaseMetadata {
 export interface CaseMetadata {
   /** Case identifier (e.g., "case_001") */
   id: string;
-  /** Display name (e.g., "The Restricted Section") */
+  /** Display name (e.g., "The Sealed Stacks") */
   name: string;
   /** Difficulty level (display format) */
   difficulty: 'Easy' | 'Medium' | 'Hard';

@@ -641,9 +641,9 @@ def check_spell_already_discovered(
     from backend.src.spells.definitions import get_spell
 
     spell_def = get_spell(spell_id)
-    spell_name = spell_def.get("name") if spell_def else "the spell"
+    spell_name = spell_def.get("name") if spell_def else "the rite"
     return (
-        f"You cast {spell_name}, but it reveals nothing new. "
+        f"You perform {spell_name}, but it reveals nothing new. "
         "The evidence has already given up its secrets."
     )
 
@@ -678,11 +678,11 @@ def calculate_spell_outcome(
     return spell_outcome
 
 
-def find_witness_for_legilimency(
+def find_witness_for_mnemonic_delving(
     target: str | None,
     case_data: dict[str, Any],
 ) -> dict[str, Any] | None:
-    """Find witness data for Legilimency spell target."""
+    """Find witness data for Mnemonic Delving spell target."""
     if not target:
         return None
     for _, witness_data in case_data.get("witnesses", {}).items():

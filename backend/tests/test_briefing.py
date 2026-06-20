@@ -15,7 +15,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.context.briefing import (
-    build_moody_briefing_prompt,
+    build_graves_briefing_prompt,
     get_template_response,
 )
 from src.main import app
@@ -133,12 +133,12 @@ class TestPlayerStateBriefingIntegration:
 # ============================================================================
 
 
-class TestMoodyBriefingPrompt:
-    """Tests for build_moody_briefing_prompt."""
+class TestGravesBriefingPrompt:
+    """Tests for build_graves_briefing_prompt."""
 
     def test_build_prompt_includes_question(self) -> None:
         """Prompt includes player's question."""
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="What are base rates?",
             case_assignment="VICTIM: student",
             teaching_moment="Base rates are...",
@@ -151,7 +151,7 @@ class TestMoodyBriefingPrompt:
 
     def test_build_prompt_includes_case_assignment(self) -> None:
         """Prompt includes case assignment."""
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="Test",
             case_assignment="VICTIM: Third-year student",
             teaching_moment="Teaching",
@@ -164,7 +164,7 @@ class TestMoodyBriefingPrompt:
 
     def test_build_prompt_includes_concept(self) -> None:
         """Prompt includes rationality concept."""
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="Test",
             case_assignment="Case",
             teaching_moment="Teaching",
@@ -183,7 +183,7 @@ class TestMoodyBriefingPrompt:
             {"question": "Second Q?", "answer": "Second A."},
         ]
 
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="Third Q?",
             case_assignment="Case",
             teaching_moment="Teaching",
@@ -199,7 +199,7 @@ class TestMoodyBriefingPrompt:
 
     def test_build_prompt_empty_history(self) -> None:
         """Prompt handles empty conversation history."""
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="Test",
             case_assignment="Case",
             teaching_moment="Teaching",
@@ -214,7 +214,7 @@ class TestMoodyBriefingPrompt:
         """Prompt limits history to last 5 exchanges."""
         history = [{"question": f"Q{i}", "answer": f"A{i}"} for i in range(10)]
 
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="Test",
             case_assignment="Case",
             teaching_moment="Teaching",
@@ -250,7 +250,7 @@ class TestTemplateResponses:
         """Default template response for unknown questions."""
         response = get_template_response("Random unrelated question", "base_rates")
 
-        assert "CONSTANT VIGILANCE" in response
+        assert "Trust nothing unseen" in response
 
 
 # ============================================================================
@@ -313,12 +313,12 @@ class TestGetBriefingEndpoint:
 
     @pytest.mark.asyncio
     async def test_get_briefing_includes_transition(self, client: AsyncClient) -> None:
-        """Briefing includes transition with 'CONSTANT VIGILANCE'."""
+        """Briefing includes transition with 'Trust nothing unseen'."""
         response = await client.get("/api/briefing/case_001")
 
         assert response.status_code == 200
         data = response.json()
-        assert "CONSTANT VIGILANCE" in data["transition"]
+        assert "Trust nothing unseen" in data["transition"]
 
     @pytest.mark.asyncio
     async def test_get_briefing_404_invalid_case(self, client: AsyncClient) -> None:
@@ -375,7 +375,7 @@ class TestAskBriefingQuestionEndpoint:
 
     @pytest.mark.asyncio
     async def test_ask_question_success(self, client: AsyncClient) -> None:
-        """POST question returns Moody's response."""
+        """POST question returns Graves's response."""
         response = await client.post(
             "/api/briefing/case_001/question",
             json={"question": "What are base rates?", "player_id": "test_ask_q1"},
@@ -594,12 +594,12 @@ class TestBriefingYamlStructure:
         assert len(data["concept_description"]) > 10
 
     @pytest.mark.asyncio
-    async def test_yaml_transition_has_constant_vigilance(self, client: AsyncClient) -> None:
-        """transition ends with 'CONSTANT VIGILANCE'."""
+    async def test_yaml_transition_has_trust_nothing_unseen(self, client: AsyncClient) -> None:
+        """transition ends with 'Trust nothing unseen'."""
         response = await client.get("/api/briefing/case_001")
         data = response.json()
 
-        assert "CONSTANT VIGILANCE" in data["transition"]
+        assert "Trust nothing unseen" in data["transition"]
 
 
 # ============================================================================
@@ -635,11 +635,11 @@ class TestBriefingContext:
 
         assert len(witnesses) >= 2
         # Check first witness has required fields
-        hermione = next((w for w in witnesses if "Hermione" in w.get("name", "")), None)
-        assert hermione is not None
-        assert "personality" in hermione
-        assert "background" in hermione
-        assert "general_knowledge" in hermione
+        elena = next((w for w in witnesses if "Elena" in w.get("name", "")), None)
+        assert elena is not None
+        assert "personality" in elena
+        assert "background" in elena
+        assert "general_knowledge" in elena
 
     def test_briefing_context_no_secrets(self) -> None:
         """briefing_context does NOT contain secrets."""
@@ -653,7 +653,7 @@ class TestBriefingContext:
         context_str = str(briefing_context).lower()
 
         # Should NOT contain secret triggers or culprit reveal
-        assert "saw_draco" not in context_str
+        assert "saw_cassian" not in context_str
         assert "borrowed_restricted" not in context_str
         assert "culprit" not in context_str
         assert "guilty" not in context_str
@@ -677,17 +677,17 @@ class TestBriefingContext:
         briefing_context = {
             "witnesses": [
                 {
-                    "name": "Hermione Granger",
+                    "name": "Elena Marsh",
                     "personality": "Brilliant student",
                     "background": "Top of class",
                 }
             ],
-            "suspects": ["Hermione Granger"],
+            "suspects": ["Elena Marsh"],
             "location": {"name": "Library", "description": "Big room"},
-            "case_overview": "Student found petrified",
+            "case_overview": "Student found held in stillness",
         }
 
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="Who are the witnesses?",
             case_assignment="Case details",
             teaching_moment="Teaching",
@@ -697,7 +697,7 @@ class TestBriefingContext:
             briefing_context=briefing_context,
         )
 
-        assert "Hermione Granger" in prompt
+        assert "Elena Marsh" in prompt
         assert "Brilliant student" in prompt
         assert "Top of class" in prompt
 
@@ -706,14 +706,14 @@ class TestBriefingContext:
         briefing_context = {
             "witnesses": [],
             "suspects": [
-                "Hermione Granger (present)",
-                "Draco Malfoy (nearby)",
+                "Elena Marsh (present)",
+                "Cassian Thorne (nearby)",
             ],
             "location": {"name": "Library", "description": "Big room"},
-            "case_overview": "Student found petrified",
+            "case_overview": "Student found held in stillness",
         }
 
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="Who are suspects?",
             case_assignment="Case details",
             teaching_moment="Teaching",
@@ -723,8 +723,8 @@ class TestBriefingContext:
             briefing_context=briefing_context,
         )
 
-        assert "Hermione Granger" in prompt
-        assert "Draco Malfoy" in prompt
+        assert "Elena Marsh" in prompt
+        assert "Cassian Thorne" in prompt
 
     def test_prompt_includes_rationality_context(self) -> None:
         """Prompt includes rationality principles when context provided."""
@@ -732,10 +732,10 @@ class TestBriefingContext:
             "witnesses": [],
             "suspects": [],
             "location": {"name": "Library", "description": "Big room"},
-            "case_overview": "Student found petrified",
+            "case_overview": "Student found held in stillness",
         }
 
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="What is confirmation bias?",
             case_assignment="Case details",
             teaching_moment="Teaching",
@@ -751,7 +751,7 @@ class TestBriefingContext:
 
     def test_prompt_handles_missing_context(self) -> None:
         """Prompt works without briefing_context (backward compat)."""
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="Test question",
             case_assignment="Case details",
             teaching_moment="Teaching",
@@ -763,11 +763,11 @@ class TestBriefingContext:
 
         # Should still work, just without context section
         assert "Test question" in prompt
-        assert "Alastor" in prompt or "Moody" in prompt
+        assert "Alastor" in prompt or "Graves" in prompt
 
     def test_prompt_handles_empty_context(self) -> None:
         """Prompt works with empty briefing_context dict."""
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question="Test question",
             case_assignment="Case details",
             teaching_moment="Teaching",

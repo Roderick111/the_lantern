@@ -23,8 +23,8 @@ import type { WitnessInfo, WitnessConversationItem } from '../../types/investiga
 // ============================================
 
 const mockWitness: WitnessInfo = {
-  id: 'hermione',
-  name: 'Hermione Granger',
+  id: 'elena',
+  name: 'Elena Marsh',
   personality: 'helpful',
   trust: 55,
   secrets_revealed: [],
@@ -107,7 +107,7 @@ describe('WitnessInterview', () => {
         <WitnessInterview {...defaultProps} conversation={mockConversation} />
       );
 
-      expect(screen.getByText('Hermione Granger')).toBeInTheDocument();
+      expect(screen.getByText('Elena Marsh')).toBeInTheDocument();
     });
 
     it.todo('shows trust delta for conversation items');
@@ -157,7 +157,7 @@ describe('WitnessInterview', () => {
       render(
         <WitnessInterview
           {...defaultProps}
-          discoveredEvidence={[{ id: 'hidden_note', name: 'Hidden Note' }, { id: 'wand_signature', name: 'Wand Signature' }]}
+          discoveredEvidence={[{ id: 'hidden_note', name: 'Hidden Note' }, { id: 'focus_signature', name: 'Focus Signature' }]}
         />
       );
 

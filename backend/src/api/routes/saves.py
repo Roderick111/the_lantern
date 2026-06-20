@@ -72,7 +72,7 @@ async def save_game(
             return SaveResponse(success=False, message=f"Failed to save to slot {slot}", slot=slot)
 
         if slot != "autosave":
-            log_event("save_game", player_id, case_id, {"slot": slot})
+            await log_event("save_game", player_id, case_id, {"slot": slot})
 
         return SaveResponse(success=True, message=f"Saved to {slot}", slot=slot)
     except ValueError as e:
@@ -273,7 +273,7 @@ async def change_location(
     state.visit_location(request.location_id)
     save_slot_state(state, player_id, request.slot)
 
-    log_event(
+    await log_event(
         "location_changed",
         player_id,
         case_id,

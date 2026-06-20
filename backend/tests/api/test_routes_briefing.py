@@ -18,7 +18,7 @@ def test_get_briefing_structure():
     dossier = data["dossier"]
     assert "title" in dossier
     assert "victim" in dossier
-    assert dossier["victim"] == "Severus Snape (Potions Master)"
+    assert dossier["victim"] == "Professor Aldric Vane (Alchemy Master)"
 
     # Check Teaching Questions
     assert "teaching_questions" in data

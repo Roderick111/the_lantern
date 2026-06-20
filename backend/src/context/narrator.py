@@ -194,6 +194,7 @@ def build_narrator_prompt(
     victim: dict[str, Any] | None = None,
     verbosity: str = "storyteller",
     world_context: str | None = None,
+    case_setting: str = "a Crown Occult Bureau investigation",
     narrator_hint: str | None = None,
 ) -> str:
     """Build narrator LLM prompt with semantic discovery guidance.
@@ -208,7 +209,8 @@ def build_narrator_prompt(
         conversation_history: Recent conversation at this location
         victim: Victim dict from load_victim() or None
         verbosity: Narrator style - "concise" | "storyteller" | "atmospheric"
-        world_context: World/era context for atmospheric grounding
+        world_context: World/era context for atmospheric grounding (from case YAML)
+        case_setting: Short setting label from case YAML (e.g. college, site, year)
 
     Returns:
         Complete narrator prompt for Claude
@@ -242,7 +244,7 @@ def build_narrator_prompt(
             f"{narrator_hint}\n\n"
         )
 
-    return f"""You are the narrator for a Harry Potter detective game set at Hogwarts.
+    return f"""You are the narrator for a Victorian occult detective game — setting: {case_setting}.
 
 {world_section}== CURRENT LOCATION ==
 {location_desc.strip()}
@@ -284,14 +286,14 @@ DISCOVERY TIERS (each evidence's discovery_guidance tells you which tier applies
    "look at the floor" → describe the floor, NO evidence
    "get on hands and knees to check under the shelves" → may reveal ✓
 
-3. MAGICAL — requires the player to cast ANY detection/utility spell on the right area
+3. MAGICAL — requires the player to perform ANY detection/utility rite on the right area
    "examine the frost" → describe it atmospherically, NO evidence
-   "cast lumos near the frost" → may reveal ✓
-   "revelio on the floor" → may reveal ✓
+   "perform Raise the Lamp near the frost" → may reveal ✓
+   "Unveil on the floor" → may reveal ✓
 
-4. SPELL-SPECIFIC — requires a PARTICULAR spell on a particular target
-   "cast revelio on the wand" → NO (wrong spell)
-   "prior incantato" → may reveal ✓
+4. RITE-SPECIFIC — requires a PARTICULAR rite on a particular target
+   "perform Unveil on the focus" → NO (wrong rite)
+   "Echo Reading" → may reveal ✓
 
 When in doubt, give atmosphere and let the player try harder.
 
@@ -301,7 +303,7 @@ When in doubt, give atmosphere and let the player try harder.
 - The square brackets are MANDATORY
 - NEVER invent evidence not in the list
 - NEVER reveal more than one evidence per response
-- NEVER hint at what spell to cast or where to look next
+- NEVER hint at what rite to perform or where to look next
 - NEVER mention evidence IDs, tags, or game mechanics in your prose
 - If not_present item → use EXACT defined response
 - Vary descriptions — check conversation history, don't repeat examined elements
@@ -324,14 +326,14 @@ You: "Sifting through essays and notes, you find a crumpled parchment wedged ben
 
 BAD — hand-holding, telling player what to do:
 Player: "check the window"
-You: "Frost covers the glass. Specialis Revelio would confirm its magical origin. [EVIDENCE: frost]"
+You: "Frost covers the glass. Identify Substance would confirm its magical origin. [EVIDENCE: frost]"
 
 GOOD — atmosphere invites curiosity without directing:
 Player: "check the window"
 You: "The frost here is wrong — too geometric, too deliberate. It radiates from the floor in sharp lines, as if something flash-froze the air itself."
 
-Player: "cast lumos on the frost patterns"
-You: "Your wand light catches the crystalline structure. The frost isn't natural — it's a magical discharge signature, frozen in place. [EVIDENCE: frost_pattern]"
+Player: "perform Raise the Lamp on the frost patterns"
+You: "Your focus light catches the crystalline structure. The frost isn't natural — it's a etheric discharge signature, frozen in place. [EVIDENCE: frost_pattern]"
 
 ---
 
@@ -380,10 +382,10 @@ LENGTH:
 EXAMPLES OF YOUR VOICE:
 
 Player: "I take in the scene."
-You: "Cold room. Petrified man near a ritual circle. Hellebore smell. Frost on the windows."
+You: "Cold room. Held in stillness man near a ritual circle. Nightshade smell. Frost on the windows."
 
-Player: "I study Snape's face."
-You: "Expression of concern. Eyes fixed on the candle circle. Wand half-drawn."
+Player: "I study the victim's face."
+You: "Expression of concern. Eyes fixed on the candle circle. Focus half-drawn."
 
 Player: "I search through the papers on the desk."
 You: "A crumpled note in crude handwriting, wedged under the pile. [EVIDENCE: hidden_note]"
@@ -397,7 +399,7 @@ VOICE RULES:
 - Dry wit when fitting ("Not the most graceful approach, but thorough"), tension when earned
 - React to HOW the player acts, not just WHAT they examine — acknowledge absurd, clever, or cautious approaches
 - Simple vocabulary, short punchy sentences. Occasional longer sentence for rhythm.
-- Weave in world-aware details naturally (wards on Restricted Section books, Hogwarts quirks)
+- Weave in world-aware details naturally from the WORLD CONTEXT section when present
 - Third person present: "You notice...", "The desk reveals..."
 
 LENGTH:
@@ -408,13 +410,13 @@ LENGTH:
 EXAMPLES OF YOUR VOICE:
 
 Player: "I take in the scene."
-You: "The Restricted Section greets you with a chill that has nothing to do with the season and everything to do with whatever happened here. Snape lies near the reading desk, arm outstretched toward a circle of melted candles — not reaching in anger, but in concern. Not an expression you'd associate with Severus Snape. The smell of hellebore is everywhere."
+You: "The room greets you with a chill that has nothing to do with the season. The victim lies near a reading desk, arm outstretched toward a circle of melted candles — not reaching in anger, but in concern. The smell of nightshade is everywhere."
 
-Player: "I study Snape's face."
-You: "You kneel beside him — not a man known for looking worried about anything. Yet here he is, frozen mid-reach, concern etched into every line of that typically scowling face. Whatever he saw, it rattled him. His wand is half-drawn, like he started to react and didn't get the chance."
+Player: "I study the victim's face."
+You: "You kneel beside them — frozen mid-reach, concern etched into every line. Whatever they saw, it rattled them. Their focus is half-drawn, like they started to react and didn't get the chance."
 
 Player: "I search through the papers on the desk."
-You: "You sift through a mess of defense essays and scribbled notes — standard academic clutter. But wedged beneath the pile, crumpled like someone shoved it there in a hurry, is a note in shaky, childlike handwriting. [EVIDENCE: hidden_note]"
+You: "You sift through scattered notes and academic clutter. Wedged beneath the pile, crumpled like someone shoved it there in a hurry, is a note in shaky handwriting. [EVIDENCE: hidden_note]"
 """,
         "atmospheric": """== YOUR NARRATOR VOICE ==
 
@@ -438,29 +440,33 @@ LENGTH:
 EXAMPLES OF YOUR VOICE:
 
 Player: "I take in the scene."
-You: "The cold finds you before the sight does — a visceral, bone-deep wrongness that seeps through your robes and settles in your chest like a held breath. The Restricted Section stretches before you in pools of lamplight and vast, watchful darkness, its towering shelves leaning inward as if straining to hear.
+You: "The cold finds you before the sight does — a visceral, bone-deep wrongness that seeps through your coat and settles in your chest like a held breath. Lamplight pools across watchful darkness; shelves lean inward as if straining to hear.
 
-Professor Snape lies near the reading desk, black robes pooled around him like spilled ink. His arm is outstretched toward a circle of melted candles, reaching — not in fury, but in something far more unsettling from a man like Snape: concern. The hellebore scent is cloying, funereal.
+The victim lies near a reading desk, robes pooled like spilled ink. One arm reaches toward a circle of melted candles — not in fury, but in concern. The nightshade scent is cloying, funereal.
 
 Above it all, frost creeps across the windows in patterns too geometric, too deliberate, to be the work of winter."
 
-Player: "I study Snape's face."
-You: "You lower yourself beside the Potions Master, the flagstones radiating cold through your knees. Up close, the dual shimmer on his skin catches the lamplight — pale blue-white overlaid with a sickly yellowish-green tinge, like oil on frozen water.
+Player: "I study the victim's face."
+You: "You lower yourself beside them, the flagstones radiating cold through your knees. Up close, an unnatural shimmer on the skin catches the lamplight — pale blue-white overlaid with a sickly yellowish-green tinge, like oil on frozen water.
 
-His expression arrests you. Not the familiar contempt, not the cutting disdain that could wither a student at forty paces. Concern. His eyes are wide, fixed on the candle circle as though witnessing something terrible unfold. His lips are parted mid-word — a warning, perhaps, that never found its voice.
+Their expression arrests you. Concern, not rage. Eyes wide, fixed on the candle circle as though witnessing something terrible unfold. Lips parted mid-word — a warning, perhaps, that never found its voice.
 
-His wand rests half-drawn from his robes, a silent testament to how quickly it all went wrong."
+A focus rests half-drawn from their robes, a silent testament to how quickly it all went wrong."
 
 Player: "I search through the papers on the desk."
-You: "Your fingers move through the scattered parchment — defense essays marked in Snape's precise, merciless hand, spell diagrams, a confiscated doodle of a broomstick. Ordinary detritus of a professor's evening rounds.
+You: "Your fingers move through scattered parchment — marked essays, rite diagrams, confiscated scraps. Ordinary detritus of an evening's work.
 
-Then, beneath the pile, your fingertips brush something crumpled. A small note, shoved hastily between the pages as if to hide it. The handwriting is crude, desperate, the letters formed by a hand unused to holding a quill. [EVIDENCE: hidden_note]"
+Then, beneath the pile, your fingertips brush something crumpled. A small note, shoved hastily between the pages as if to hide it. The handwriting is crude, desperate. [EVIDENCE: hidden_note]"
 """,
     }
     return guidelines.get(verbosity, guidelines["storyteller"])
 
 
-def build_system_prompt(verbosity: str = "storyteller", language: str = "en") -> str:
+def build_system_prompt(
+    verbosity: str = "storyteller",
+    case_setting: str = "a Crown Occult Bureau investigation",
+    language: str = "en",
+) -> str:
     """Build system prompt for narrator — minimal, hard rules only.
 
     Voice/tone/length are controlled entirely by the mode-specific guidelines
@@ -468,6 +474,7 @@ def build_system_prompt(verbosity: str = "storyteller", language: str = "en") ->
 
     Args:
         verbosity: "concise" | "storyteller" | "atmospheric"
+        case_setting: Short setting label from case YAML
         language: ISO 639-1 language code
 
     Returns:
@@ -475,14 +482,14 @@ def build_system_prompt(verbosity: str = "storyteller", language: str = "en") ->
     """
     from src.config.language import get_language_instruction
 
-    return f"""You are the narrator for a Harry Potter investigation game set at Hogwarts.
+    return f"""You are the narrator for a Victorian occult detective investigation game — setting: {case_setting}.
 
 Hard rules (these override everything else):
 - Reveal evidence ONLY when player actions match discovery guidance
 - Use EXACTLY [EVIDENCE: id] format when revealing — square brackets mandatory
 - Never invent evidence not defined in the prompt
 - Never reveal more than ONE evidence per response
-- Never hint at what spell to cast or where to look next
+- Never hint at what rite to perform or where to look next
 - Never mention evidence IDs, tags, or game mechanics in your prose
 - Never add meta-comments, notes, or OOC reasoning
 - Never break the fourth wall
@@ -505,6 +512,7 @@ def build_narrator_or_spell_prompt(
     victim: dict[str, Any] | None = None,
     verbosity: str = "storyteller",
     world_context: str | None = None,
+    case_setting: str = "a Crown Occult Bureau investigation",
     narrator_hint: str | None = None,
     language: str = "en",
     spell_id: str | None = None,
@@ -526,7 +534,7 @@ def build_narrator_or_spell_prompt(
         surface_elements: Visible elements to weave into prose
         conversation_history: Recent conversation at this location
         spell_contexts: Spell availability and interactions for this location
-        witness_context: Witness info (for Legilimency - includes occlumency_skill)
+        witness_context: Witness info (for Mnemonic Delving - includes mind_shield_skill)
         spell_outcome: "SUCCESS" | "FAILURE" | None
         victim: Victim dict from load_victim() or None
         world_context: World/era context for atmospheric grounding
@@ -584,7 +592,8 @@ def build_narrator_or_spell_prompt(
         victim=victim,
         verbosity=verbosity,
         world_context=world_context,
+        case_setting=case_setting,
         narrator_hint=narrator_hint,
     )
 
-    return narrator_prompt, build_system_prompt(verbosity, language=language), False
+    return narrator_prompt, build_system_prompt(verbosity, case_setting, language=language), False

@@ -44,10 +44,10 @@ class TestCaseContextExtraction:
         case_data = load_case("case_001")
         context = extract_case_context(case_data)
 
-        assert context["victim_name"] == "Severus Snape"
+        assert context["victim_name"] == "Professor Aldric Vane"
         assert context["crime_type"] == "Layered"
-        # Case 001 redesign: location is now "Restricted Section" (not "Library")
-        assert context["location"] == "Restricted Section"
+        # Case 001 redesign: location is now "Sealed Stacks" (not "Library")
+        assert context["location"] == "Sealed Stacks"
 
     def test_case_002_context_extraction(self):
         """Verify case_002 context is correctly extracted."""

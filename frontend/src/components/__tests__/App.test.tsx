@@ -91,15 +91,15 @@ vi.mock('../../api/client', async (importOriginal) => {
     resetCase: vi.fn().mockResolvedValue({ success: true, message: 'ok' }),
     listSaveSlots: vi.fn().mockResolvedValue([]),
     getBriefing: vi.fn(),
-    checkInnerVoice: vi.fn(),
-    checkTomAutoComment: vi.fn(),
+    checkMatthewTrigger: vi.fn(),
+    checkMatthewAutoComment: vi.fn(),
     getCases: vi.fn().mockResolvedValue({
       cases: [
         {
           id: 'case_001',
-          title: 'The Restricted Section',
+          title: 'The Sealed Stacks',
           difficulty: 'beginner',
-          description: 'A petrified student found in the library.',
+          description: 'A held in stillness student found in the library.',
         },
       ],
       count: 1,
@@ -114,7 +114,7 @@ vi.mock('../../api/client', async (importOriginal) => {
 
 const mockLocationData: LocationResponse = {
   id: 'library',
-  name: 'Hogwarts Library - Crime Scene',
+  name: 'Blackwood Collegiate Library - Crime Scene',
   description: 'You enter the library. A heavy oak desk dominates the center.',
   surface_elements: [
     'Oak desk with scattered papers',
@@ -137,7 +137,7 @@ describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Set active session so App goes directly to "game" state
-    localStorage.setItem('hp-detective-active-session', JSON.stringify({ caseId: 'case_001', slot: 'autosave' }));
+    localStorage.setItem('lantern-active-session', JSON.stringify({ caseId: 'case_001', slot: 'autosave' }));
     // Skip telemetry consent banner
     localStorage.setItem('telemetry_consent_shown', 'true');
   });
@@ -172,7 +172,7 @@ describe('App', () => {
       // LandingPage shows the case Title in both the list and detail pane
       // → multiple matches expected. We assert at least one is present.
       await waitFor(() => {
-        const matches = screen.getAllByText(/The Restricted Section/i);
+        const matches = screen.getAllByText(/The Sealed Stacks/i);
         expect(matches.length).toBeGreaterThan(0);
       });
     });

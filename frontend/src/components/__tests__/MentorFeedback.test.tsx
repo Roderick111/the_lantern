@@ -4,7 +4,7 @@
  * Tests for the mentor feedback display including:
  * - Verdict result display
  * - Score meter rendering and colors
- * - Moody's Response (natural LLM prose)
+ * - Graves's Response (natural LLM prose)
  * - Retry functionality
  * - Loading states
  *
@@ -263,7 +263,7 @@ describe('MentorFeedback', () => {
   describe('Wrong Suspect Response', () => {
     it('renders LLM-generated analysis when provided', () => {
       const feedbackWithAnalysis: MentorFeedbackData = {
-        analysis: "WRONG. You accused Hermione because she 'seemed suspicious'? Confirmation bias - check the frost pattern direction!",
+        analysis: "WRONG. You accused Elena because she 'seemed suspicious'? Confirmation bias - check the frost pattern direction!",
         fallacies_detected: [],
         score: 20,
         quality: 'poor',
@@ -280,11 +280,11 @@ describe('MentorFeedback', () => {
           wrongSuspectResponse={null}
         />
       );
-      expect(screen.getByText(/Moody's Response/i)).toBeInTheDocument();
+      expect(screen.getByText(/Graves's Response/i)).toBeInTheDocument();
       expect(screen.getByText(/Confirmation bias/i)).toBeInTheDocument();
     });
 
-    it('does not render Moody section when analysis is empty', () => {
+    it('does not render Graves section when analysis is empty', () => {
       const feedbackNoAnalysis: MentorFeedbackData = {
         analysis: '',
         fallacies_detected: [],
@@ -303,7 +303,7 @@ describe('MentorFeedback', () => {
           wrongSuspectResponse={null}
         />
       );
-      expect(screen.queryByText(/Moody's Response/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Graves's Response/i)).not.toBeInTheDocument();
     });
   });
 
@@ -321,7 +321,7 @@ describe('MentorFeedback', () => {
         />
       );
 
-      expect(screen.getByText(/Moody is evaluating your verdict/i)).toBeInTheDocument();
+      expect(screen.getByText(/Graves is evaluating your verdict/i)).toBeInTheDocument();
       expect(screen.getByText(/Analyzing reasoning quality/i)).toBeInTheDocument();
     });
 
@@ -335,7 +335,7 @@ describe('MentorFeedback', () => {
       );
 
       // Should show loading, not the feedback
-      expect(screen.getByText(/Moody is evaluating/i)).toBeInTheDocument();
+      expect(screen.getByText(/Graves is evaluating/i)).toBeInTheDocument();
       expect(screen.queryByText(/CORRECT VERDICT/i)).not.toBeInTheDocument();
     });
 

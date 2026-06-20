@@ -78,13 +78,13 @@ describe('EvidenceBoard', () => {
     it('displays multiple evidence items', () => {
       render(
         <EvidenceBoard
-          evidence={['hidden_note', 'wand_signature', 'blood_stain']}
+          evidence={['hidden_note', 'focus_signature', 'blood_stain']}
           caseId="case_001"
         />
       );
 
       expect(screen.getByText(/Hidden Note/i)).toBeInTheDocument();
-      expect(screen.getByText(/Wand Signature/i)).toBeInTheDocument();
+      expect(screen.getByText(/Focus Signature/i)).toBeInTheDocument();
       expect(screen.getByText(/Blood Stain/i)).toBeInTheDocument();
     });
 
@@ -97,7 +97,7 @@ describe('EvidenceBoard', () => {
 
     it('displays evidence count for multiple items', () => {
       render(
-        <EvidenceBoard evidence={['hidden_note', 'wand_signature']} caseId="case_001" />
+        <EvidenceBoard evidence={['hidden_note', 'focus_signature']} caseId="case_001" />
       );
 
       // Count shown in subtitle
@@ -182,7 +182,7 @@ describe('EvidenceBoard', () => {
   describe('Accessibility', () => {
     it('uses list markup for evidence items', () => {
       render(
-        <EvidenceBoard evidence={['hidden_note', 'wand_signature']} caseId="case_001" />
+        <EvidenceBoard evidence={['hidden_note', 'focus_signature']} caseId="case_001" />
       );
 
       const list = screen.getByRole('list');

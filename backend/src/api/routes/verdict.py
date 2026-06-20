@@ -21,7 +21,7 @@ from src.case_store.loader import (
 )
 from src.context.mentor import (
     build_mentor_feedback,
-    build_moody_feedback_llm,
+    build_graves_feedback_llm,
     get_wrong_suspect_response,
 )
 from src.state.player_state import VerdictState
@@ -41,7 +41,7 @@ async def submit_verdict(
     player_id: str = Depends(get_authenticated_player_id),
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ) -> SubmitVerdictResponse:
-    """Submit verdict and get Moody mentor feedback."""
+    """Submit verdict and get Graves mentor feedback."""
     # player_id injected via auth dep; body no longer carries it
     case_data = load_case_or_404(body.case_id)
     state = load_or_create_state(body.case_id, player_id, case_data, slot=body.slot)
@@ -57,8 +57,7 @@ async def submit_verdict(
 
     verdict_state = state.verdict_state
 
-    if verdict_state.case_solved:
-        raise HTTPException(status_code=400, detail="Case already solved")
+
 
     if verdict_state.attempts_remaining <= 0:
         raise HTTPException(
@@ -108,7 +107,7 @@ async def submit_verdict(
         attempts_remaining=verdict_state.attempts_remaining,
     )
 
-    moody_text = await build_moody_feedback_llm(
+    graves_text = await build_graves_feedback_llm(
         correct=correct,
         score=score,
         fallacies=fallacies,
@@ -126,7 +125,7 @@ async def submit_verdict(
     )
 
     mentor_feedback = MentorFeedback(
-        analysis=moody_text,
+        analysis=graves_text,
         fallacies_detected=[],
         score=score,
         quality=evaluator_result["quality"],

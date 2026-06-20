@@ -1,7 +1,8 @@
 # Project Status
 
-**Version:** 2.1.0 (5-Wave Refactor Complete)
-**Last Updated:** 2026-06-19 (restart/save stability + SQLite notes)
+**Version:** 2.2.0 (Matthew rename + lore compliance)
+**Last Updated:** 2026-06-20
+**Current Branch:** `feat/evidence-detection-natural-language`
 **Current Phase:** Phase 7 (Production Readiness)
 **Type Safety Grade:** A
 
@@ -11,225 +12,135 @@
 
 | Category | Status | Notes |
 |----------|--------|-------|
-| Backend | ✅ Production Ready | Python 3.13, FastAPI, SQLite (Docker volume `/app/saves`), 867 pass, 4 skip |
+| Backend | 🔄 Near ready | Python 3.13, FastAPI, SQLite (`/app/saves`), **858 pass / 11 fail / 4 skip** on branch |
 | Frontend | ✅ Production Ready | React 18, TypeScript 5.6, Zod validation, 0 TS errors |
 | Type Safety | ✅ Grade A | Compile-time (0 TS errors) + runtime (Zod) validation |
-| Security | ✅ Clean | 0 vulnerabilities (audited 2026-04-06) |
-| Builds | ✅ Success | Frontend 112.45 KB gzipped |
-| LLM | ✅ BYOK + Streaming | Free tier: MiMo-V2-Flash, BYOK via Settings, SSE streaming |
-| Music | ✅ Complete | Per-case ambience with volume/play/mute, localStorage persistence |
-| Cases | 🔄 Case 001 redesigned | Dobby culprit, witness_reactions data ready, system TBD |
+| LLM | ✅ BYOK + Streaming | Multi-provider via LiteLLM, SSE streaming |
+| Saves | ✅ Stable | Server-authoritative SQLite, autosave + 3 manual slots, HMAC player tokens |
+| Cases | 🔄 Lore pass in progress | Case 001 Wisp redesign live; critical HP leaks fixed; medium echoes remain |
+| Docs | 🔄 Consolidated | Legacy PRPs/archive purged; case design docs under `docs/case-files/` |
 
 ---
 
 ## 🔄 In Progress
 
-### Witness Evidence Reaction System
-- `witness_reactions` data written into case_001.yaml for every evidence piece
-- Each witness has a one-line interpretation per evidence item
-- **No backend/frontend system yet** — next step is designing the mechanic (UX discussion pending)
-- Question: button ("show evidence"), automatic during conversation, or something else?
+### Natural-language evidence detection
+- Branch: `feat/evidence-detection-natural-language`
+- Extend `LocationCommandParser`-style matching to evidence discovery triggers
+- **11 backend test failures** on branch (routes, save corruption, mnemonic delving) — fix before merge
+
+### Witness evidence reaction system
+- `witness_reactions` data in `case_001.yaml` for every evidence piece
+- **No UX/mechanic yet** — show-evidence button vs automatic vs conversational TBD
+
+### Lore compliance (Case 001)
+- ✅ Fixed: pear kitchen gag → service bell + warded pantry hatch; `healing potion winky` → `pippa`; Graves `Restricted Section` → `Sealed Stacks`
+- Remaining medium echoes: `Minerva` Whitmore, `Great Hall`, prefect/Head Boy/castle language, Hand of Glory / Moste Potente Alchemy
 
 ---
 
 ## ✅ Recent Completions
 
-### 2026-06-19 — Save/Restart System Fixes
-- `invalidate_state_cache()` now called in `delete_game`, `reset_case`, `delete_save_slot` (fixed stale cache returning old state after restart).
-- Clear `hp_game_location_${caseId}` localStorage on restart (was restoring old location).
-- Simplified `resetCase(caseId)` API (dropped redundant `player_id` query param — auth token is authoritative).
-- Removed dead `delete_state` calls/imports in routes + corresponding test patches.
-- `delete_game` now uses direct `delete_player_save` for consistency.
-- Restart now correctly wipes autosave + starts fresh (no more "does nothing").
+### 2026-06-20 — Matthew rename + briefing + lore fixes
+- **Matthew refactor:** `tom` / `inner_voice` → `matthew` across API (`/api/matthew/*`), context modules, frontend hooks/components; backward compat for legacy save fields and `"tom"` message type
+- **Briefing skip:** `SKIP_BRIEFING_CALIBRATION_AND_ENGAGEMENT = true` — dossier only, then start investigation
+- **Location assets:** `iron_lodge_common_room.*`, `librarian_office.*` copied from legacy portrait names
+- **Lore pass:** bound familiars (not elves), case 002 `M.S.` initials, CASE_DESIGN_GUIDE / case-file doc fixes
+- **Case 001 HP leaks (critical):** kitchen access, Whitmore keyword, Graves wrong-suspect text
 
-### 2026-06-19 — 5-Wave Refactor Complete (All 50 items)
-**Origin:** 9-parallel-agent code review (175+ issues) → 50 P0-P3 items across 5 waves. All complete. Baseline: 867 pass, 4 skip.
+### 2026-06-19 — Medium review + deploy verification
+- Model catalog lock, spell detection unified, CORS tighten, telemetry safety
+- Frontend: autosave slot naming, `ensureSession` 401 recovery, location roundtrip cuts
+- Location switch restores per-location `conversation_history` from `updated_state`
+- Deploy verified: `lantern.db` active; legacy JSON saves are artifacts only
+- Restart/save: cache invalidation on delete/reset, location localStorage cleared on restart
 
-**Wave 4 cleanup (carried over):**
-- Removed dead `_wrap_exception` method from `llm_client.py`
-- Fixed 6 regression tests that asserted old buggy behavior — flipped to assert correct behavior (auth errors don't fallback, mid-stream no fallback, generic errors no fallback)
-- Added `test_server_key_timeout_engages_fallback` test
+### 2026-05/06 — 5-wave refactor (50 items)
+- Auth: HMAC player tokens, IDOR fix — all routes require `X-Player-Token`
+- State: SQLite + bounded LRU cache, slot semantics (autosave snapshots)
+- SSE: keepalives, post-LLM try/except, witness history cap (50)
+- Baseline after waves: 867 pass, 4 skip
 
-**Wave 5 — Perf + Correctness (5 items):**
-1. `WitnessState.add_conversation` — capped at 50 entries (was unbounded)
-2. `model_catalog.py` — `asyncio.Lock` prevents thundering herd on cache refresh
-3. `LocationCommandParser` — candidates pre-tokenized in `__init__` (was rebuilt per `_fuzzy_match` call)
-4. `_lookup_evidence_full` — O(1) dict index replaces O(n) scan
-5. SSE generators (`investigation.py`, `witnesses.py`) — post-LLM processing wrapped in try/except + logging
-
-**Skipped (low priority):** YAML mtime cache check (read-only), PortraitImage picture element (frontend-only).
-
-**Why:** Auth middleware rewrite (fixed IDOR: any client could impersonate any player_id), rate limiter broken behind nginx-proxy, cache aliasing causing silent state corruption, hanging streams, unbounded growth.
-
-### 2026-04-10 — Issue #7: Dynamic LLM model catalog from OpenRouter API
-- Status: done
-- Changes: Created `api/model_catalog.py` — fetches models from OpenRouter API, caches 24h, filters to text-only chat models. Direct providers (anthropic/openai/google) get top 5 most recent; OpenRouter gets top 10 exclusive models. Fixed frontend filter, added `httpx` runtime dep, remaps IDs for LiteLLM (google→gemini, openrouter prefix).
-
-### 2026-04-09 — Issue #9: Narrator em dash spacing
-- Status: done
-- Changes: Added system rule to `build_system_prompt()` in `context/narrator.py` — max one em dash per response, spaces required around it
-
-### 2026-04-09 — planner (routing)
-- Created PRP for react-router-dom URL navigation
-- **File created**: PRPs/PRP-ROUTING.md
-- **Scope**: BrowserRouter wrapper, `/` landing, `/case/:caseId` game, remove session localStorage, fix SaveLoadModal reload, update test providers
-- **Confidence**: 8/10
-- **Handoff to**: react-vite-specialist (Tasks 1-6) → validation-gates
-
-### 2026-04-09 — planner
-- Created PRP for layout redesign + hints toggle
-- **File created**: PRPs/PRP-LAYOUT-REDESIGN.md
-- **Scope**: Merged header, sidebar image+3 modal buttons, hints toggle (localStorage), simplified input area
-- **Confidence**: 8/10
-- **Handoff to**: react-vite-specialist (Tasks 1-7) → validation-gates
-
-### 2026-04-07 — Case 001 Full Redesign
-- Complete `case_001.yaml` rewrite (~1900 lines)
-- **New culprit**: Dobby (was Draco) — slave following Lucius's orders to protect Draco
-- **Three-phase misdirection**: Hermione (early, motive) → Draco (mid, evidence avalanche) → Dobby (late, "something doesn't fit")
-- **Raw evidence**: All descriptions are observations only, no self-interpreting conclusions
-- **New evidence**: `dual_shimmer`, `kitchen_log`, `dobby_frostbite`, `lucius_order`, `hermione_book_slip`
-- **Witness reactions**: Per-evidence one-liner for each witness showing how they'd interpret it
-- **Dobby's slavery as moral core**: Can a slave be held responsible for following orders?
-- Backup at `case_001_backup_v2.yaml`
-
-### 2026-04-07 — Case 002 Consistency Fixes
-- Vector's lie conditions: evidence-gated → trust-based (`trust<60`)
-- Added `not_present` sections to all 4 locations
-- Migrated 20 evidence items from `triggers` to `discovery_guidance`
-- Fixed Filch's knowledge (specific → vague)
-- All 73 related tests pass
-
-### 2026-04-07 — Markdown Rendering Fix
-- Added `renderInlineMarkdown` to 8 components showing LLM text
-- Fixed: LocationView, WitnessInterview, BriefingDossier, BriefingMessage, BriefingQuestion, BriefingEngagement, ConfrontationDialogue, EvidenceModal
-- Bold/italic was showing raw `*asterisks*` — now renders properly
-
-### 2026-04-07 — Save System Overhaul (JSON → SQLite)
-- **Per-player saves**: Anonymous UUID via `crypto.randomUUID()` in localStorage
-- **Slot system**: autosave (continuous) + 3 manual slots (snapshots of autosave)
-- **All API calls** now pass `player_id` + `slot: 'autosave'` — no more shared `default` player
-- **Manual save**: Named slots snapshot full autosave state (conversation, witnesses, briefing, etc.)
-- **Manual load**: Backend copies named slot → autosave, frontend resumes from autosave
-- **SQLite migration**: JSON files → SQLite (`saves` table, Docker volume `/app/saves` in prod)
-- **In-memory LRU cache** (bounded 256) on top of DB for hot paths
-- Frontend `client.ts`: slot/player_id added to all 15+ API functions
-- Backend `persistence.py`: full rewrite to SQLite + cache (same function signatures)
-- Deleted `localSaves.ts`, removed all localStorage save logic
-- Later fixes (2026-06): cache invalidation on restart/delete, location LS cleanup on restart
-
-### 2026-04-07 — Routes Modularization & Rate Limiting
-- 3600-line routes.py split into 7 submodules
-- slowapi on all 11 LLM endpoints
-- Code review found 14 issues (1 critical, 4 major) — some still pending
+### 2026-04-07 — Case 001 redesign + save system
+- Culprit: Wisp (layered magic twist); three-phase misdirection Elena → Cassian → Wisp
+- Raw evidence descriptions; `witness_reactions` per evidence
+- Per-player UUID saves, JSON → SQLite, slot-aware API
 
 ---
 
 ## Architecture
 
-**Backend:** Python 3.13.3 + FastAPI + LiteLLM 1.57+ (multi-provider)
-- State: SQLite (Docker volume `/app/saves/hp_game.db` + bounded in-memory LRU cache), 4 slots per player
+**Backend:** Python 3.13 + FastAPI + LiteLLM
+- **State:** `PlayerState` in SQLite (`saves/lantern.db`), 4 slots per `(player_id, case_id)`
+- **Pattern:** Load → mutate → save per action; LLM prose + programmatic extractors (`[EVIDENCE:]`, `[TRUST_DELTA:]`, secret text scoring)
+- **Secrets:** LLM decides whether to reveal (trust/pressure prompt); server detects revelation via `score_secret_revelation` — YAML `trigger` fields parsed but **not enforced** in witness routes
 - Start: `cd backend && uv run uvicorn src.main:app --reload`
 
-**Frontend:** React 18 + TypeScript 5.6 + Vite 6 + Tailwind
-- Validation: Zod (24 schemas)
-- Bundle: ~112 KB gzipped
+**Frontend:** React 18 + TypeScript + Vite + Tailwind
+- Thin client state; full progress on server
+- Zod `.strict()` schemas mirror Pydantic responses
 - Start: `cd frontend && ~/.bun/bin/bun run dev`
 
 ---
 
 ## What's Working
 
-- **Investigation**: Freeform LLM narrator, evidence discovery (semantic guidance, 5+ variants)
-- **Witnesses**: Interrogation, trust mechanics, secret revelation via evidence
-- **Spells**: 7 investigation spells (text casting), Legilimency (formula-based)
-- **Verdict**: Submission, fallacy detection, post-verdict confrontation
-- **Briefing**: Moody Q&A system
-- **Tom**: Ghost mentor (50/50 helpful/misleading)
-- **UI**: Main menu, 3 locations (clickable + keys 1-3), save/load (4 slots), inline markdown
-- **Cases**: Landing page with case selection, YAML-based case creation, 2 playable cases
-- **Music**: Per-case background music (auto-detection, volume control, track switching)
-- **LLM**: Multi-provider BYOK (OpenRouter/Anthropic/OpenAI/Google), SSE streaming
+- Investigation (LLM narrator, evidence tags, spells, location nav)
+- Witnesses (interrogation, trust deltas, programmatic secret detection, present evidence)
+- Verdict (fallacy detection, confrontation, wrong-suspect feedback)
+- Briefing (dossier; calibration/engagement skippable via feature flag)
+- Matthew spirit companion (auto-comments + chat)
+- Save/load (autosave + 3 slots, export/import JSON)
+- Music, BYOK, SSE streaming, case landing page
 
-**Known Issues:**
-- Frontend tests: 377/565 passing (pre-existing test infrastructure)
-- mypy: 14 type errors in non-core modules (some may be post-refactor)
-- Case 001 tests may need updating (evidence IDs changed, culprit changed)
-
----
-
-## Completed Phases
-
-| Phase | Date | Description |
-|-------|------|-------------|
-| P1 | 2026-01-05 | Core investigation, evidence discovery |
-| P2-2.5 | 2026-01-06 | Witness interrogation, trust mechanics, UI polish |
-| P3-3.9 | 2026-01-07 | Verdict system, briefing, Moody Q&A |
-| P4.1-4.8 | 2026-01-09–12 | Tom LLM mentor, 7 spells, Legilimency |
-| P5.1-5.8 | 2026-01-12–17 | Menu, locations, save/load, landing page, case infra, YAML schema, type safety (Grade A) |
-| P6 | 2026-01-17 | First complete cases (001 & 002), balance testing, playtesting |
-| P6.5 | 2026-01-18 | Investigation layout redesign (70/30 split, horizontal tabs) |
-| Music | 2026-01-24 | Client-side music ambience (auto-detect, track switching, localStorage) |
-| Multi-LLM | 2026-01-23 | Multi-provider via LiteLLM, BYOK settings UI |
-| Rate Limiting | 2026-04-06 | slowapi on all LLM endpoints, request size limits, routes modularization |
-| Case Redesign | 2026-04-07 | Case 001 Dobby rewrite, case 002 fixes, markdown rendering, slot saves |
-| Save System | 2026-04-07 | Per-player UUID saves, slot-aware API, JSON → SQLite (Docker volume + LRU cache); restart stability fixes |
-| 5-Wave Refactor | 2026-05/06 | Security/auth (IDOR fix + player tokens on all routes), state/persistence hardening, LLM/SSE lifecycle, perf + correctness (867 pass) |
+**Known issues:**
+- 11 failing backend tests on current branch
+- Frontend tests: ~377/565 (pre-existing infrastructure gaps)
+- Case 001 medium lore echoes not yet scrubbed
+- `check_secret_triggers()` exists but unused in live witness flow
 
 ---
 
 ## What's Next
 
+**Before merge:**
+1. Fix 11 backend test failures on branch
+2. Run full validation (`validate.md` gates)
+
 **Immediate:**
-1. Design witness evidence reaction system (how players show evidence to witnesses)
-2. Continue on `feat/evidence-detection-natural-language` (natural language trigger matching for evidence, extending LocationCommandParser pattern)
-3. Update case 001 tests for new evidence IDs and culprit (refactor waves addressed many review items)
-4. ~~Restart/save stability~~ ✅ Cache invalidation + location LS clear on restart (autosave now properly wiped)
+1. Design witness evidence reaction UX
+2. Natural-language evidence trigger matching (branch goal)
+3. Case 001 lore pass (medium HP echoes) + optional grammar cleanup (`bind in stillness`, `the the undercroft`)
 
-**Phase 6.5 — UI/UX & Visual Polish:**
-1. Improve overall style — more HP vibes, lighter UX
-2. Add artwork to locations and screens
-3. Light theme option
-
-**Phase 7 — Production Preparation:**
-1. Key manager for server (Infisical or similar)
-2. Production hardening (security headers, CORS config, error sanitization)
-3. ~~Test saves after deployment~~ ✅ Saves on SQLite (Docker volume); restart stability verified
+**Phase 7 — Production:**
+1. Key manager (Infisical or similar)
+2. Security headers, CORS hardening, error sanitization
 
 **Future:**
-- Phase 7.5: Bayesian Probability Tracker (optional teaching tool)
-- Phase 8: Meta-Narrative (expansion content)
-- Additional cases (3, 4, 5)
-
----
-
-## Ideas & Open Problems
-
-**Monetization:** HP IP can't monetize directly — free samples / community lead magnets. Free tier: MiMo-V2-Flash. BYOK for power users. Paid tier via Stripe or alternative. Telegram bot for Russian audience.
-
-**Technical:** Simple landing page + account management (open-source auth). Alternative payment processors research needed.
-
-**Content:** Polish existing cases, improve verdict flow, more cases.
+- Additional cases (003+)
+- Meta-narrative / Argent Veil arc
+- Bayesian probability tracker (optional teaching tool)
 
 ---
 
 ## Key Documents
 
-- `PLANNING.md` — Roadmap, priorities, backlog
-- `CHANGELOG.md` — Version history
-- `docs/game-design/AUROR_ACADEMY_GAME_DESIGN.md` — Game design
-- `docs/CASE_DESIGN_GUIDE.md` — Case creation guidelines
-- `docs/planning/PRP-LOCALSTORAGE-SAVES.md` — Save migration PRP
-- `docs/planning/PRP-SLOT-AWARE-SAVES.md` — Slot-aware saves PRP
-- `PRPs/PRP-TELEMETRY.md` — Telemetry system PRP (ready)
+| Doc | Purpose |
+|-----|---------|
+| `CLAUDE.md` | Dev guide (root) |
+| `backend/CLAUDE.md` | Backend architecture index |
+| `frontend/CLAUDE.md` | Frontend architecture index |
+| `docs/case-files/CASE_DESIGN_GUIDE.md` | Case authoring |
+| `docs/case-files/STORY_DESIGN_METHOD.md` | Narrative design method |
+| `README.md` | Setup and run instructions |
+
+---
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Backend Tests | 867 pass, 4 skip |
-| Frontend Tests | 377/565 (66.7%) |
-| Bundle Size | 112.45 KB gzipped |
-| Dependencies | 0 vulnerabilities |
+| Backend Tests | 858 pass / 11 fail / 4 skip (branch, 2026-06-20) |
+| Frontend Tests | ~377/565 (~67%) |
 | TypeScript Errors | 0 |
-| ESLint Errors | 0 |
+| License | MIT |

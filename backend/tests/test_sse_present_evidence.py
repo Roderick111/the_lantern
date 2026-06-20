@@ -53,7 +53,7 @@ class TestPresentEvidenceStreamHappyPath:
                 "POST",
                 "/api/present-evidence/stream",
                 json_body={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "evidence_id": "hidden_note",
                     "case_id": "case_001",
                     "player_id": player_id,
@@ -75,7 +75,7 @@ class TestPresentEvidenceStreamHappyPath:
                 "POST",
                 "/api/present-evidence/stream",
                 json={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "evidence_id": "hidden_note",
                     "case_id": "case_001",
                     "player_id": "test_sse_present_reject",
@@ -88,14 +88,14 @@ class TestPresentEvidenceStreamHappyPath:
 
 
 class TestPresentEvidenceStreamSecretRevelation:
-    """Hermione's `teaching_neville` secret is gated on the unified scorer.
+    """Elena's `tutoring_a_peer` secret is gated on the unified scorer.
 
     Keywords:
-      - "teaching neville"
+      - "tutoring rowan"
       - "defensive magic lessons"
-      - "slytherins hexing"
+      - "iron lodge hexing"
 
-    The LLM's response below contains the phrase "teaching neville
+    The LLM's response below contains the phrase "tutoring rowan
     defensive magic lessons" affirmatively, with no denial pattern.
     After stemming, both keyword phrases score 1.0.
     """
@@ -108,8 +108,8 @@ class TestPresentEvidenceStreamSecretRevelation:
         # Affirmative confession matching the secret's keywords.
         chunks = [
             "Fine. Yes. I admit it. ",
-            "I was teaching Neville defensive magic lessons ",
-            "because Slytherins kept hexing him in the corridors.",
+            "I was teaching Rowan defensive magic lessons ",
+            "because Iron Lodges kept hexing him in the corridors.",
         ]
         mock_client = build_mock_llm_client(chunks)
         with patch("src.api.routes.witnesses.get_client", return_value=mock_client):
@@ -118,7 +118,7 @@ class TestPresentEvidenceStreamSecretRevelation:
                 "POST",
                 "/api/present-evidence/stream",
                 json_body={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "evidence_id": "hidden_note",
                     "case_id": "case_001",
                     "player_id": player_id,
@@ -127,8 +127,8 @@ class TestPresentEvidenceStreamSecretRevelation:
 
         done = parsed.done_frame
         assert done is not None
-        assert "teaching_neville" in done["secrets_revealed"], (
-            f"Expected secret 'teaching_neville' in {done['secrets_revealed']!r}"
+        assert "tutoring_a_peer" in done["secrets_revealed"], (
+            f"Expected secret 'tutoring_a_peer' in {done['secrets_revealed']!r}"
         )
 
     @pytest.mark.asyncio
@@ -140,7 +140,7 @@ class TestPresentEvidenceStreamSecretRevelation:
 
         chunks = [
             "Alright. ",
-            "I have been teaching Neville defensive magic lessons. ",
+            "I have been teaching Rowan defensive magic lessons. ",
             "He needed it.",
         ]
         mock_client = build_mock_llm_client(chunks)
@@ -150,7 +150,7 @@ class TestPresentEvidenceStreamSecretRevelation:
                 "POST",
                 "/api/present-evidence/stream",
                 json_body={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "evidence_id": "hidden_note",
                     "case_id": "case_001",
                     "player_id": player_id,
@@ -159,6 +159,6 @@ class TestPresentEvidenceStreamSecretRevelation:
 
         state = load_player_state("case_001", player_id, "autosave")
         assert state is not None
-        hermione_state = state.witness_states.get("hermione")
-        assert hermione_state is not None
-        assert "teaching_neville" in hermione_state.secrets_revealed
+        elena_state = state.witness_states.get("elena")
+        assert elena_state is not None
+        assert "tutoring_a_peer" in elena_state.secrets_revealed

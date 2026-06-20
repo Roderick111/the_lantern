@@ -39,7 +39,7 @@ class LocationCommandParser:
     - "visit the library"
     - "head to great hall" / "heading to great hall"
     - "go to the corridor" (partial -> third_floor_corridor)
-    - "directing to the slytherin room"
+    - "directing to the iron lodge room"
 
     Uses verb stemming + token-overlap scoring with SequenceMatcher typo tolerance.
     """
@@ -81,7 +81,7 @@ class LocationCommandParser:
 
         Args:
             locations: Valid location IDs (e.g., ["library", "third_floor_corridor"])
-            name_to_id: Display name → ID mapping (e.g., {"Restricted Section": "library"})
+            name_to_id: Display name → ID mapping (e.g., {"Sealed Stacks": "library"})
             fuzzy_threshold: Min SequenceMatcher ratio for token typo tolerance
         """
         self.locations = locations

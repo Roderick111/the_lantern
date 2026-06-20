@@ -22,7 +22,7 @@ const slotOneMeta: SaveSlotMetadata = {
   slot: 'slot_1',
   case_id: 'case_001',
   timestamp: '2026-05-26T12:00:00Z',
-  location: 'Hogwarts Library',
+  location: 'Blackwood Collegiate Library',
   evidence_count: 3,
   version: '1.0',
 };
@@ -31,7 +31,7 @@ const autosaveMeta: SaveSlotMetadata = {
   slot: 'autosave',
   case_id: 'case_001',
   timestamp: '2026-05-26T12:30:00Z',
-  location: 'Hogwarts Library',
+  location: 'Blackwood Collegiate Library',
   evidence_count: 5,
   version: '1.0',
 };

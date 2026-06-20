@@ -134,9 +134,9 @@ function QuickHelpContent() {
   return (
     <ul className={`${theme.colors.text.muted} text-sm ${theme.fonts.ui} space-y-1`}>
       <li>{theme.symbols.bullet} Type actions in the text box below</li>
-      <li>{theme.symbols.bullet} Start with <span className={theme.colors.character.tom.label}>Tom,</span> to talk to the ghost</li>
+      <li>{theme.symbols.bullet} Start with <span className={theme.colors.character.matthew.label}>Matthew,</span> to consult your spirit companion</li>
       <li>{theme.symbols.bullet} Interview witnesses and collect evidence</li>
-      <li>{theme.symbols.bullet} Cast spells from the Spell Book</li>
+      <li>{theme.symbols.bullet} Perform rites from the Lantern Compendium</li>
       <li>{theme.symbols.bullet} Adjust narrator style in Settings</li>
     </ul>
   );
@@ -260,8 +260,8 @@ export function SidebarPanel({
             <span className={`${theme.colors.character.system.prefix} font-bold`}>
               {theme.symbols.bullet}
             </span>
-            <span className="lg:hidden">SPELLS</span>
-            <span className="hidden lg:inline">SPELL BOOK</span>
+            <span className="lg:hidden">RITES</span>
+            <span className="hidden lg:inline">COMPENDIUM</span>
             <span className={`hidden lg:inline ${theme.colors.text.separator} text-xs ml-auto`}>[7]</span>
           </button>
         </div>

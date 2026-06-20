@@ -1,6 +1,6 @@
 {
   "tracks": [
-    { "id": "restricted_section", "name": "The Restricted Section", "file": "case_001_default.mp3" },
+    { "id": "restricted_section", "name": "The Sealed Stacks", "file": "case_001_default.mp3" },
     { "id": "case_002_default", "name": "The Dark Alley", "file": "case_002_default.mp3" },
     { "id": "moonspire", "name": "Moonspire", "file": "1. Moonspire.mp3" },
     { "id": "winds_of_valor", "name": "Winds of Valor", "file": "2. Winds of Valor.mp3" },

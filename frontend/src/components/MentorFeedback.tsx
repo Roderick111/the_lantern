@@ -1,7 +1,7 @@
 /**
  * MentorFeedback Component
  *
- * Displays Moody's feedback after verdict submission in an immersive style.
+ * Displays Graves's feedback after verdict submission in an immersive style.
  *
  * @module components/MentorFeedback
  * @since Phase 3
@@ -88,7 +88,7 @@ export function MentorFeedback({
           aria-hidden="true"
         />
         <p className={`${theme.fonts.narrative} italic ${theme.colors.text.muted} text-sm`}>
-          Moody is reviewing your case...
+          Graves is reviewing your case...
         </p>
       </div>
     );
@@ -113,11 +113,11 @@ export function MentorFeedback({
       {/* Divider */}
       <div className={`border-t ${theme.colors.border.default}`} />
 
-      {/* Moody's Response */}
+      {/* Graves's Response */}
       {feedback.analysis && (
         <div className="space-y-2">
           <p className={`text-xs ${theme.colors.text.muted} ${theme.fonts.ui} uppercase tracking-widest font-bold`}>
-            Moody's response
+            Graves's response
           </p>
           <div className={`${theme.fonts.narrative} text-sm ${theme.colors.text.secondary} whitespace-pre-wrap leading-relaxed text-justify space-y-3`}>
             {feedback.analysis.split('\n').filter(Boolean).map((para, i) => (

@@ -5,10 +5,10 @@
   "version": "1.0.0",
   "last_saved": "2026-04-07T10:09:46.137306Z",
   "discovered_evidence": [
-    "wand_signature"
+    "focus_signature"
   ],
   "visited_locations": [
-    "slytherin_common_room",
+    "iron_lodge_common_room",
     "third_floor_corridor",
     "kitchens",
     "library"

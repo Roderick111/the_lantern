@@ -1,6 +1,6 @@
 # HP Game Backend
 
-FastAPI backend with multi-LLM narrator for Harry Potter investigation game.
+FastAPI backend with multi-LLM narrator for Victorian occult detective investigation game.
 
 **Current Version**: 0.7.0 (Multi-LLM Provider Support)
 - Supports OpenRouter, Anthropic, OpenAI, Google providers via LiteLLM
@@ -10,11 +10,11 @@ FastAPI backend with multi-LLM narrator for Harry Potter investigation game.
 **Key Features**:
 - Freeform DnD-style investigation (narrator responds to any action)
 - Witness interrogation (trust mechanics, secret revelation)
-- Tom Thornfield LLM conversation (50% helpful / 50% misleading)
+- Matthew Croft spirit companion LLM conversation (50% helpful / 50% misleading)
 - Verdict evaluation (reasoning analysis, fallacy detection)
 - Conversation history persistence (investigation log saved/loaded)
-- Intro briefing system (Moody teaching + interactive Q&A)
-- Magic system (7 spells, single-stage detection, programmatic Legilimency)
+- Intro briefing system (Graves teaching + interactive Q&A)
+- Magic system (7 rites, single-stage detection, programmatic Mnemonic Delving)
 
 ## Setup
 
@@ -210,11 +210,11 @@ from src.api.llm_client import get_client
 
 **Immersive Spell Descriptions**:
 - Rewrote all 7 spell descriptions with mysterious, atmospheric language
-- Removed formal "RESTRICTED" warning from Legilimency
+- Removed formal "RESTRICTED" warning from Mnemonic Delving
 - Changed from technical descriptions to evocative narrative style
 - Descriptions now read like passages from forbidden knowledge texts
 
-**Example (Legilimency)**:
+**Example (Mnemonic Delving)**:
 - Before: "RESTRICTED: Mind reading spell - HIGH RISK..."
 - After: "Slip past the barriers of the mind... but the mind fights back..."
 
@@ -224,15 +224,15 @@ from src.api.llm_client import get_client
 ### Phase 4.6.2: Spell Detection System (2026-01-11)
 
 **Single-Stage Detection** (spell_llm.py):
-- `SPELL_SEMANTIC_PHRASES`: Defines action phrases for all 7 spells
+- `SPELL_SEMANTIC_PHRASES`: Defines action phrases for all 7 rites
 - `detect_spell_with_fuzzy()`: Fuzzy matching + semantic phrase detection
-- `extract_target_from_input()`: Parses spell targets ("on hermione")
+- `extract_target_from_input()`: Parses spell targets ("on elena")
 - `extract_intent_from_input()`: Parses focused intent ("to find out about X")
-- `detect_focused_legilimency()`: Determines focused vs unfocused search
-- `build_legilimency_narration_prompt()`: 4 outcome templates
+- `detect_focused_mnemonic_delving()`: Determines focused vs unfocused search
+- `build_mnemonic_delving_narration_prompt()`: 4 outcome templates
 
 **Endpoints Updated**:
-- `/api/investigate`: Uses new detection for all 7 spells
-- `/api/interrogate`: Legilimency with programmatic outcomes
+- `/api/investigate`: Uses new detection for all 7 rites
+- `/api/interrogate`: Mnemonic Delving with programmatic outcomes
 
 **Dependency**: rapidfuzz ^3.0.0 (fuzzy string matching)

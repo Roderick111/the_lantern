@@ -1,7 +1,7 @@
 /**
  * BriefingModal Component
  *
- * Main container for the sequential briefing wizard.
+ * Main container for the sequential briefing initiate.
  * MANAGED STEPS:
  * 1. Dossier (Case Details)
  * 2. Questions (1..N)
@@ -15,6 +15,7 @@ import { useState, useCallback, useEffect } from "react";
 import { BriefingDossier } from "./BriefingDossier";
 import { BriefingQuestion } from "./BriefingQuestion";
 import { BriefingEngagement } from "./BriefingEngagement";
+import { SKIP_BRIEFING_CALIBRATION_AND_ENGAGEMENT } from "../config/gameFeatures";
 import { useTheme } from '../context/useTheme';
 import type {
   BriefingContent,
@@ -32,7 +33,7 @@ export interface BriefingModalProps {
   conversation: BriefingConversationType[];
   /** Selected choice ID */
   selectedChoice: string | null;
-  /** Moody's response to selected choice */
+  /** Graves's response to selected choice */
   choiceResponse: string | null;
   /** Callback when player selects a choice */
   onSelectChoice: (choiceId: string, questionIndex: number) => void;
@@ -87,12 +88,17 @@ export function BriefingModal({
 
   // Handle step Navigation
   const handleContinue = useCallback(() => {
+    if (SKIP_BRIEFING_CALIBRATION_AND_ENGAGEMENT && currentStep === 0) {
+      onComplete();
+      return;
+    }
+
     // If moving from a question to next step, reset choice
     if (currentStep >= 1 && currentStep <= totalQuestions) {
       onResetChoice();
     }
     setCurrentStep((prev) => prev + 1);
-  }, [currentStep, totalQuestions, onResetChoice]);
+  }, [currentStep, totalQuestions, onResetChoice, onComplete]);
 
   // Render content based on current step
   const renderContent = () => {
@@ -102,6 +108,11 @@ export function BriefingModal({
         <BriefingDossier
           dossier={briefing.dossier}
           onContinue={handleContinue}
+          continueLabel={
+            SKIP_BRIEFING_CALIBRATION_AND_ENGAGEMENT
+              ? "START INVESTIGATION"
+              : "ACKNOWLEDGE & CONTINUE"
+          }
         />
       );
     }
@@ -126,7 +137,7 @@ export function BriefingModal({
     return (
       <BriefingEngagement
         conversation={conversation}
-        transitionText={briefing.transition ?? "CONSTANT VIGILANCE"}
+        transitionText={briefing.transition ?? "Trust nothing unseen."}
         onAskQuestion={onAskQuestion}
         onComplete={onComplete}
         loading={loading}
