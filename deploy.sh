@@ -74,6 +74,6 @@ ssh "$SERVER_USER@$SERVER_IP" "cd $DEPLOY_DIR && docker compose ps"
 
 echo ""
 echo "✅ Deployment complete!"
-echo "   🌐 https://the-lantern.beautiful-apps.com"
+echo "   🌐 https://thelantern.institute"
 echo ""
 echo "   View logs: ssh $SERVER_USER@$SERVER_IP 'cd $DEPLOY_DIR && docker compose logs -f'"

@@ -41,11 +41,11 @@ services:
       - "3000"
     environment:
       # nginx-proxy config
-      - VIRTUAL_HOST=the-lantern.beautiful-apps.com
+      - VIRTUAL_HOST=thelantern.institute
       - VIRTUAL_PORT=3000
       # letsencrypt-companion config
-      - LETSENCRYPT_HOST=the-lantern.beautiful-apps.com
-      - LETSENCRYPT_EMAIL=admin@beautiful-apps.com
+      - LETSENCRYPT_HOST=thelantern.institute
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@thelantern.institute}
     depends_on:
       backend:
         condition: service_healthy

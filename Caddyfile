@@ -3,7 +3,7 @@
 # =============================================================================
 # Caddy automatically provisions Let's Encrypt certificates
 
-the-lantern.beautiful-apps.com {
+thelantern.institute {
     # API requests -> backend
     handle /api/* {
         reverse_proxy backend:8000

@@ -18,7 +18,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCases, resetCase } from '../api/client';
-import { usePlayerId } from '../utils/playerId';
 import { useTheme } from '../context/useTheme';
 import type { CaseMetadata, ApiCaseMetadata } from '../types/investigation';
 
@@ -70,9 +69,6 @@ function transformCase(apiCase: ApiCaseMetadata): CaseMetadata {
 export function LandingPage({ onLoadGame }: LandingPageProps) {
   const { theme } = useTheme();
   const navigate = useNavigate();
-
-  // Lazy player ID inside React
-  const playerId = usePlayerId();
 
   // Dynamic case state (Phase 5.4)
   const [cases, setCases] = useState<CaseMetadata[]>([]);
