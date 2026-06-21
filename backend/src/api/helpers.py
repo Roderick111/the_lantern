@@ -351,14 +351,6 @@ def score_secret_revelation(
     return raw
 
 
-# ── Legacy API (preserved for call sites) ──
-
-
-def is_affirmative_mention(keyword: str, text: str, lookback_chars: int = 40) -> bool:
-    """Check if keyword appears affirmatively. Delegates to unified scorer."""
-    return score_secret_revelation(text, [keyword], "") >= REVEAL_THRESHOLD
-
-
 def detect_keyword_match(response: str, keywords: list[str]) -> bool:
     """Check if response affirmatively mentions any keywords."""
     if not keywords:

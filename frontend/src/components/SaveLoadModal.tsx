@@ -58,7 +58,7 @@ export function SaveLoadModal({
   slots,
   loading,
   caseId,
-  playerId,
+  playerId: _playerId,
   onImportSuccess,
 }: SaveLoadModalProps) {
   const { theme } = useTheme();
@@ -294,7 +294,7 @@ export function SaveLoadModal({
       }
 
       const state = parsed as unknown as import('../types/investigation').InvestigationState;
-      await saveGameState(caseId, state, emptySlot, playerId);
+      await saveGameState(caseId, state, emptySlot);
       setImportStatus(`Imported to ${emptySlot.replace('_', ' ')}`);
       onImportSuccess?.();
     } catch {

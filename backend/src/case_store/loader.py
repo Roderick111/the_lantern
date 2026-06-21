@@ -118,13 +118,21 @@ def get_location(case_data: dict[str, Any], location_id: str) -> dict[str, Any]:
     if location_id not in locations:
         raise KeyError(f"Location not found: {location_id}")
 
-    location = locations[location_id]
+    location = dict(locations[location_id])
 
     # Ensure witnesses_present field exists (backward compatibility)
     if "witnesses_present" not in location:
         location["witnesses_present"] = []
 
     return location
+
+
+def count_hidden_evidence(case_data: dict[str, Any]) -> int:
+    """Count discoverable hidden evidence across all locations in a case."""
+    case: dict[str, Any] = case_data.get("case", case_data)
+    locations_map: dict[str, dict[str, Any]] = case.get("locations", {})
+    total = sum(len(loc.get("hidden_evidence", [])) for loc in locations_map.values())
+    return max(total, 1)
 
 
 def get_first_location_id(case_data: dict[str, Any]) -> str:

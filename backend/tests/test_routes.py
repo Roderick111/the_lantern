@@ -239,14 +239,14 @@ class TestLoadEndpoint:
 
     @pytest.mark.asyncio
     async def test_load_no_state(self, client: AsyncClient) -> None:
-        """Load returns null for no saved state."""
+        """Load returns 404 when no saved state exists."""
         response = await client.get(
             "/api/load/case_001",
             params={"player_id": "nonexistent_player"},
         )
 
-        assert response.status_code == 200
-        assert response.json() is None
+        assert response.status_code == 404
+        assert "No save found" in response.json()["detail"]
 
 
 class TestSaveEndpoint:
@@ -434,15 +434,13 @@ class TestResetCaseEndpoint:
         assert data["success"] is True
         assert "reset" in data["message"].lower()
 
-        # Verify state was deleted - load returns null for missing state
+        # Verify state was deleted - load returns 404 for missing state
         load_response = await client.get(
             "/api/load/case_001",
             params={"player_id": player_id},
         )
-        assert load_response.status_code == 200
-        # Should return null (None) since state was deleted
-        state_data = load_response.json()
-        assert state_data is None
+        assert load_response.status_code == 404
+        assert "No save found" in load_response.json()["detail"]
 
     @pytest.mark.asyncio
     async def test_reset_endpoint_nonexistent_file(self, client: AsyncClient) -> None:

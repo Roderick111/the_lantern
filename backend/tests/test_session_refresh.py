@@ -79,3 +79,49 @@ def test_create_session_reuses_player_id_with_expired_token() -> None:
     import asyncio
 
     asyncio.run(_run())
+
+
+def test_legacy_token_rejected_for_api_but_allowed_for_session_refresh() -> None:
+    """Legacy (player_id.sig) tokens cannot access API; session can migrate to v1."""
+    import hmac
+    from hashlib import sha256
+
+    from httpx import ASGITransport, AsyncClient
+
+    from src.api.auth import _get_secret, verify_token
+    from src.main import app
+
+    player_id = "legacy_migration_player"
+    sig = hmac.new(_get_secret(), player_id.encode("utf-8"), sha256).hexdigest()
+    legacy_token = f"{player_id}.{sig}"
+
+    assert verify_token(legacy_token) is None
+    assert verify_token(legacy_token, allow_legacy=True) == player_id
+
+    async def _run() -> None:
+        from src.api.dependencies import get_authenticated_player_id
+
+        app.dependency_overrides.pop(get_authenticated_player_id, None)
+        try:
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                blocked = await client.get(
+                    "/api/load/case_001",
+                    headers={"X-Player-Token": legacy_token},
+                )
+                assert blocked.status_code == 401
+
+                refreshed = await client.post(
+                    "/api/session",
+                    json={"current_token": legacy_token},
+                )
+                assert refreshed.status_code == 200
+                data = refreshed.json()
+                assert data["player_id"] == player_id
+                assert verify_token(data["token"]) == player_id
+        finally:
+            app.dependency_overrides.pop(get_authenticated_player_id, None)
+
+    import asyncio
+
+    asyncio.run(_run())

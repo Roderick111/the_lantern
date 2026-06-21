@@ -200,18 +200,14 @@ class TestLoadEmptySlot:
     """Loading an unpopulated slot — document current behavior."""
 
     @pytest.mark.asyncio
-    async def test_load_empty_slot_returns_null(self, client: AsyncClient) -> None:
-        """Current: returns 200 + null body (NOT 404).
-
-        StateResponse is `StateResponse | None` and the route returns None
-        when load_player_state returns None.
-        """
+    async def test_load_empty_slot_returns_404(self, client: AsyncClient) -> None:
+        """Missing save slot returns 404."""
         r = await client.get(
             "/api/load/case_001",
             params={"player_id": "fresh_player_never_saved", "slot": "slot_1"},
         )
-        assert r.status_code == 200
-        assert r.json() is None
+        assert r.status_code == 404
+        assert "No save found" in r.json()["detail"]
 
 
 # ============================================================================
@@ -387,12 +383,7 @@ class TestMalformedSaveRequest:
 
     @pytest.mark.asyncio
     async def test_empty_state_dict(self, client: AsyncClient) -> None:
-        """Empty state dict → caught inside route, returned as SaveResponse(success=False).
-
-        PlayerState requires `case_id` + `current_location`. Construction
-        raises ValidationError, which the route catches in its bare except
-        and returns SaveResponse(success=False).
-        """
+        """Empty state dict creates a server-owned fresh save (no arbitrary injection)."""
         r = await client.post(
             "/api/save",
             json={
@@ -402,12 +393,9 @@ class TestMalformedSaveRequest:
             },
         )
 
-        # SaveRequest itself is valid (state: dict[str, Any]). 200 returned
-        # with success=False inside the body.
         assert r.status_code == 200
         body = r.json()
-        assert body["success"] is False
-        assert "fail" in body["message"].lower() or "error" in body["message"].lower() or body["message"]
+        assert body["success"] is True
 
 
 # ============================================================================

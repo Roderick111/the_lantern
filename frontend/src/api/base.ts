@@ -172,9 +172,32 @@ export function getLLMHeaders(): Record<string, string> {
 // Error Handling
 // ============================================
 
+interface ValidationErrorItem {
+  msg?: string;
+  loc?: unknown[];
+}
+
 interface ErrorResponseBody {
-  detail?: string;
+  detail?: string | ValidationErrorItem[];
   message?: string;
+}
+
+function formatErrorDetail(detail: unknown): string | undefined {
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (typeof item === 'object' && item !== null && 'msg' in item) {
+          return String((item as ValidationErrorItem).msg);
+        }
+        return null;
+      })
+      .filter((msg): msg is string => Boolean(msg));
+    return messages.length > 0 ? messages.join('; ') : undefined;
+  }
+  return undefined;
 }
 
 /**
@@ -208,8 +231,9 @@ async function createApiError(response: Response): Promise<ApiError> {
 
   try {
     const errorBody = (await response.json()) as ErrorResponseBody;
-    if (errorBody.detail) {
-      message = errorBody.detail;
+    const detailMessage = formatErrorDetail(errorBody.detail);
+    if (detailMessage) {
+      message = detailMessage;
     } else if (errorBody.message) {
       message = errorBody.message;
     }
@@ -402,6 +426,23 @@ function isAbortError(err: unknown): boolean {
   );
 }
 
+async function fetchSSE(
+  url: string,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<Response> {
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+      ...getLLMHeaders(),
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
+}
+
 export async function streamSSE(
   url: string,
   body: unknown,
@@ -411,16 +452,7 @@ export async function streamSSE(
   await ensureSession();
   let response: Response;
   try {
-    response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-        ...getLLMHeaders(),
-      },
-      body: JSON.stringify(body),
-      signal,
-    });
+    response = await fetchSSE(url, body, signal);
   } catch (err) {
     // Caller aborted before/during fetch — silent.
     if (signal?.aborted || isAbortError(err)) return;
@@ -429,16 +461,21 @@ export async function streamSSE(
 
   if (response.status === 401) {
     handle401();
-    // do not retry stream here (caller decides), just error out cleanly
-    callbacks.onError('HTTP 401');
-    return;
+    await ensureSession();
+    try {
+      response = await fetchSSE(url, body, signal);
+    } catch (err) {
+      if (signal?.aborted || isAbortError(err)) return;
+      throw err;
+    }
   }
 
   if (!response.ok || !response.body) {
     try {
       const errBody = (await response.json()) as { detail?: unknown };
-      if (typeof errBody.detail === 'string') {
-        callbacks.onError(errBody.detail);
+      const detailMessage = formatErrorDetail(errBody.detail);
+      if (detailMessage) {
+        callbacks.onError(detailMessage);
         return;
       }
     } catch {

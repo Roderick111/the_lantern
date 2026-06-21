@@ -25,6 +25,14 @@ _MIN_SECRET_LEN = 32
 
 TOKEN_EXPIRY_SECONDS = 30 * 24 * 3600  # 30 days
 
+# After this unix timestamp, legacy (player_id.sig) tokens are rejected everywhere.
+_LEGACY_CUTOFF_UNIX = int(os.environ.get("LEGACY_TOKEN_CUTOFF_UNIX", "1792598400"))
+
+
+def _legacy_tokens_allowed() -> bool:
+    """Legacy format allowed only before cutoff (default ~2026-09-21)."""
+    return int(time.time()) < _LEGACY_CUTOFF_UNIX
+
 
 def _get_secret() -> bytes:
     """Return the configured HMAC secret as bytes. Raises if missing or weak."""
@@ -74,10 +82,18 @@ def mint_token(player_id: str) -> str:
 TOKEN_REFRESH_GRACE_SECONDS = 7 * 24 * 3600  # 7 days after expiry
 
 
-def verify_token(token: str, *, allow_expired: bool = False) -> str | None:
+def verify_token(
+    token: str,
+    *,
+    allow_expired: bool = False,
+    allow_legacy: bool = False,
+) -> str | None:
     """Verify a signed token. Returns player_id if valid and not expired, None otherwise.
 
     Supports legacy (player_id.sig) and v1 (v1.b64.sig) formats.
+
+    Legacy tokens are rejected for API auth (``allow_legacy=False``). Session refresh
+    may pass ``allow_legacy=True`` to migrate clients to v1 tokens.
 
     When ``allow_expired`` is True, v1 tokens with valid HMAC but past ``exp`` are
     accepted if within ``TOKEN_REFRESH_GRACE_SECONDS`` (session refresh only).
@@ -86,6 +102,8 @@ def verify_token(token: str, *, allow_expired: bool = False) -> str | None:
         return None
     parts = token.split(".")
     if len(parts) == 2:
+        if not allow_legacy or not _legacy_tokens_allowed():
+            return None
         # Legacy format: no claims/expiry
         player_id, sig = parts
         if not player_id or not sig:

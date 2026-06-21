@@ -79,7 +79,6 @@ export async function getLocations(
 export async function changeLocation(
   caseId: string,
   locationId: string,
-  _playerId = 'default',
   sessionId?: string,
   slot = 'autosave',
 ): Promise<ChangeLocationResponse> {

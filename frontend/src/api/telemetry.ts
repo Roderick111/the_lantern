@@ -132,11 +132,15 @@ if (typeof window !== 'undefined') {
         case_id: getCaseId(),
         data: { duration_seconds: duration },
       };
-      // sendBeacon does not support custom headers (auth token) — server may fallback
-      navigator.sendBeacon(
-        `${API_BASE}/api/telemetry/event`,
-        new Blob([JSON.stringify(payload)], { type: 'application/json' }),
-      );
+      fetch(`${API_BASE}/api/telemetry/event`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      }).catch(noop);
     }
   });
 }

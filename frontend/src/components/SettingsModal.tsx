@@ -175,8 +175,20 @@ export function SettingsModal({
     setVerifying(false);
   };
 
-  const handleSaveLLM = () => {
+  const handleSaveLLM = async () => {
     if (llmApiKey && llmProvider) {
+      if (verified !== true) {
+        setVerifying(true);
+        setVerifyError(null);
+        const result = await verifyApiKey(llmProvider, llmApiKey, llmModel || undefined);
+        setVerifying(false);
+        if (!result.valid) {
+          setVerified(false);
+          setVerifyError(result.error ?? 'Verify your API key before saving');
+          return;
+        }
+        setVerified(true);
+      }
       saveLLMSettings({ provider: llmProvider, apiKey: llmApiKey, model: llmModel || null });
     } else {
       clearLLMSettings();

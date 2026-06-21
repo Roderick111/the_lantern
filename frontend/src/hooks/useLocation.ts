@@ -162,7 +162,7 @@ export function useLocation({
       setError(null);
 
       try {
-        const response = await changeLocation(caseId, locationId, playerId, sessionId, slot);
+        const response = await changeLocation(caseId, locationId, sessionId, slot);
 
         // Update current location (with view transition if supported)
         if (document.startViewTransition) {

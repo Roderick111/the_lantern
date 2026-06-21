@@ -350,7 +350,13 @@ def get_save_metadata(
                 [ws for ws in witness_states.values() if ws.get("conversation_history")]
             )
 
-        total_evidence = 15
+        try:
+            from src.case_store.loader import count_hidden_evidence, load_case
+
+            case_data = load_case(case_id)
+            total_evidence = count_hidden_evidence(case_data)
+        except (FileNotFoundError, ValueError, OSError):
+            total_evidence = max(evidence_count, 1)
         progress_percent = min(100, int((evidence_count / total_evidence) * 100))
 
         return {
