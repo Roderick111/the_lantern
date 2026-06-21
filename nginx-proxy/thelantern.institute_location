@@ -1,0 +1,6 @@
+# nginx-proxy vhost.d snippet — disable buffering for SSE (/api/* streams)
+proxy_buffering off;
+proxy_cache off;
+proxy_set_header Connection "";
+chunked_transfer_encoding off;
+proxy_read_timeout 300s;

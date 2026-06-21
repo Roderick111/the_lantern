@@ -451,14 +451,27 @@ async def generate_matthew_response(
 
     try:
         client = get_client()
-        response_text = await client.get_response(
+        raw_response = await client.get_response(
             user_prompt,
             system=system_prompt,
             max_tokens=MATTHEW_MAX_TOKENS,
             temperature=MATTHEW_TEMPERATURE,
         )
 
-        response_text = _sanitize_matthew_response(response_text)
+        response_text = _sanitize_matthew_response(raw_response)
+        if not response_text.strip():
+            if raw_response.strip():
+                logger.warning(
+                    "Matthew sanitize stripped all content (raw len=%d), using raw",
+                    len(raw_response),
+                )
+                response_text = raw_response.strip()
+            else:
+                logger.warning("Matthew LLM returned empty content, using fallback")
+                response_text = get_matthew_fallback_response(
+                    mode, len(evidence_discovered)
+                )
+
         logger.info(f"Matthew LLM response (mode={mode}): {response_text[:50]}...")
         return response_text, mode
 

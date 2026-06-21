@@ -186,7 +186,7 @@ async def investigate_stream(
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
-        headers={"X-Accel-Buffering": "no"},
+        headers=SSE_HEADERS,
     )
 
 

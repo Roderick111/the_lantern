@@ -96,7 +96,7 @@ cd frontend
 
 Open **http://localhost:5173** in your browser. In dev, the Vite proxy forwards `/api` to `http://127.0.0.1:8000`.
 
-**Troubleshooting:** If you see the wrong app or stale content, another process may be bound to `:8000` or `:5173`. Stop it and restart both servers.
+**Troubleshooting:** If you see the wrong app or stale content, another process may be bound to `:8000` or `:5173`. Stop it and restart both servers. If Matthew returns empty replies or the backend uses the wrong Python, check `head -1 backend/.venv/bin/uvicorn` — it must point at `the_lantern/backend/.venv`, not another project. Rebuild: `cd backend && rm -rf .venv && uv venv && uv sync`.
 
 ### Optional: music
 
@@ -230,6 +230,8 @@ From the repo root (requires SSH access to the server):
 The script rsyncs backend/frontend + Docker configs to `/opt/the-lantern`, copies `backend/.env` → `.env.production` on the server, then runs `docker compose build --no-cache && docker compose up -d`.
 
 **Stack:** `nginx-proxy` (TLS) → `lantern-frontend` (nginx, SPA + `/api` proxy) → `lantern-backend` (FastAPI). Game saves live in the `lantern-saves` Docker volume (`/app/saves/lantern.db`).
+
+**SSE streaming:** `deploy.sh` copies `nginx-proxy/thelantern.institute_location` into the shared `crowd_due_dill_nginx_vhost` volume and restarts `crowd-due-dill-proxy`. Without `proxy_buffering off` at this layer, token streaming arrives as one chunk (inner nginx already disables buffering for `/api/`).
 
 ### Required production env vars
 

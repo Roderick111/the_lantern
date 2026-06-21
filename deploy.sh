@@ -28,6 +28,7 @@ FILES=(
     "Caddyfile"
     "nginx.conf"
     "nginx-site.conf"
+    "nginx-proxy"
     ".env.production.example"
     "backend"
     "frontend"
@@ -66,6 +67,11 @@ fi
 echo ""
 echo "🐳 Building and starting containers..."
 ssh "$SERVER_USER@$SERVER_IP" "cd $DEPLOY_DIR && docker compose build --no-cache && docker compose up -d"
+
+# Install nginx-proxy SSE snippet (disables buffering for token streaming)
+echo ""
+echo "🔧 Installing nginx-proxy SSE config..."
+ssh "$SERVER_USER@$SERVER_IP" "cp $DEPLOY_DIR/nginx-proxy/thelantern.institute_location /var/lib/docker/volumes/crowd_due_dill_nginx_vhost/_data/thelantern.institute_location && docker restart crowd-due-dill-proxy"
 
 # Show status
 echo ""
