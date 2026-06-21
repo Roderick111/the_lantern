@@ -107,7 +107,7 @@ describe('WitnessInterview', () => {
         <WitnessInterview {...defaultProps} conversation={mockConversation} />
       );
 
-      expect(screen.getByText('Elena Marsh')).toBeInTheDocument();
+      expect(screen.getByText(/:: ELENA MARSH ::/i)).toBeInTheDocument();
     });
 
     it.todo('shows trust delta for conversation items');
@@ -161,9 +161,8 @@ describe('WitnessInterview', () => {
         />
       );
 
-      expect(
-        screen.getByRole('button', { name: /Present Evidence/i })
-      ).toBeInTheDocument();
+      const buttons = screen.getAllByRole('button', { name: /present evidence/i });
+      expect(buttons.length).toBeGreaterThan(0);
     });
 
     it.todo('shows evidence count');
@@ -205,8 +204,8 @@ describe('WitnessInterview', () => {
         />
       );
 
-      const button = screen.getByRole('button', { name: /Present Evidence/i });
-      expect(button).toBeDisabled();
+      const buttons = screen.getAllByRole('button', { name: /present evidence/i });
+      buttons.forEach((button) => expect(button).toBeDisabled());
     });
   });
 

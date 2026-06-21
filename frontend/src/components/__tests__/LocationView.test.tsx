@@ -62,6 +62,8 @@ const defaultProps = {
   locationData: mockLocationData,
   onEvidenceDiscovered: vi.fn(),
   discoveredEvidence: [],
+  hintsEnabled: true,
+  isFirstLocation: true,
 };
 
 // ============================================
@@ -109,7 +111,7 @@ describe('LocationView', () => {
 
       const textarea = screen.getByPlaceholderText(/describe your action/i);
       expect(textarea).toBeInTheDocument();
-      expect(textarea).toHaveAttribute('rows', '3');
+      expect(textarea).toHaveAttribute('rows', '2');
     });
 
     it('renders quick action shortcuts', () => {
@@ -450,11 +452,11 @@ describe('LocationView', () => {
       const user = userEvent.setup();
       render(<LocationView {...defaultProps} />);
 
-      const button = screen.getByRole('button', { name: /ask voice/i });
+      const button = screen.getByRole('button', { name: /ask matthew/i });
       await user.click(button);
 
       const textarea = screen.getByPlaceholderText(/describe your action/i);
-      expect(textarea).toHaveValue("Voice, what do you think?");
+      expect(textarea).toHaveValue('Matthew, what do you think?');
     });
 
     it('does NOT auto-submit when quick action clicked', async () => {

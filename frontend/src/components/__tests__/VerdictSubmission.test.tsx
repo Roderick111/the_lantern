@@ -154,32 +154,32 @@ describe('VerdictSubmission', () => {
       const user = userEvent.setup();
       render(<VerdictSubmission {...defaultProps} />);
 
-      const checkbox = screen.getByRole('checkbox', { name: /frost pattern/i });
-      await user.click(checkbox);
+      const button = screen.getByRole('button', { name: /frost pattern/i });
+      await user.click(button);
 
-      expect(checkbox).toBeChecked();
+      expect(button).toHaveTextContent('✓');
     });
 
     it('allows selecting multiple evidence', async () => {
       const user = userEvent.setup();
       render(<VerdictSubmission {...defaultProps} />);
 
-      await user.click(screen.getByRole('checkbox', { name: /frost pattern/i }));
-      await user.click(screen.getByRole('checkbox', { name: /focus signature/i }));
+      await user.click(screen.getByRole('button', { name: /frost pattern/i }));
+      await user.click(screen.getByRole('button', { name: /focus signature/i }));
 
-      expect(screen.getByRole('checkbox', { name: /frost pattern/i })).toBeChecked();
-      expect(screen.getByRole('checkbox', { name: /focus signature/i })).toBeChecked();
+      expect(screen.getByRole('button', { name: /frost pattern/i })).toHaveTextContent('✓');
+      expect(screen.getByRole('button', { name: /focus signature/i })).toHaveTextContent('✓');
     });
 
     it('allows deselecting evidence', async () => {
       const user = userEvent.setup();
       render(<VerdictSubmission {...defaultProps} />);
 
-      const checkbox = screen.getByRole('checkbox', { name: /frost pattern/i });
-      await user.click(checkbox);
-      await user.click(checkbox);
+      const button = screen.getByRole('button', { name: /frost pattern/i });
+      await user.click(button);
+      await user.click(button);
 
-      expect(checkbox).not.toBeChecked();
+      expect(button).not.toHaveTextContent('✓');
     });
 
     it.todo('shows evidence count when selected');
@@ -224,7 +224,7 @@ describe('VerdictSubmission', () => {
 
       await user.selectOptions(screen.getByLabelText(/Select suspect/i), 'cassian');
 
-      expect(screen.getByRole('button', { name: /TRANSMITTING.../i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /analyzing/i })).toBeDisabled();
     });
 
     it('is disabled when disabled prop is true', () => {
@@ -249,7 +249,7 @@ describe('VerdictSubmission', () => {
         screen.getByLabelText(/enter your reasoning/i),
         'Cassian is guilty because of the frost pattern and focus signature evidence.'
       );
-      await user.click(screen.getByRole('checkbox', { name: /frost pattern/i }));
+      await user.click(screen.getByRole('button', { name: /frost pattern/i }));
       await user.click(screen.getByRole('button', { name: /submit verdict/i }));
 
       await waitFor(() => {
@@ -276,7 +276,7 @@ describe('VerdictSubmission', () => {
 
     it('shows loading state during submission', () => {
       render(<VerdictSubmission {...defaultProps} loading={true} />);
-      expect(screen.getByText(/TRANSMITTING.../i)).toBeInTheDocument();
+      expect(screen.getByText(/Analyzing.../i)).toBeInTheDocument();
     });
   });
 
@@ -290,20 +290,19 @@ describe('VerdictSubmission', () => {
 
       expect(screen.getByLabelText(/Select suspect/i)).toBeDisabled();
       expect(screen.getByLabelText(/enter your reasoning/i)).toBeDisabled();
-      mockEvidence.forEach(e => {
-        expect(screen.getByRole('checkbox', { name: new RegExp(e.name, 'i') })).toBeDisabled();
+      mockEvidence.forEach((e) => {
+        expect(screen.getByRole('button', { name: new RegExp(e.name, 'i') })).toBeDisabled();
       });
     });
 
     it('shows message when no attempts remaining', () => {
       render(<VerdictSubmission {...defaultProps} disabled={true} attemptsRemaining={0} />);
-      expect(screen.getByText(/CASE_CLOSED: ATTEMPTS_EXHAUSTED/i)).toBeInTheDocument();
+      expect(screen.getByText(/exhausted all attempts/i)).toBeInTheDocument();
     });
 
-    it('shows low attempts warning', () => {
+    it('shows low attempts remaining', () => {
       render(<VerdictSubmission {...defaultProps} attemptsRemaining={2} />);
-      const attemptsText = screen.getByText('[02/10]');
-      expect(attemptsText).toHaveClass('text-red-400');
+      expect(screen.getByText(/2 attempts remaining/i)).toBeInTheDocument();
     });
   });
 

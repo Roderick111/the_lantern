@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
 from src.api.helpers import load_case_or_404, load_or_create_state, save_slot_state
+from src.state.exceptions import StaleStateError
 from src.api.rate_limit import LLM_RATE, limiter
 from src.api.schemas import (
     ConfrontationDialogue,
@@ -161,7 +162,13 @@ async def submit_verdict(
         if wrong_info and wrong_info.get("reveal"):
             reveal = wrong_info["reveal"]
 
-    save_slot_state(state, player_id, body.slot)
+    try:
+        save_slot_state(state, player_id, body.slot)
+    except StaleStateError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="Save conflict — reload your game and try again.",
+        ) from exc
 
     await log_event(
         "verdict_submitted",

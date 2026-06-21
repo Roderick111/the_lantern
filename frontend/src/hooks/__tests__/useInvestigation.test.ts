@@ -383,7 +383,7 @@ describe('useInvestigation Hook', () => {
   });
 
   describe('handleSave', () => {
-    it('calls saveGameState with caseId, current state, slot, and playerId', async () => {
+    it('calls saveGameState with caseId, current state, and slot', async () => {
       vi.mocked(client.loadState).mockResolvedValue(null);
       vi.mocked(client.saveGameState).mockResolvedValue({
         success: true,
@@ -414,7 +414,6 @@ describe('useInvestigation Hook', () => {
           current_location: 'library',
         }),
         'slot_2',
-        'player-xyz',
       );
     });
 

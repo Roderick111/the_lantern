@@ -126,8 +126,21 @@ export interface LLMSettings {
   model: string | null;
 }
 
+/** BYOK keys live in sessionStorage (cleared when the tab closes). */
+function readLLMSettingsRaw(): string | null {
+  const sessionRaw = sessionStorage.getItem(LLM_SETTINGS_KEY);
+  if (sessionRaw) return sessionRaw;
+
+  const legacyRaw = localStorage.getItem(LLM_SETTINGS_KEY);
+  if (!legacyRaw) return null;
+
+  sessionStorage.setItem(LLM_SETTINGS_KEY, legacyRaw);
+  localStorage.removeItem(LLM_SETTINGS_KEY);
+  return legacyRaw;
+}
+
 export function getLLMSettings(): LLMSettings | null {
-  const raw = localStorage.getItem(LLM_SETTINGS_KEY);
+  const raw = readLLMSettingsRaw();
   if (!raw) return null;
   try {
     return JSON.parse(raw) as LLMSettings;
@@ -137,10 +150,12 @@ export function getLLMSettings(): LLMSettings | null {
 }
 
 export function saveLLMSettings(settings: LLMSettings): void {
-  localStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify(settings));
+  sessionStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.removeItem(LLM_SETTINGS_KEY);
 }
 
 export function clearLLMSettings(): void {
+  sessionStorage.removeItem(LLM_SETTINGS_KEY);
   localStorage.removeItem(LLM_SETTINGS_KEY);
 }
 

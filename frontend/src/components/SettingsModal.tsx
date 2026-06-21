@@ -397,6 +397,10 @@ export function SettingsModal({
 
                   {llmProvider && (
                     <>
+                      <p className={`${theme.typography.helper} ${theme.colors.text.muted}`}>
+                        Your API key is stored only for this browser tab and cleared when you close it.
+                      </p>
+
                       {/* API Key */}
                       <div className="flex gap-1">
                         <input
