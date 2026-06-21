@@ -17,6 +17,7 @@ from httpx import ASGITransport, AsyncClient
 
 from src.main import app
 from tests.auth_helpers import load_slot, make_state, save_autosave
+from tests.llm_helpers import make_settings
 
 
 @pytest.fixture
@@ -349,7 +350,11 @@ class TestBYOKContract:
             call_count["n"] += 1
             raise RuntimeError("upstream auth error")
 
-        with patch.object(LLMClient, "_call_llm", boom):
+        fake_settings = make_settings()
+        with (
+            patch("src.api.llm_client.get_llm_settings", lambda: fake_settings),
+            patch.object(LLMClient, "_call_llm", boom),
+        ):
             llm = LLMClient()
             with pytest.raises(Exception):
                 await llm.get_response(
@@ -381,11 +386,15 @@ class TestBYOKContract:
                 raise TimeoutError("primary down")
             return "fallback worked"
 
-        with patch.object(LLMClient, "_call_llm", boom):
+        fake_settings = make_settings(
+            ENABLE_FALLBACK=True,
+            FALLBACK_MODEL="openrouter/fallback",
+        )
+        with (
+            patch("src.api.llm_client.get_llm_settings", lambda: fake_settings),
+            patch.object(LLMClient, "_call_llm", boom),
+        ):
             llm = LLMClient()
-            llm.settings.ENABLE_FALLBACK = True  # type: ignore[misc]
-            llm.settings.FALLBACK_MODEL = "openrouter/fallback"  # type: ignore[misc]
-
             result = await llm.get_response(prompt="hi")
             assert result == "fallback worked"
 
