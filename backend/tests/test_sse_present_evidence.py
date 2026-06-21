@@ -47,7 +47,7 @@ class TestPresentEvidenceStreamHappyPath:
 
         chunks = ["I... ", "I don't know what to say."]
         mock_client = build_mock_llm_client(chunks)
-        with patch("src.api.routes.witnesses.get_client", return_value=mock_client):
+        with patch("src.api.routes.witnesses_logic.get_client", return_value=mock_client):
             parsed = await collect_sse_stream(
                 client,
                 "POST",
@@ -70,7 +70,7 @@ class TestPresentEvidenceStreamHappyPath:
         # NOT seeding state — evidence is undiscovered.
         chunks = ["whatever"]
         mock_client = build_mock_llm_client(chunks)
-        with patch("src.api.routes.witnesses.get_client", return_value=mock_client):
+        with patch("src.api.routes.witnesses_logic.get_client", return_value=mock_client):
             async with client.stream(
                 "POST",
                 "/api/present-evidence/stream",
@@ -112,7 +112,7 @@ class TestPresentEvidenceStreamSecretRevelation:
             "because Iron Lodges kept hexing him in the corridors.",
         ]
         mock_client = build_mock_llm_client(chunks)
-        with patch("src.api.routes.witnesses.get_client", return_value=mock_client):
+        with patch("src.api.routes.witnesses_logic.get_client", return_value=mock_client):
             parsed = await collect_sse_stream(
                 client,
                 "POST",
@@ -144,7 +144,7 @@ class TestPresentEvidenceStreamSecretRevelation:
             "He needed it.",
         ]
         mock_client = build_mock_llm_client(chunks)
-        with patch("src.api.routes.witnesses.get_client", return_value=mock_client):
+        with patch("src.api.routes.witnesses_logic.get_client", return_value=mock_client):
             await collect_sse_stream(
                 client,
                 "POST",

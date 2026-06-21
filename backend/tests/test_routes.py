@@ -1539,7 +1539,7 @@ class TestPhase45NarratorConversationMemory:
             mock_client.get_response = AsyncMock(return_value="Second response.")
             mock_get_client.return_value = mock_client
 
-            with patch("src.api.routes.investigation.build_narrator_prompt") as mock_build:
+            with patch("src.api.routes.investigation_logic.build_narrator_prompt") as mock_build:
                 mock_build.return_value = "mocked prompt"
 
                 await client.post(
@@ -1974,7 +1974,7 @@ class TestPhase47SpellSuccessSystem:
 
             # Force success with low roll
             with patch("src.context.spell_detection.random.random", return_value=0.3):
-                with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+                with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                     mock_build.return_value = ("prompt", "system", True)
 
                     await client.post(
@@ -2005,7 +2005,7 @@ class TestPhase47SpellSuccessSystem:
 
             # Force failure with high roll
             with patch("src.context.spell_detection.random.random", return_value=0.95):
-                with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+                with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                     mock_build.return_value = ("prompt", "system", True)
 
                     await client.post(
@@ -2036,7 +2036,7 @@ class TestPhase47SpellSuccessSystem:
 
             # Roll 85 - would fail 70% base, but succeeds with +20% bonus
             with patch("src.context.spell_detection.random.random", return_value=0.85):
-                with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+                with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                     mock_build.return_value = ("prompt", "system", True)
 
                     # Cast with full specificity: target + intent
@@ -2074,7 +2074,7 @@ class TestPhase47SpellSuccessSystem:
             # 3rd: 50% < 65% = FAILURE
             with patch("src.context.spell_detection.random.random", return_value=0.65):
                 for i in range(3):
-                    with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+                    with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                         mock_build.return_value = ("prompt", "system", True)
 
                         await client.post(
@@ -2117,7 +2117,7 @@ class TestPhase47SpellSuccessSystem:
 
             # Roll 5% - below 10% floor = SUCCESS
             with patch("src.context.spell_detection.random.random", return_value=0.05):
-                with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+                with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                     mock_build.return_value = ("prompt", "system", True)
 
                     await client.post(
@@ -2144,7 +2144,7 @@ class TestPhase47SpellSuccessSystem:
             mock_client.get_response = AsyncMock(return_value="You examine the desk.")
             mock_get_client.return_value = mock_client
 
-            with patch("src.api.routes.investigation.build_narrator_prompt") as mock_build:
+            with patch("src.api.routes.investigation_logic.build_narrator_prompt") as mock_build:
                 mock_build.return_value = "prompt"
 
                 await client.post(
@@ -2183,7 +2183,7 @@ class TestPhase47SpellSuccessSystem:
 
             with patch("src.context.spell_detection.random.random", return_value=0.5):
                 for spell in safe_spells:
-                    with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+                    with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                         mock_build.return_value = ("prompt", "system", True)
 
                         await client.post(

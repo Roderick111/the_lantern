@@ -22,6 +22,7 @@ CASE_STORE_DIR = Path(__file__).parent
 # In-memory cache for parsed YAML case files (invalidated when file mtime changes)
 _case_cache: dict[str, dict[str, Any]] = {}
 _case_mtime: dict[str, float] = {}
+_evidence_index_cache: dict[str, tuple[float, dict[str, dict[str, Any]]]] = {}
 
 
 def load_case(case_id: str) -> dict[str, Any]:
@@ -129,10 +130,57 @@ def get_location(case_data: dict[str, Any], location_id: str) -> dict[str, Any]:
 
 def count_hidden_evidence(case_data: dict[str, Any]) -> int:
     """Count discoverable hidden evidence across all locations in a case."""
-    case: dict[str, Any] = case_data.get("case", case_data)
-    locations_map: dict[str, dict[str, Any]] = case.get("locations", {})
-    total = sum(len(loc.get("hidden_evidence", [])) for loc in locations_map.values())
-    return max(total, 1)
+    return max(len(build_evidence_index(case_data)), 1)
+
+
+def build_evidence_index(case_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Build evidence ID → metadata index for O(1) lookups."""
+    case_inner: dict[str, Any] = case_data.get("case", case_data)
+    index: dict[str, dict[str, Any]] = {}
+    for loc_id, location in case_inner.get("locations", {}).items():
+        for evidence in location.get("hidden_evidence", []):
+            eid = evidence.get("id")
+            if not eid:
+                continue
+            index[eid] = {
+                **evidence,
+                "id": eid,
+                "name": evidence.get("name", eid),
+                "location_found": evidence.get("location_found", loc_id),
+                "description": evidence.get("description", "").strip(),
+            }
+    for evidence in case_inner.get("additional_evidence", []):
+        eid = evidence.get("id")
+        if eid:
+            index[eid] = {
+                **evidence,
+                "id": eid,
+                "name": evidence.get("name", eid),
+                "location_found": evidence.get("location_found", "unknown"),
+                "description": evidence.get("description", "").strip(),
+            }
+    return index
+
+
+def get_evidence_index(case_id: str, case_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Cached evidence index keyed by case file mtime."""
+    mtime = _case_mtime.get(case_id, 0.0)
+    cached = _evidence_index_cache.get(case_id)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    index = build_evidence_index(case_data)
+    _evidence_index_cache[case_id] = (mtime, index)
+    return index
+
+
+def get_evidence_details_for_ids(
+    case_id: str,
+    case_data: dict[str, Any],
+    evidence_ids: list[str],
+) -> list[dict[str, Any]]:
+    """Resolve discovered evidence IDs without scanning all locations."""
+    index = get_evidence_index(case_id, case_data)
+    return [index[eid] for eid in evidence_ids if eid in index]
 
 
 def get_first_location_id(case_data: dict[str, Any]) -> str:
@@ -234,6 +282,9 @@ def get_evidence_by_id(
 
     # Determine which locations to search
     search_locations: list[tuple[str, dict[str, Any]]] = []
+
+    if location_id is None:
+        return build_evidence_index(case_data).get(evidence_id)
 
     if location_id:
         # Search specific location

@@ -22,7 +22,7 @@ from src.api.schemas import (
     MatthewChatRequest,
     MatthewResponseModel,
 )
-from src.case_store.loader import get_all_evidence, get_location
+from src.case_store.loader import get_evidence_details_for_ids, get_location
 from src.telemetry.logger import log_event
 
 logger = logging.getLogger(__name__)
@@ -30,12 +30,12 @@ router = APIRouter()
 
 
 def _get_evidence_details(
+    case_id: str,
     case_data: dict,
     discovered_ids: list[str],
 ) -> list[dict]:
-    """Get full details for discovered evidence across all locations."""
-    all_evidence = get_all_evidence(case_data, None)
-    return [e for e in all_evidence if e["id"] in discovered_ids]
+    """Get full details for discovered evidence via cached index."""
+    return get_evidence_details_for_ids(case_id, case_data, discovered_ids)
 
 
 def _get_location_description(case_data: dict, current_location: str) -> str:
@@ -57,7 +57,9 @@ async def _generate_matthew_with_fallback(
     from src.context.matthew_llm import generate_matthew_response, get_matthew_fallback_response
 
     case_context = build_case_context(case_data)
-    evidence_discovered = _get_evidence_details(case_data, state.discovered_evidence)
+    evidence_discovered = _get_evidence_details(
+        state.case_id, case_data, state.discovered_evidence
+    )
     location_desc = _get_location_description(case_data, state.current_location)
     witness_history = get_witness_history_summary(state)
 

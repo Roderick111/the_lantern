@@ -33,7 +33,7 @@ class TestInterrogateStreamHappyPath:
     async def test_emits_text_then_done(self, client: AsyncClient) -> None:
         chunks = ["I was ", "in the library. ", "Reading."]
         mock_client = build_mock_llm_client(chunks)
-        with patch("src.api.routes.witnesses.get_client", return_value=mock_client):
+        with patch("src.api.routes.witnesses_logic.get_client", return_value=mock_client):
             parsed = await collect_sse_stream(
                 client,
                 "POST",
@@ -71,7 +71,7 @@ class TestInterrogateStreamTrustDelta:
             "[TRUST_DELTA: -10]",
         ]
         mock_client = build_mock_llm_client(chunks)
-        with patch("src.api.routes.witnesses.get_client", return_value=mock_client):
+        with patch("src.api.routes.witnesses_logic.get_client", return_value=mock_client):
             parsed = await collect_sse_stream(
                 client,
                 "POST",
@@ -101,7 +101,7 @@ class TestInterrogateStreamTrustDelta:
         player_id = "test_sse_interrog_trust_persist"
         chunks = ["I had nothing to do with it. ", "[TRUST_DELTA: -10]"]
         mock_client = build_mock_llm_client(chunks)
-        with patch("src.api.routes.witnesses.get_client", return_value=mock_client):
+        with patch("src.api.routes.witnesses_logic.get_client", return_value=mock_client):
             await collect_sse_stream(
                 client,
                 "POST",

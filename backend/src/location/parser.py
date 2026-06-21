@@ -206,7 +206,12 @@ class LocationCommandParser:
                     if tt == lt:
                         matched += 1
                         break
-                    if SequenceMatcher(None, tt, lt).ratio() >= self.fuzzy_threshold:
+                    if abs(len(tt) - len(lt)) > 4:
+                        continue
+                    matcher = SequenceMatcher(None, tt, lt)
+                    if matcher.quick_ratio() < self.fuzzy_threshold:
+                        continue
+                    if matcher.ratio() >= self.fuzzy_threshold:
                         matched += 1
                         break
 

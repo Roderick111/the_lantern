@@ -40,7 +40,13 @@ describe('Zod schemas — runtime contracts', () => {
         evidence_names: { hidden_note: 'Hidden Note' },
         already_discovered: false,
         location_changed: 'library',
-        updated_state: { case_id: 'case_001' },
+        updated_state: {
+          case_id: 'case_001',
+          current_location: 'library',
+          discovered_evidence: ['hidden_note'],
+          visited_locations: ['library'],
+          save_revision: 1,
+        },
       });
 
       expect(result.success).toBe(true);

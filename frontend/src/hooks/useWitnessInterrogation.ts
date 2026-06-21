@@ -204,6 +204,52 @@ function witnessReducer(
 }
 
 // ============================================
+// Streaming chunk batching (rAF)
+// ============================================
+
+type ChunkDispatch = (action: { type: 'APPEND_LAST_RESPONSE'; payload: string }) => void;
+
+/** Batch SSE text chunks to one reducer update per animation frame. */
+function useBatchedChunkAppender(dispatch: ChunkDispatch) {
+  const bufferRef = useRef('');
+  const rafRef = useRef<number | null>(null);
+
+  const flush = useCallback(() => {
+    if (bufferRef.current) {
+      dispatch({ type: 'APPEND_LAST_RESPONSE', payload: bufferRef.current });
+      bufferRef.current = '';
+    }
+    rafRef.current = null;
+  }, [dispatch]);
+
+  const appendChunk = useCallback(
+    (text: string) => {
+      bufferRef.current += text;
+      rafRef.current ??= requestAnimationFrame(flush);
+    },
+    [flush],
+  );
+
+  const flushNow = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    flush();
+  }, [flush]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
+
+  return { appendChunk, flushNow };
+}
+
+// ============================================
 // Hook
 // ============================================
 
@@ -212,6 +258,7 @@ export function useWitnessInterrogation({
   autoLoad = true,
 }: UseWitnessInterrogationOptions = {}): UseWitnessInterrogationReturn {
   const [state, dispatch] = useReducer(witnessReducer, initialState);
+  const { appendChunk, flushNow } = useBatchedChunkAppender(dispatch);
 
   // AbortController for in-flight interrogate / present-evidence stream.
   // Aborted when the user changes witness or unmounts so abandoned streams
@@ -310,10 +357,9 @@ export function useWitnessInterrogation({
             slot: 'autosave',
           },
           {
-            onChunk: (text) => {
-              dispatch({ type: 'APPEND_LAST_RESPONSE', payload: text });
-            },
+            onChunk: appendChunk,
             onDone: (data) => {
+              flushNow();
               const trust = data.trust as number | undefined;
               if (trust !== undefined) {
                 dispatch({ type: 'UPDATE_TRUST', payload: trust });
@@ -354,7 +400,7 @@ export function useWitnessInterrogation({
         }
       }
     },
-    [state.currentWitness, caseId]
+    [state.currentWitness, caseId, appendChunk, flushNow]
   );
 
   // Present evidence to current witness (streaming)
@@ -391,10 +437,9 @@ export function useWitnessInterrogation({
             slot: 'autosave',
           },
           {
-            onChunk: (text) => {
-              dispatch({ type: 'APPEND_LAST_RESPONSE', payload: text });
-            },
+            onChunk: appendChunk,
             onDone: (data) => {
+              flushNow();
               const trust = data.trust as number | undefined;
               if (trust !== undefined) {
                 dispatch({ type: 'UPDATE_TRUST', payload: trust });
@@ -435,7 +480,7 @@ export function useWitnessInterrogation({
         }
       }
     },
-    [state.currentWitness, caseId]
+    [state.currentWitness, caseId, appendChunk, flushNow]
   );
 
   // Clear conversation

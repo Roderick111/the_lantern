@@ -46,6 +46,19 @@ const ConversationMessageSchema = z
 // ============================================
 
 /**
+ * Lightweight player-state slice returned in investigate/SSE done payloads.
+ */
+export const StateDeltaSchema = z
+  .object({
+    case_id: z.string(),
+    current_location: z.string(),
+    discovered_evidence: z.array(z.string()),
+    visited_locations: z.array(z.string()),
+    save_revision: z.number(),
+  })
+  .strict();
+
+/**
  * Schema for InvestigateResponse
  * Runtime validation for POST /api/investigate
  */
@@ -56,7 +69,7 @@ export const InvestigateResponseSchema = z
     evidence_names: z.record(z.string(), z.string()).optional(),
     already_discovered: z.boolean(),
     location_changed: z.string().optional(),
-    updated_state: z.record(z.string(), z.unknown()).optional(),
+    updated_state: StateDeltaSchema.optional(),
   })
   .strict();
 
@@ -177,7 +190,7 @@ export const InterrogateResponseSchema = z
     trust_delta: z.number(),
     secrets_revealed: z.array(z.string()),
     secret_texts: z.record(z.string(), z.string()),
-    updated_state: z.record(z.string(), z.unknown()).optional(),
+    updated_state: StateDeltaSchema.optional(),
   })
   .strict();
 
@@ -193,7 +206,7 @@ export const PresentEvidenceResponseSchema = z
     trust_delta: z.number(),
     secrets_revealed: z.array(z.string()),
     secret_texts: z.record(z.string(), z.string()),
-    updated_state: z.record(z.string(), z.unknown()).optional(),
+    updated_state: StateDeltaSchema.optional(),
   })
   .strict();
 

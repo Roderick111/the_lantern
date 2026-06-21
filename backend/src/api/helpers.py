@@ -457,13 +457,15 @@ def clear_state_cache() -> None:
 
 def state_delta(state: PlayerState) -> dict[str, Any]:
     """Lightweight state slice for SSE done payloads (avoids full model_dump)."""
-    return {
-        "case_id": state.case_id,
-        "current_location": state.current_location,
-        "discovered_evidence": list(state.discovered_evidence),
-        "visited_locations": list(state.visited_locations),
-        "save_revision": state.save_revision,
-    }
+    from src.api.schemas import StateDeltaResponse
+
+    return StateDeltaResponse(
+        case_id=state.case_id,
+        current_location=state.current_location,
+        discovered_evidence=list(state.discovered_evidence),
+        visited_locations=list(state.visited_locations),
+        save_revision=state.save_revision,
+    ).model_dump(mode="json")
 
 
 def save_slot_state(
@@ -579,14 +581,16 @@ def resolve_location(
     slot: str = "autosave",
     existing_state: PlayerState | None = None,
     player_id: str | None = None,
+    locations: list[dict[str, Any]] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Resolve and validate target location for investigation.
 
     Args:
         existing_state: Pre-loaded state to avoid redundant DB call.
+        locations: Precomputed location list (avoids duplicate list_locations call).
     """
     target_location_id = request.location_id
-    all_locations = list_locations(case_data)
+    all_locations = locations if locations is not None else list_locations(case_data)
     location_ids = [loc["id"] for loc in all_locations]
 
     if not target_location_id or target_location_id == "library":
@@ -638,7 +642,7 @@ def save_conversation_and_return(
         evidence_names=evidence_names or {},
         already_discovered=already_discovered,
         location_changed=location_changed,
-        updated_state=state.model_dump(mode="json"),
+        updated_state=state_delta(state),
     )
 
 

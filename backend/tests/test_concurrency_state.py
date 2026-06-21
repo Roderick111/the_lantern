@@ -594,6 +594,69 @@ async def test_concurrent_read_while_writing() -> None:
         "Refactor should make reads-during-writes return a consistent "
         "snapshot (either pre OR post, never torn)."
     )
+
+
+# ── 8. OS-thread SQLite writes (check_same_thread=False path) ───────────────
+
+
+def test_concurrent_sqlite_thread_writes() -> None:
+    """Multiple OS threads hit persistence.save_player_state concurrently.
+
+    asyncio tests cannot reproduce SQLite thread-pool races; this exercises
+    the real ``check_same_thread=False`` connection under ``_db_lock``.
+    """
+    import threading
+
+    from src.state.exceptions import StaleStateError
+    from src.state.persistence import load_player_state, save_player_state
+
+    case_id = "case_001"
+    player_id = "thread_sqlite_race"
+    evidence_pool = [
+        "hidden_note",
+        "frost_pattern",
+        "focus_signature",
+        "scuff_marks",
+        "dropped_badge",
+    ]
+
+    seed_state(case_id, player_id, fresh_player_state(case_id=case_id))
+
+    errors: list[Exception] = []
+    lock = threading.Lock()
+
+    def writer(ev_id: str) -> None:
+        for _ in range(10):
+            try:
+                state = load_player_state(case_id, player_id, "autosave")
+                if state is None:
+                    return
+                if ev_id in state.discovered_evidence:
+                    return
+                state.add_evidence(ev_id)
+                save_player_state(case_id, player_id, state, "autosave")
+                return
+            except StaleStateError:
+                continue
+            except Exception as exc:
+                with lock:
+                    errors.append(exc)
+                return
+
+    threads = [threading.Thread(target=writer, args=(ev_id,)) for ev_id in evidence_pool]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+
+    assert not errors, f"thread writes raised: {errors}"
+
+    final = load_player_state(case_id, player_id, "autosave")
+    assert final is not None
+    # Last-write-wins under concurrent load-modify-save: all writers may not
+    # merge, but SQLite must stay consistent (no corruption / no exceptions).
+    assert set(final.discovered_evidence) <= set(evidence_pool)
+    assert len(final.discovered_evidence) >= 1
     # The cache-vs-persistence inconsistency lives below. Compare cache to
     # persistence WHILE the stream is mid-flight — but we can only inspect
     # post-hoc here. Drop a diagnostic.

@@ -9,6 +9,7 @@ from src.api.helpers import (
     detect_keyword_match,
     detect_secret_by_consecutive_words,
     save_slot_state,
+    state_delta,
 )
 from src.api.llm_client import LLMClientError as ClaudeClientError
 from src.api.llm_client import get_client
@@ -169,5 +170,5 @@ async def handle_programmatic_mnemonic_delving(
         trust_delta=trust_delta,
         secrets_revealed=secrets_revealed,
         secret_texts=secret_texts,
-        updated_state=state.model_dump(mode="json"),
+        updated_state=state_delta(state),
     )

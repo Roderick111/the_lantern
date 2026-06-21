@@ -398,6 +398,8 @@ class BriefingState(BaseModel):
     conversation_history: list[dict[str, str]] = Field(default_factory=list)
     completed_at: datetime | None = None
 
+    _MAX_CONVERSATION_HISTORY = 30
+
     def add_question(self, question: str, answer: str) -> None:
         """Add Q&A exchange to conversation history.
 
@@ -406,6 +408,10 @@ class BriefingState(BaseModel):
             answer: Graves's response
         """
         self.conversation_history.append({"question": question, "answer": answer})
+        if len(self.conversation_history) > self._MAX_CONVERSATION_HISTORY:
+            self.conversation_history = self.conversation_history[
+                -self._MAX_CONVERSATION_HISTORY :
+            ]
 
     def mark_complete(self) -> None:
         """Mark briefing as completed."""

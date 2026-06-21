@@ -348,6 +348,22 @@ def calculate_mnemonic_delving_success(
     return success, success_rate, specificity_bonus, decline_penalty, roll
 
 
+def _phrase_words_match_span(phrase: str, span: str, text_lower: str) -> bool:
+    """Require each phrase token to appear in input/span (with typo tolerance)."""
+    span_words = span.split()
+    for word in phrase.split():
+        if word in text_lower or word in span:
+            continue
+        if len(word) < 4:
+            if word not in span_words:
+                return False
+            continue
+        if any(fuzz.ratio(word, sw) > 75 for sw in span_words):
+            continue
+        return False
+    return True
+
+
 # =============================================================================
 # Intent Validation (Phase 5.7)
 # =============================================================================
@@ -541,11 +557,18 @@ def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
         phrases = SPELL_SEMANTIC_PHRASES.get(spell_id, [])
         for phrase in phrases:
             if len(phrase) > 4:
-                score = fuzz.ratio(text_lower, phrase)
-                if score > 65:
-                    if _is_valid_spell_cast(text, spell_name, spell_id):
-                        target = extract_target_from_input(text)
-                        return spell_id, target
+                score = fuzz.partial_ratio(phrase, text_lower)
+                if score <= 65:
+                    continue
+                align = fuzz.partial_ratio_alignment(phrase, text_lower)
+                span = text_lower[align.dest_start : align.dest_end]
+                if fuzz.ratio(phrase, span) <= 65:
+                    continue
+                if not _phrase_words_match_span(phrase, span, text_lower):
+                    continue
+                if _is_valid_spell_cast(text, spell_name, spell_id):
+                    target = extract_target_from_input(text)
+                    return spell_id, target
 
     return None, None
 

@@ -38,6 +38,16 @@ class InvestigateRequest(BaseModel):
     )
 
 
+class StateDeltaResponse(BaseModel):
+    """Lightweight player-state slice returned in SSE done payloads."""
+
+    case_id: str
+    current_location: str
+    discovered_evidence: list[str] = Field(default_factory=list)
+    visited_locations: list[str] = Field(default_factory=list)
+    save_revision: int = 0
+
+
 class InvestigateResponse(BaseModel):
     """Response from investigate endpoint."""
 
@@ -52,7 +62,7 @@ class InvestigateResponse(BaseModel):
     location_changed: str | None = Field(
         default=None, description="New location ID if player moved via natural language"
     )
-    updated_state: dict[str, Any] | None = None
+    updated_state: StateDeltaResponse | None = None
 
 
 # ============================================
@@ -231,7 +241,7 @@ class InterrogateResponse(BaseModel):
     secret_texts: dict[str, str] = Field(
         default_factory=dict, description="Secret ID to full text description mapping"
     )
-    updated_state: dict[str, Any] | None = None
+    updated_state: StateDeltaResponse | None = None
 
 
 class PresentEvidenceRequest(BaseModel):
@@ -276,7 +286,7 @@ class PresentEvidenceResponse(BaseModel):
     secret_texts: dict[str, str] = Field(
         default_factory=dict, description="Secret ID to full text description mapping"
     )
-    updated_state: dict[str, Any] | None = None
+    updated_state: StateDeltaResponse | None = None
 
 
 class WitnessInfo(BaseModel):
