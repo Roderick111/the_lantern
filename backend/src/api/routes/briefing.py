@@ -7,7 +7,9 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
+from src.api.errors import llm_http_exception
 from src.api.helpers import load_case_or_404, load_or_create_state, load_slot_state, save_slot_state
+from src.api.llm_client import LLMClientError
 from src.api.rate_limit import LLM_RATE, limiter
 from src.api.schemas import (
     BriefingCompleteResponse,
@@ -18,9 +20,6 @@ from src.api.schemas import (
     TeachingChoice,
     TeachingQuestion,
 )
-from src.case_store.loader import load_case
-from src.api.errors import llm_http_exception
-from src.api.llm_client import LLMClientError
 from src.context.briefing import ask_graves_question
 from src.telemetry.logger import log_event
 

@@ -361,7 +361,6 @@ class TestCorruptSaveHandling:
 
     def test_load_player_state_raises_corrupt_save_error_for_invalid_json(self) -> None:
         """load_player_state raises CorruptSaveError for invalid JSON blobs."""
-        import json
 
         from src.state.persistence import CorruptSaveError, _get_conn, load_player_state
 

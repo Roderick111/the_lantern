@@ -18,12 +18,11 @@ def test_verify_token_rejects_expired_without_allow_expired() -> None:
     assert len(parts) == 3
     ver, b64, sig = parts
 
-    import base64
-    import json
+
+    import hmac
+    from hashlib import sha256
 
     from src.api.auth import _decode_claims, _encode_claims, _get_secret
-    from hashlib import sha256
-    import hmac
 
     claims = _decode_claims(b64)
     claims["exp"] = int(time.time()) - 10
@@ -49,10 +48,11 @@ def test_create_session_reuses_player_id_with_expired_token() -> None:
     parts = token.split(".")
     ver, b64, sig = parts
 
-    from src.api.auth import _decode_claims, _encode_claims, _get_secret
-    from hashlib import sha256
     import hmac
     import time
+    from hashlib import sha256
+
+    from src.api.auth import _decode_claims, _encode_claims, _get_secret
 
     claims = _decode_claims(b64)
     claims["exp"] = int(time.time()) - 60

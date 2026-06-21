@@ -12,6 +12,23 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from src.api.schemas import InvestigateRequest, InvestigateResponse
+from src.case_store.loader import (
+    get_first_location_id,
+    get_location,
+    list_locations,
+    load_case,
+    load_witnesses,
+)
+from src.context.spell_llm import calculate_spell_success
+from src.state.persistence import load_player_state, save_player_state
+from src.state.player_state import PlayerState
+from src.utils.evidence import (
+    check_already_discovered,
+    extract_evidence_from_response,
+    extract_flags_from_response,
+)
+
 # Shared SSE response headers for all streaming endpoints
 SSE_HEADERS = {
     "X-Accel-Buffering": "no",
@@ -45,23 +62,6 @@ async def stream_with_keepalive(
         except StopAsyncIteration:
             return
 
-
-from src.api.schemas import InvestigateRequest, InvestigateResponse
-from src.case_store.loader import (
-    get_first_location_id,
-    get_location,
-    list_locations,
-    load_case,
-    load_witnesses,
-)
-from src.context.spell_llm import calculate_spell_success
-from src.state.persistence import load_player_state, save_player_state
-from src.state.player_state import PlayerState
-from src.utils.evidence import (
-    check_already_discovered,
-    extract_evidence_from_response,
-    extract_flags_from_response,
-)
 
 logger = logging.getLogger(__name__)
 

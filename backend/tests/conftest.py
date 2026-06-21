@@ -90,6 +90,7 @@ def override_auth_dependency():
 
     async def _test_auth(request: Request) -> str:
         import re
+
         from fastapi import HTTPException
 
         token = request.headers.get("x-player-token")

@@ -8,9 +8,9 @@ from fastapi import APIRouter
 from .briefing import router as briefing_router
 from .cases import router as cases_router
 from .evidence import router as evidence_router
-from .matthew import router as matthew_router
 from .investigation import router as investigation_router
 from .llm_config import router as llm_config_router
+from .matthew import router as matthew_router
 from .saves import router as saves_router
 from .session import router as session_router
 from .telemetry import router as telemetry_router

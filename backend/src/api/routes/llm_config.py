@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter, Request
 
-from src.api.rate_limit import VERIFY_KEY_RATE, limiter
 from src.api.llm_client import UnsupportedModelError, validate_byok_model
+from src.api.rate_limit import VERIFY_KEY_RATE, limiter
 from src.api.schemas import ModelInfo, VerifyKeyRequest, VerifyKeyResponse
 from src.config.llm_settings import get_llm_settings
 

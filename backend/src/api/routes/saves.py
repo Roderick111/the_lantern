@@ -80,7 +80,7 @@ async def save_game(
             await log_event("save_game", player_id, case_id, {"slot": slot})
 
         return SaveResponse(success=True, message=f"Saved to {slot}", slot=slot)
-    except StaleStateError as e:
+    except StaleStateError:
         return SaveResponse(
             success=False,
             message="Save conflict — reload and try again.",

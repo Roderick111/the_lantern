@@ -129,15 +129,21 @@ async def test_concurrent_investigate_same_player_evidence_loss() -> None:
     assert winner <= {"hidden_note", "frost_pattern"}
     assert len(winner) == 1
 
-    body_a = resp_a.json()
-    body_b = resp_b.json()
-    state_a = set(body_a["updated_state"]["discovered_evidence"])
-    state_b = set(body_b["updated_state"]["discovered_evidence"])
+    bodies = [resp_a.json(), resp_b.json()]
+    by_evidence: dict[str, set[str]] = {}
+    for body in bodies:
+        ev = body["updated_state"]["discovered_evidence"]
+        assert len(ev) <= 1
+        if ev:
+            by_evidence[ev[0]] = set(ev)
 
     # Each response reports only its own evidence (no cross-request aliasing).
-    assert state_a <= {"hidden_note"}
-    assert state_b <= {"frost_pattern"}
-    assert len(state_a | state_b) == 2
+    # Match by narrator text — gather order is not tied to mock call order.
+    desk_body = next(b for b in bodies if "hidden_note" in b["narrator_response"])
+    floor_body = next(b for b in bodies if "frost_pattern" in b["narrator_response"])
+    assert set(desk_body["updated_state"]["discovered_evidence"]) <= {"hidden_note"}
+    assert set(floor_body["updated_state"]["discovered_evidence"]) <= {"frost_pattern"}
+    assert len(by_evidence) == 2
 
 
 # ── 2. Concurrent investigate + interrogate ────────────────────────────────

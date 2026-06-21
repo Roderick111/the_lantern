@@ -13,6 +13,10 @@ from src.case_store.loader import (
     load_case,
     validate_case,
 )
+from src.context.matthew_llm import (
+    format_evidence_by_strength,
+    format_victim_for_matthew,
+)
 from src.context.mentor import (
     format_common_mistakes,
     format_fallacies_to_catch,
@@ -21,10 +25,6 @@ from src.context.mentor import (
 from src.context.narrator import (
     format_hidden_evidence,
     format_victim_context,
-)
-from src.context.matthew_llm import (
-    format_evidence_by_strength,
-    format_victim_for_matthew,
 )
 from src.context.witness import format_wants_fears
 from src.state.player_state import (

@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
 from src.api.helpers import load_case_or_404, load_or_create_state, save_slot_state
-from src.state.exceptions import StaleStateError
 from src.api.rate_limit import LLM_RATE, limiter
 from src.api.schemas import (
     ConfrontationDialogue,
@@ -21,10 +20,11 @@ from src.case_store.loader import (
     load_wrong_verdict_info,
 )
 from src.context.mentor import (
-    build_mentor_feedback,
     build_graves_feedback_llm,
+    build_mentor_feedback,
     get_wrong_suspect_response,
 )
+from src.state.exceptions import StaleStateError
 from src.state.player_state import VerdictState
 from src.telemetry.logger import log_event
 from src.verdict.evaluator import check_verdict

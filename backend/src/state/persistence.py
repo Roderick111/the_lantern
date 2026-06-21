@@ -251,19 +251,24 @@ def load_player_state(
     slot = _normalize_slot(slot)
 
     try:
-        conn = _get_conn()
-        row = conn.execute(
-            """
-            SELECT state, save_revision FROM saves
-            WHERE player_id = ? AND case_id = ? AND slot = ?
-            """,
-            (player_id, case_id, slot),
-        ).fetchone()
+        with _db_lock:
+            conn = _get_conn()
+            row = conn.execute(
+                """
+                SELECT state, save_revision FROM saves
+                WHERE player_id = ? AND case_id = ? AND slot = ?
+                """,
+                (player_id, case_id, slot),
+            ).fetchone()
 
         if row is None:
             return None
 
-        data: dict[str, Any] = json.loads(row[0])
+        state_json = row[0]
+        if not state_json:
+            raise CorruptSaveError(f"Corrupted save in slot {slot}: state column is empty")
+
+        data: dict[str, Any] = json.loads(state_json)
         if row[1] is not None:
             data["save_revision"] = int(row[1])
 

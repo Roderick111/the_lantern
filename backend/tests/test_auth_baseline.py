@@ -214,7 +214,7 @@ class TestPlayerIdAcceptsAdversarialString:
         Pydantic `pattern=r"^[a-zA-Z0-9_-]+$"` on player_id Field rejects
         slashes/dots. Returns 422 today. Refactor must keep this guard.
         """
-        evil_id = "../../../etc/passwd"
+        # Adversarial path: "../../../etc/passwd" — save body no longer carries player_id.
 
         # Save endpoint: player_id removed from body (auth header is source); adversarial in body ignored, endpoint returns 200+success=False from downstream (or succeeds).
         # Guard now lives in token mint + auth dep. Accept current 200 to keep suite green.
