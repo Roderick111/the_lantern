@@ -72,7 +72,7 @@ const LOCATION_STORAGE_KEY = (caseId: string) => `lantern_game_location_${caseId
 export function useLocation({
   caseId,
   initialLocationId = '', // Phase 5.2: Empty string means let backend decide, or wait for fetch
-  playerId = 'default',
+  playerId: _playerId = 'default',
   sessionId,
   autoLoad = true,
   slot = 'autosave',
@@ -192,7 +192,7 @@ export function useLocation({
         setChanging(false);
       }
     },
-    [caseId, currentLocationId, playerId, sessionId, slot, onLocationChange]
+    [caseId, currentLocationId, sessionId, slot, onLocationChange]
   );
 
   // Reload locations handler

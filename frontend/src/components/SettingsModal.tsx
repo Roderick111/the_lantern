@@ -464,7 +464,7 @@ export function SettingsModal({
                           {verifying ? 'Verifying...' : 'Verify'}
                         </button>
                         <button
-                          onClick={handleSaveLLM}
+                          onClick={() => { void handleSaveLLM(); }}
                           disabled={!llmApiKey}
                           className={`flex-1 py-1.5 px-2 border rounded-sm ${theme.fonts.ui} text-xs uppercase tracking-wider transition-all duration-150
                             ${llmApiKey
