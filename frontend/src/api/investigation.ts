@@ -46,13 +46,11 @@ export async function investigateStream(
 export async function getEvidenceDetails(
   evidenceId: string,
   caseId = 'case_001',
-  playerId = 'default',
   slot = 'autosave',
 ): Promise<EvidenceDetails> {
   const path =
     `/api/evidence/${encodeURIComponent(evidenceId)}` +
     `?case_id=${encodeURIComponent(caseId)}` +
-    `&player_id=${encodeURIComponent(playerId)}` +
     `&slot=${encodeURIComponent(slot)}`;
   return apiCall('GET', path, EvidenceDetailsSchema);
 }

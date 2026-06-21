@@ -42,13 +42,15 @@ function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
-async function bootstrapSession(): Promise<void> {
+async function bootstrapSession(refreshToken?: string | null): Promise<void> {
   const existingPlayerId = localStorage.getItem(PLAYER_ID_KEY);
+  const currentToken = refreshToken ?? getStoredToken();
   const response = await fetch(`${API_BASE_URL}/api/session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       existing_player_id: existingPlayerId,
+      current_token: currentToken,
     }),
   });
 
@@ -100,15 +102,15 @@ function handle401(): void {
   }
   last401At = now;
 
+  const expiredToken = getStoredToken();
   localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(PLAYER_ID_KEY);
   sessionReady = null; // force re-bootstrap on next call
 
   notifySessionExpired();
 
-  // fire-and-forget fresh bootstrap (non blocking)
-  void bootstrapSession().catch(() => {
-    // swallow, next api will retry bootstrap
+  // Refresh session with expired token to preserve player_id and saves
+  void bootstrapSession(expiredToken).catch(() => {
+    localStorage.removeItem(PLAYER_ID_KEY);
   });
 }
 
@@ -418,6 +420,15 @@ export async function streamSSE(
   }
 
   if (!response.ok || !response.body) {
+    try {
+      const errBody = (await response.json()) as { detail?: unknown };
+      if (typeof errBody.detail === 'string') {
+        callbacks.onError(errBody.detail);
+        return;
+      }
+    } catch {
+      // non-JSON error body
+    }
     callbacks.onError(`HTTP ${response.status}`);
     return;
   }
@@ -443,7 +454,9 @@ export async function streamSSE(
         try {
           const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
           if (data.error) {
-            callbacks.onError(data.error as string);
+            const code = typeof data.code === 'string' ? data.code : undefined;
+            const message = data.error as string;
+            callbacks.onError(code ? `${message} (${code})` : message);
             return;
           }
           if (data.done) {

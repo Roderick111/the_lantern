@@ -1576,12 +1576,14 @@ class TestMnemonicDelvingInterrogation:
     @pytest.mark.asyncio
     async def test_mnemonic_delving_instant_execution(self, client: AsyncClient) -> None:
         """Phase 4.6.2: Mnemonic Delving executes instantly with LLM narration."""
-        with patch("src.api.routes.witnesses.get_client") as mock_get_client:
+        with patch("src.api.routes.witnesses.get_client") as mock_get_client, \
+             patch("src.api.routes.mnemonic_delving.get_client") as mock_legi_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(
                 return_value="You slip into Elena's mind, finding a chaotic swirl of memories..."
             )
             mock_get_client.return_value = mock_client
+            mock_legi_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
@@ -1604,12 +1606,14 @@ class TestMnemonicDelvingInterrogation:
     @pytest.mark.asyncio
     async def test_mnemonic_delving_focused_detection(self, client: AsyncClient) -> None:
         """Phase 4.6.2: Focused Mnemonic Delving detected via 'about X' pattern."""
-        with patch("src.api.routes.witnesses.get_client") as mock_get_client:
+        with patch("src.api.routes.witnesses.get_client") as mock_get_client, \
+             patch("src.api.routes.mnemonic_delving.get_client") as mock_legi_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(
                 return_value="You focus on finding information about Cassian..."
             )
             mock_get_client.return_value = mock_client
+            mock_legi_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
@@ -1630,10 +1634,12 @@ class TestMnemonicDelvingInterrogation:
     @pytest.mark.asyncio
     async def test_mnemonic_delving_semantic_phrase_detection(self, client: AsyncClient) -> None:
         """Phase 4.6.2: Mnemonic Delving detected via semantic phrases like 'read her mind'."""
-        with patch("src.api.routes.witnesses.get_client") as mock_get_client:
+        with patch("src.api.routes.witnesses.get_client") as mock_get_client, \
+             patch("src.api.routes.mnemonic_delving.get_client") as mock_legi_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(return_value="You attempt to read her thoughts...")
             mock_get_client.return_value = mock_client
+            mock_legi_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
@@ -1929,10 +1935,12 @@ class TestPhase47SpellSuccessSystem:
         """Mnemonic Delving uses trust-based system, not success calculation."""
         player_id = "test_mnemonic_delving_bypass"
 
-        with patch("src.api.routes.witnesses.get_client") as mock_get_client:
+        with patch("src.api.routes.witnesses.get_client") as mock_get_client, \
+             patch("src.api.routes.mnemonic_delving.get_client") as mock_legi_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(return_value="You probe her mind...")
             mock_get_client.return_value = mock_client
+            mock_legi_client.return_value = mock_client
 
             # Cast Mnemonic Delving in interrogation
             await client.post(

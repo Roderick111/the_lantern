@@ -54,6 +54,11 @@ def load_case(case_id: str) -> dict[str, Any]:
     with open(case_path, encoding="utf-8") as f:
         data: dict[str, Any] = yaml.safe_load(f)
 
+    is_valid, errors, _warnings = validate_case(data, case_id)
+    if not is_valid:
+        msg = "; ".join(errors[:5])
+        raise ValueError(f"Invalid case {case_id}: {msg}")
+
     _case_cache[case_id] = data
     _case_mtime[case_id] = mtime
     return data

@@ -1,8 +1,10 @@
 """Pydantic request/response models for all API endpoints."""
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+SaveSlotName = Literal["autosave", "slot_1", "slot_2", "slot_3"]
 
 # ============================================
 # Investigation models
@@ -30,9 +32,8 @@ class InvestigateRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_-]+$",
         description="Current location (optional, defaults to saved state or first location)",
     )
-    slot: str = Field(
+    slot: SaveSlotName = Field(
         default="autosave",
-        pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to load/save state from",
     )
 
@@ -63,9 +64,8 @@ class SaveRequest(BaseModel):
     """Request for save endpoint."""
 
     state: dict[str, Any] = Field(..., description="Player state to save")
-    slot: str = Field(
+    slot: SaveSlotName = Field(
         default="autosave",
-        pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to save state to",
     )
 

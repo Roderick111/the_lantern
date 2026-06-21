@@ -10,12 +10,12 @@ import { ApiError } from './base';
 
 export async function checkMatthewTrigger(
   caseId: string,
-  playerId: string,
   evidenceCount: number,
+  slot = 'autosave',
 ): Promise<MatthewTrigger | null> {
   const path =
     `/api/case/${encodeURIComponent(caseId)}/matthew/triggers/check` +
-    `?player_id=${encodeURIComponent(playerId)}&slot=autosave`;
+    `?slot=${encodeURIComponent(slot)}`;
   return apiCallNullable('POST', path, MatthewTriggerSchema, {
     evidence_count: evidenceCount,
   });
@@ -27,14 +27,14 @@ export async function checkMatthewTrigger(
  */
 export async function checkMatthewAutoComment(
   caseId: string,
-  playerId: string,
   isCritical = false,
+  slot = 'autosave',
 ): Promise<MatthewResponse | null> {
   try {
     await ensureSession();
     const path =
       `/api/case/${encodeURIComponent(caseId)}/matthew/auto-comment` +
-      `?player_id=${encodeURIComponent(playerId)}&slot=autosave`;
+      `?slot=${encodeURIComponent(slot)}`;
 
     const response = await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
@@ -79,11 +79,11 @@ export async function checkMatthewAutoComment(
 
 export async function sendMatthewChat(
   caseId: string,
-  playerId: string,
   message: string,
+  slot = 'autosave',
 ): Promise<MatthewResponse> {
   const path =
     `/api/case/${encodeURIComponent(caseId)}/matthew/chat` +
-    `?player_id=${encodeURIComponent(playerId)}&slot=autosave`;
+    `?slot=${encodeURIComponent(slot)}`;
   return apiCall('POST', path, MatthewResponseSchema, { message });
 }

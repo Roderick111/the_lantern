@@ -113,7 +113,7 @@ function convertConversationMessages(
 export function useInvestigation({
   caseId,
   locationId,
-  playerId = 'default',
+  playerId: _playerId = 'default',
   autoLoad = true,
   slot = 'autosave',
 }: UseInvestigationOptions): UseInvestigationReturn {
@@ -154,7 +154,7 @@ export function useInvestigation({
     try {
       // Always load from server
       const [loadedState, locationData] = await Promise.all([
-        loadState(caseId, playerId, slot, locationId),
+        loadState(caseId, slot, locationId),
         getLocation(caseId, locationId),
       ]);
 
@@ -185,12 +185,13 @@ export function useInvestigation({
       } else {
         setError('Failed to load investigation data');
       }
-      // Still create default state so the app is usable
-      setState(createDefaultState());
+      // Do not overwrite a corrupt or failed load with default state
+      setState(null);
+      setRestoredMessages(null);
     } finally {
       setLoading(false);
     }
-  }, [caseId, locationId, playerId, slot, createDefaultState]);
+  }, [caseId, locationId, slot, createDefaultState]);
 
   // Auto-load on mount and when locationId changes (Phase 5.2)
   // B3: respect skip flag set by applyLocationChange to cut roundtrips
@@ -215,7 +216,7 @@ export function useInvestigation({
     setError(null);
 
     try {
-      await saveGameState(caseId, state, slot, playerId);
+      await saveGameState(caseId, state, slot);
       return true;
     } catch {
       setError('Failed to save progress');
@@ -223,7 +224,7 @@ export function useInvestigation({
     } finally {
       setSaving(false);
     }
-  }, [state, slot, playerId, caseId]);
+  }, [state, slot, caseId]);
 
   // Load state handler
   const handleLoad = useCallback(async () => {

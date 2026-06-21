@@ -6,6 +6,7 @@ Contains secret detection, investigation helpers, and state loading utilities.
 import asyncio
 import logging
 import re
+import threading
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -418,6 +419,7 @@ def detect_secrets_in_response(
 _STATE_CACHE_MAX = 256
 _CacheKey = tuple[str, str, str]
 _state_cache: dict[_CacheKey, PlayerState] = {}
+_cache_lock = threading.Lock()
 
 
 def _cache_key(case_id: str, player_id: str, slot: str) -> _CacheKey:
@@ -426,11 +428,12 @@ def _cache_key(case_id: str, player_id: str, slot: str) -> _CacheKey:
 
 def _cache_put(key: _CacheKey, state: PlayerState) -> None:
     """Insert into bounded LRU cache, evicting oldest if full."""
-    _state_cache.pop(key, None)
-    if len(_state_cache) >= _STATE_CACHE_MAX:
-        oldest = next(iter(_state_cache))
-        del _state_cache[oldest]
-    _state_cache[key] = state
+    with _cache_lock:
+        _state_cache.pop(key, None)
+        if len(_state_cache) >= _STATE_CACHE_MAX:
+            oldest = next(iter(_state_cache))
+            del _state_cache[oldest]
+        _state_cache[key] = state
 
 
 def load_slot_state(
@@ -440,17 +443,35 @@ def load_slot_state(
 ) -> PlayerState | None:
     """Load player state — deep-copied from cache, or fresh from SQLite."""
     key = _cache_key(case_id, player_id, slot)
-    cached = _state_cache.get(key)
-    if cached is not None:
-        _state_cache.pop(key)
-        _state_cache[key] = cached
-        return cached.model_copy(deep=True)
+    with _cache_lock:
+        cached = _state_cache.get(key)
+        if cached is not None:
+            _state_cache.pop(key)
+            _state_cache[key] = cached
+            return cached.model_copy(deep=True)
 
     state = load_player_state(case_id, player_id, slot)
     if state is not None:
         _cache_put(key, state)
         return state.model_copy(deep=True)
     return None
+
+
+def clear_state_cache() -> None:
+    """Clear all in-memory cached player states (for tests and admin tooling)."""
+    with _cache_lock:
+        _state_cache.clear()
+
+
+def state_delta(state: PlayerState) -> dict[str, Any]:
+    """Lightweight state slice for SSE done payloads (avoids full model_dump)."""
+    return {
+        "case_id": state.case_id,
+        "current_location": state.current_location,
+        "discovered_evidence": list(state.discovered_evidence),
+        "visited_locations": list(state.visited_locations),
+        "save_revision": state.save_revision,
+    }
 
 
 def save_slot_state(
@@ -471,7 +492,8 @@ def invalidate_state_cache(
 ) -> None:
     """Remove a specific entry from the state cache."""
     key = _cache_key(case_id, player_id, slot)
-    _state_cache.pop(key, None)
+    with _cache_lock:
+        _state_cache.pop(key, None)
 
 
 def load_case_or_404(case_id: str) -> dict[str, Any]:
@@ -480,6 +502,8 @@ def load_case_or_404(case_id: str) -> dict[str, Any]:
         return load_case(case_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Case not found: {case_id}")
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 def load_or_create_state(

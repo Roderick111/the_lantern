@@ -7,10 +7,11 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
 from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
+from src.api.errors import llm_http_exception, llm_stream_error_payload, redact_secrets
 from src.api.helpers import (
     SSE_HEADERS,
     calculate_spell_outcome,
@@ -23,6 +24,7 @@ from src.api.helpers import (
     resolve_location,
     save_conversation_and_return,
     save_slot_state,
+    state_delta,
     stream_with_keepalive,
 )
 from src.api.llm_client import LLMClientError as ClaudeClientError
@@ -325,7 +327,7 @@ async def investigate_stream(
 ):
     """Stream narrator response via SSE."""
     t_start = time.monotonic()
-    ctx = _setup_investigation(body, player_id)
+    ctx = await asyncio.to_thread(_setup_investigation, body, player_id)
     logger.debug("TIMING setup: %.0fms", (time.monotonic() - t_start) * 1000)
 
     # Location change — short-circuit with canned narrative
@@ -400,12 +402,13 @@ async def investigate_stream(
                 body.case_id,
                 {
                     "endpoint": "investigate_stream",
-                    "error": str(e)[:200],
+                    "error": redact_secrets(str(e)),
                     "model": llm_config.model,
                 },
             )
             logger.error("LLM stream error in investigate: %s", e)
-            yield f"data: {json.dumps({'error': 'An error occurred while processing your request.'})}\n\n"
+            payload = llm_stream_error_payload(e)
+            yield f"data: {json.dumps(payload)}\n\n"
             return
 
         try:
@@ -439,9 +442,10 @@ async def investigate_stream(
             await asyncio.to_thread(save_slot_state, ctx.state, player_id, body.slot)
         except Exception:
             logger.error("Post-LLM processing failed in investigate", exc_info=True)
+            yield f"data: {json.dumps({'error': 'Progress may not be saved. Try again.', 'code': 'persist_failed'})}\n\n"
             return
 
-        yield f"data: {json.dumps({'done': True, 'new_evidence': new_evidence, 'evidence_names': evidence_names, 'updated_state': ctx.state.model_dump(mode='json'), 'meta': {'model': llm_config.model, 'latency_ms': llm_elapsed_ms, 'is_spell': is_spell, 'spell_id': spell_id}})}\n\n"
+        yield f"data: {json.dumps({'done': True, 'new_evidence': new_evidence, 'evidence_names': evidence_names, 'updated_state': state_delta(ctx.state), 'meta': {'model': llm_config.model, 'latency_ms': llm_elapsed_ms, 'is_spell': is_spell, 'spell_id': spell_id}})}\n\n"
 
     return StreamingResponse(
         event_generator(),
@@ -459,7 +463,7 @@ async def investigate(
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ) -> InvestigateResponse:
     """Process player investigation action (non-streaming, used by tests)."""
-    ctx = _setup_investigation(body, player_id)
+    ctx = await asyncio.to_thread(_setup_investigation, body, player_id)
 
     # Location change — short-circuit
     new_loc_id, new_loc_name, has_nav_intent = _detect_location_command(
@@ -561,8 +565,8 @@ async def investigate(
             api_key=llm_config.api_key,
             model=llm_config.model,
         )
-    except ClaudeClientError:
-        raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
+    except ClaudeClientError as e:
+        raise llm_http_exception(e) from e
 
     new_evidence, evidence_names = await _process_investigation_response(
         narrator_response,

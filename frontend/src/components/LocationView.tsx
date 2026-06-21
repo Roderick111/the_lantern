@@ -24,6 +24,7 @@ import type {
   LocationResponse,
   ConversationItem,
   Message,
+  SaveSlotName,
 } from "../types/investigation";
 
 // ============================================
@@ -121,7 +122,7 @@ interface LocationViewProps {
   /** Callback when backend detects a natural language location change */
   onLocationChanged?: (locationId: string) => void;
   /** Save slot (defaults to "autosave") */
-  slot?: string;
+  slot?: SaveSlotName;
 
 }
 
@@ -146,7 +147,7 @@ export function LocationView({
   onMatthewMessage,
   matthewLoading = false,
   showLocationHeader = true,
-  playerId = 'default',
+  playerId: _playerId = 'default',
   hintsEnabled = true,
   isFirstLocation = false,
   handbookTrigger,
@@ -415,7 +416,6 @@ export function LocationView({
           player_input: trimmedInput,
           case_id: caseId,
           location_id: locationId,
-          player_id: playerId,
           slot,
         },
         {
@@ -489,7 +489,6 @@ export function LocationView({
     inputValue,
     caseId,
     locationId,
-    playerId,
     onEvidenceDiscovered,
     onLocationChanged,
 

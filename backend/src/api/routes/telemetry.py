@@ -1,6 +1,5 @@
 """Telemetry endpoints: event logging and error reporting."""
 
-import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, Request

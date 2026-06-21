@@ -52,7 +52,6 @@ export interface UseMatthewChatReturn {
 
 export function useMatthewChat({
   caseId = 'case_001',
-  playerId = 'default',
 }: UseMatthewChatOptions = {}): UseMatthewChatReturn {
   const [loading, setLoading] = useState(false);
   const [lastMatthewMessage, setLastMatthewMessage] = useState<MatthewMessage | null>(null);
@@ -62,7 +61,7 @@ export function useMatthewChat({
       setLoading(true);
 
       try {
-        const response = await checkMatthewAutoComment(caseId, playerId, isCritical);
+        const response = await checkMatthewAutoComment(caseId, isCritical);
 
         if (!response) {
           return null;
@@ -88,7 +87,7 @@ export function useMatthewChat({
         setLoading(false);
       }
     },
-    [caseId, playerId]
+    [caseId]
   );
 
   const sendMessage = useCallback(
@@ -96,7 +95,7 @@ export function useMatthewChat({
       setLoading(true);
 
       try {
-        const response = await sendMatthewChat(caseId, playerId, message);
+        const response = await sendMatthewChat(caseId, message);
 
         const tone = response.mode.includes('helpful') ? 'helpful' : 'misleading';
 
@@ -118,7 +117,7 @@ export function useMatthewChat({
         setLoading(false);
       }
     },
-    [caseId, playerId]
+    [caseId]
   );
 
   return {

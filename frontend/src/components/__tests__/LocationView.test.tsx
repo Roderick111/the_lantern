@@ -239,7 +239,7 @@ describe('LocationView', () => {
         location_id: 'library',
         slot: 'autosave',
       });
-      expect(requestArg).toHaveProperty('player_id');
+      expect(requestArg).not.toHaveProperty('player_id');
     });
 
     it('accumulates streaming chunks into the narrator message', async () => {

@@ -140,12 +140,9 @@ def seed_state(
     state: PlayerState,
     slot: str = "autosave",
 ) -> None:
-    """Push state into the mocked persistence (`_mem_store` in conftest)."""
-    from tests.conftest import _mem_store
-
-    state_json = json.loads(json.dumps(state.model_dump(mode="json"), default=str))
-    slot_key = "autosave" if slot == "default" else slot
-    _mem_store[(player_id, case_id, slot_key)] = state_json
+    """Push state into the SQLite DB."""
+    from src.state.persistence import save_player_state
+    save_player_state(case_id, player_id, state, slot)
 
 
 def load_state_direct(
@@ -153,14 +150,9 @@ def load_state_direct(
     player_id: str,
     slot: str = "autosave",
 ) -> PlayerState | None:
-    """Read back from `_mem_store`, bypassing the in-memory state cache."""
-    from tests.conftest import _mem_store
-
-    slot_key = "autosave" if slot == "default" else slot
-    data = _mem_store.get((player_id, case_id, slot_key))
-    if data is None:
-        return None
-    return PlayerState(**data)
+    """Read back from SQLite DB, bypassing the in-memory state cache."""
+    from src.state.persistence import load_player_state
+    return load_player_state(case_id, player_id, slot)
 
 
 # ── Bypass-cache patches ─────────────────────────────────────────────────────
@@ -174,9 +166,8 @@ def load_state_direct(
 def bypass_state_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     """Make `load_slot_state` / `save_slot_state` skip the cache entirely.
 
-    Each call reads/writes through the mocked persistence layer (`_mem_store`),
-    so concurrent requests see fresh state on every read — surfacing the DB-side
-    last-write-wins race rather than the cache-shared-object race.
+    Each call reads/writes through real SQLite (`load_state_direct` / `seed_state`),
+    skipping the in-memory cache so concurrent requests see fresh DB state on every read.
     """
     from src.api import helpers
 

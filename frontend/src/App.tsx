@@ -265,7 +265,7 @@ function InvestigationView({
   const { state: verdictState, submitVerdict, confirmConfrontation } = verdictHook;
 
   const briefingHook = useBriefing({ caseId, playerId });
-  const { briefing, conversation: briefingConversation, selectedChoice: briefingSelectedChoice, choiceResponse: briefingChoiceResponse, loading: briefingLoading, selectChoice: selectBriefingChoice, resetChoice: resetBriefingChoice, askQuestion: askBriefingQuestion } = briefingHook;
+  const { briefing, loading: briefingLoading, error: briefingError } = briefingHook;
 
   const matthewHook = useMatthewChat({ caseId, playerId });
 
@@ -446,7 +446,7 @@ function InvestigationView({
       {modals.briefingModalOpen && briefing && (
         <Modal
           isOpen={modals.briefingModalOpen}
-          onClose={() => void actions.handleBriefingComplete()}
+          onClose={actions.handleBriefingDismiss}
           variant="terminal"
           hideHeader={true}
           frameless={true}
@@ -454,15 +454,10 @@ function InvestigationView({
         >
           <BriefingModal
             briefing={briefing}
-            conversation={briefingConversation}
-            selectedChoice={briefingSelectedChoice}
-            choiceResponse={briefingChoiceResponse}
-            onSelectChoice={selectBriefingChoice}
-            onResetChoice={resetBriefingChoice}
-            onAskQuestion={askBriefingQuestion}
             onComplete={() => void actions.handleBriefingComplete()}
             loading={briefingLoading}
-            onClose={() => void actions.handleBriefingComplete()}
+            error={briefingError}
+            onClose={actions.handleBriefingDismiss}
           />
         </Modal>
       )}

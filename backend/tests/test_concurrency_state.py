@@ -60,18 +60,10 @@ async def test_concurrent_investigate_same_player_evidence_loss() -> None:
     """Two parallel investigate-stream calls. Each LLM yields a different
     [EVIDENCE: ...] tag. After both finish, check what survived.
 
-    REGRESSION: current `_state_cache` returns the SAME PlayerState reference
-    to both concurrent requests. Both call `state.add_evidence(...)` on that
-    shared object before either saves. Then both save the same merged state
-    back. Result depends on interleave order. In the cache-mediated path we
-    expect BOTH evidence to land (because they mutate the shared list), but
-    if the cache is bypassed and reads go to DB, the last writer wins and one
-    evidence disappears.
-
-    Today the cache path is the default → both should land. Post-refactor
-    (request-scoped state, optimistic concurrency on DB) we want a
-    deterministic guarantee: both evidence MUST end up in the final state
-    irrespective of interleaving.
+    With request-scoped copies from `load_slot_state`, each request mutates its
+    own PlayerState. Saves are last-write-wins — exactly one evidence survives
+    in persistence. Responses must not leak the other request's evidence via
+    shared cache aliasing.
     """
     player_id = "race_invest_same"
     case_id = "case_001"
@@ -132,30 +124,20 @@ async def test_concurrent_investigate_same_player_evidence_loss() -> None:
     cached = cache_snap.get((player_id, case_id, "autosave"))
     cached_ev = set(cached.discovered_evidence) if cached else set()
 
-    # REGRESSION: shared cache object means both mutations stack onto the SAME
-    # PlayerState BEFORE either save runs. So both evidence end up persisted —
-    # even though semantically each request thought it was the only writer.
-    # This is "accidentally correct" — works because of mutation-aliasing, NOT
-    # because of any concurrency guarantee. Refactor must make this hold
-    # deterministically (not by accident).
-    assert "hidden_note" in persisted_ev | cached_ev
-    assert "frost_pattern" in persisted_ev | cached_ev
+    # Last-write-wins: one evidence wins in persistence (not both).
+    winner = persisted_ev | cached_ev
+    assert winner <= {"hidden_note", "frost_pattern"}
+    assert len(winner) == 1
 
-    # Stronger assertion: at least one of the two evidence MUST be in BOTH
-    # responses' updated_state. Capture the asymmetry if it shows up.
     body_a = resp_a.json()
     body_b = resp_b.json()
     state_a = set(body_a["updated_state"]["discovered_evidence"])
     state_b = set(body_b["updated_state"]["discovered_evidence"])
 
-    # REGRESSION (informational): because of the shared cache mutation, the
-    # SECOND response to finish typically reports BOTH evidence (it observed
-    # the first mutation through the shared reference). The FIRST response
-    # MIGHT only report its own. Post-refactor each response should report
-    # only its own request's new_evidence.
-    union_seen = state_a | state_b
-    assert "hidden_note" in union_seen
-    assert "frost_pattern" in union_seen
+    # Each response reports only its own evidence (no cross-request aliasing).
+    assert state_a <= {"hidden_note"}
+    assert state_b <= {"frost_pattern"}
+    assert len(state_a | state_b) == 2
 
 
 # ── 2. Concurrent investigate + interrogate ────────────────────────────────

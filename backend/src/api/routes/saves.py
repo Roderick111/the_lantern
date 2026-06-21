@@ -1,6 +1,5 @@
 """Save/load/delete game state endpoints."""
 
-import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -22,18 +21,46 @@ from src.api.schemas import (
     UpdateSettingsResponse,
 )
 from src.case_store.loader import get_location, list_locations, load_case
+from src.state.exceptions import StaleStateError
 from src.state.persistence import (
     delete_player_save,
     list_player_saves,
     load_player_state,
     migrate_old_save,
-    save_player_state,
 )
 from src.state.player_state import PlayerState
 from src.telemetry.logger import log_event
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _build_save_state(
+    case_id: str,
+    player_id: str,
+    slot: str,
+    request_state: dict,
+) -> PlayerState:
+    """Build authoritative save state — server-owned subgraphs preserved on autosave."""
+    if slot != "autosave":
+        autosave = load_player_state(case_id, player_id, "autosave")
+        if autosave:
+            return autosave
+        return PlayerState(**request_state)
+
+    existing = load_slot_state(case_id, player_id, slot)
+    if existing:
+        existing.current_location = request_state.get(
+            "current_location", existing.current_location
+        )
+        existing.discovered_evidence = request_state.get(
+            "discovered_evidence", existing.discovered_evidence
+        )
+        existing.visited_locations = request_state.get(
+            "visited_locations", existing.visited_locations
+        )
+        return existing
+    return PlayerState(**request_state)
 
 
 @router.post("/save", response_model=SaveResponse)
@@ -46,35 +73,19 @@ async def save_game(
     slot = request.slot
     try:
         case_id = request.state.get("case_id", "case_001")
-
-        # Named slots are snapshots — always copy full state from autosave
-        if slot != "autosave":
-            autosave = load_player_state(case_id, player_id, "autosave")
-            state = autosave if autosave else PlayerState(**request.state)
-        else:
-            existing = load_player_state(case_id, player_id, slot)
-            if existing:
-                state = existing
-                state.current_location = request.state.get(
-                    "current_location", state.current_location
-                )
-                state.discovered_evidence = request.state.get(
-                    "discovered_evidence", state.discovered_evidence
-                )
-                state.visited_locations = request.state.get(
-                    "visited_locations", state.visited_locations
-                )
-            else:
-                state = PlayerState(**request.state)
-
-        success = save_player_state(case_id, player_id, state, slot)
-        if not success:
-            return SaveResponse(success=False, message=f"Failed to save to slot {slot}", slot=slot)
+        state = _build_save_state(case_id, player_id, slot, request.state)
+        save_slot_state(state, player_id, slot)
 
         if slot != "autosave":
             await log_event("save_game", player_id, case_id, {"slot": slot})
 
         return SaveResponse(success=True, message=f"Saved to {slot}", slot=slot)
+    except StaleStateError as e:
+        return SaveResponse(
+            success=False,
+            message="Save conflict — reload and try again.",
+            slot=slot,
+        )
     except ValueError as e:
         return SaveResponse(success=False, message=str(e), slot=slot)
     except Exception as e:
@@ -135,7 +146,9 @@ async def load_game(
         # When loading from a named slot, copy to autosave so gameplay
         # continues seamlessly (all actions autosave to "autosave" slot)
         if slot != "autosave":
-            save_player_state(case_id, player_id, state, "autosave")
+            save_slot_state(state, player_id, "autosave")
+        else:
+            invalidate_state_cache(case_id, player_id, "autosave")
 
         if slot != "autosave":
             await log_event("load_game", player_id, case_id, {"slot": slot})

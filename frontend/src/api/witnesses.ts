@@ -21,23 +21,23 @@ import type { StreamCallbacks } from './base';
 
 export async function getWitnesses(
   caseId = 'case_001',
-  playerId = 'default',
+  slot = 'autosave',
 ): Promise<WitnessInfo[]> {
   const path =
     `/api/witnesses?case_id=${encodeURIComponent(caseId)}` +
-    `&player_id=${encodeURIComponent(playerId)}&slot=autosave`;
+    `&slot=${encodeURIComponent(slot)}`;
   return apiCall('GET', path, z.array(WitnessInfoSchema));
 }
 
 export async function getWitness(
   witnessId: string,
   caseId = 'case_001',
-  playerId = 'default',
+  slot = 'autosave',
 ): Promise<WitnessInfo> {
   const path =
     `/api/witness/${encodeURIComponent(witnessId)}` +
     `?case_id=${encodeURIComponent(caseId)}` +
-    `&player_id=${encodeURIComponent(playerId)}&slot=autosave`;
+    `&slot=${encodeURIComponent(slot)}`;
   return apiCall('GET', path, WitnessInfoSchema);
 }
 

@@ -112,7 +112,7 @@ async def test_byok_with_system_prompt_builds_messages(fresh_client):
             prompt="user-text",
             system="system-text",
             api_key="k",
-            model="m",
+            model="user/model",
         )
 
     messages = fake.calls[0]["messages"]

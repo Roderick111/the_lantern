@@ -71,10 +71,16 @@ def mint_token(player_id: str) -> str:
     return f"{payload}.{sig}"
 
 
-def verify_token(token: str) -> str | None:
+TOKEN_REFRESH_GRACE_SECONDS = 7 * 24 * 3600  # 7 days after expiry
+
+
+def verify_token(token: str, *, allow_expired: bool = False) -> str | None:
     """Verify a signed token. Returns player_id if valid and not expired, None otherwise.
 
     Supports legacy (player_id.sig) and v1 (v1.b64.sig) formats.
+
+    When ``allow_expired`` is True, v1 tokens with valid HMAC but past ``exp`` are
+    accepted if within ``TOKEN_REFRESH_GRACE_SECONDS`` (session refresh only).
     """
     if not token or "." not in token:
         return None
@@ -103,8 +109,11 @@ def verify_token(token: str) -> str | None:
         if not player_id:
             return None
         exp = claims.get("exp")
-        if exp is not None and int(time.time()) > int(exp):
-            return None  # expired
+        if exp is not None:
+            now = int(time.time())
+            if now > int(exp):
+                if not allow_expired or now > int(exp) + TOKEN_REFRESH_GRACE_SECONDS:
+                    return None
         return player_id
     except Exception:
         return None

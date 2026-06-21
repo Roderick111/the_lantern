@@ -301,93 +301,81 @@ class TestDeleteAutosaveBehavior:
 
 
 class TestCorruptSaveHandling:
-    """# REGRESSION — corrupt save loads as None, upper layer overwrites silently.
-
-    Per `load_player_state` exception handler: any `Exception` (including
-    JSONDecodeError from a corrupt row) is caught and returns None. The
-    upper layer treats None as "no save" and overwrites with a fresh state.
-    """
+    """Corrupt save rows surface as CorruptSaveError → HTTP 400 on load route."""
 
     @pytest.mark.asyncio
-    async def test_corrupt_save_via_route_surfaces_error(
+    async def test_corrupt_save_invalid_schema_via_route_returns_400(
         self, client: AsyncClient
     ) -> None:
-        """# REGRESSION: corrupted save row → load route returns 400.
+        """Schema-invalid JSON dict → load route returns 400."""
+        import json
 
-        Inject corruption via conftest's _mem_store (mock for the SQLite
-        layer). `_mock_load` calls `PlayerState(**bad_dict)` which raises
-        pydantic.ValidationError. ValidationError is a ValueError subclass
-        and the load_game route handler maps ValueError → 400.
-
-        Captured behavior:
-        - Route SURFACES the error (400) instead of returning null. The
-          upper-layer caller (frontend) sees a 4xx and won't silently
-          overwrite the corrupted save.
-
-        # REGRESSION marker: production `load_player_state` (persistence.py
-        :161-163) DOES silently return None for any non-ValueError exception,
-        which IS the silent-overwrite hazard. The mock layer here doesn't
-        replicate that swallow; a deeper integration test against real
-        SQLite would. Flag for the refactor to either:
-        (a) propagate corruption errors uniformly (replace `except Exception`
-            with logged-and-raise), or
-        (b) decide silent None is acceptable but ensure the upper layer
-            doesn't auto-write a fresh state over it.
-        """
-        from tests.conftest import _mem_store
+        from src.state.persistence import _get_conn
 
         player_id = "test_corrupt_save"
 
-        # Jam a malformed dict into the store, bypassing save path.
-        _mem_store[(player_id, "case_001", "autosave")] = {"garbage": True, "x": 42}
+        conn = _get_conn()
+        conn.execute(
+            "INSERT INTO saves (player_id, case_id, slot, state, updated_at) VALUES (?, ?, ?, ?, ?)",
+            (
+                player_id,
+                "case_001",
+                "autosave",
+                json.dumps({"garbage": True, "x": 42}),
+                "2026-06-20T12:00:00",
+            ),
+        )
+        conn.commit()
 
         r = await client.get(
             "/api/load/case_001",
             params={"player_id": player_id, "slot": "autosave"},
         )
 
-        # Today: ValidationError from PlayerState(**bad) → ValueError →
-        # load_game route → 400.
         assert r.status_code == 400, (
             f"Corrupt save should produce 400, got {r.status_code}: {r.text}"
         )
 
-    def test_persistence_load_swallows_unknown_exceptions(self) -> None:
-        """# REGRESSION: load_player_state swallows non-ValueError exceptions.
+    @pytest.mark.asyncio
+    async def test_corrupt_save_invalid_json_via_route_returns_400(
+        self, client: AsyncClient
+    ) -> None:
+        """Non-JSON state TEXT → load route returns 400."""
+        from src.state.persistence import _get_conn
 
-        This is the silent-overwrite hazard from the spec. We construct a
-        FakeConn whose .execute() raises a non-ValueError and call the
-        REAL load_player_state body via inspect.
+        player_id = "test_corrupt_json"
 
-        We avoid importlib.reload() (causes cross-test pollution by
-        re-binding module globals that other tests reference). Instead we
-        reach into the original function via inspect.getsource — too
-        fragile. Pragmatic alternative: read the function source once and
-        confirm by inspection that the except clause swallows.
-        """
-        from pathlib import Path
-
-        from src.state import persistence
-
-        # monkeypatch swaps module attrs in-place; read the source file
-        # directly to inspect the real implementation.
-        source = Path(persistence.__file__).read_text()
-
-        # REGRESSION: confirm the swallow exists. Two-line signature:
-        #     except Exception as e:
-        #         logger.error(f"Load failed: {e}")
-        #         return None
-        load_fn_idx = source.index("def load_player_state")
-        load_fn_body = source[load_fn_idx : load_fn_idx + 2000]
-
-        assert "except Exception" in load_fn_body, (
-            "load_player_state lost its broad exception handler"
+        conn = _get_conn()
+        conn.execute(
+            "INSERT INTO saves (player_id, case_id, slot, state, updated_at) VALUES (?, ?, ?, ?, ?)",
+            (player_id, "case_001", "autosave", "not-valid-json{{{", "2026-06-20T12:00:00"),
         )
-        assert "return None" in load_fn_body, (
-            "load_player_state lost its silent-None return"
+        conn.commit()
+
+        r = await client.get(
+            "/api/load/case_001",
+            params={"player_id": player_id, "slot": "autosave"},
         )
-        # REGRESSION marker: after refactor, this broad catch should become
-        # `except ValueError: raise` + a typed CorruptSaveError for the rest.
+
+        assert r.status_code == 400
+
+    def test_load_player_state_raises_corrupt_save_error_for_invalid_json(self) -> None:
+        """load_player_state raises CorruptSaveError for invalid JSON blobs."""
+        import json
+
+        from src.state.persistence import CorruptSaveError, _get_conn, load_player_state
+
+        player_id = "test_corrupt_persistence"
+
+        conn = _get_conn()
+        conn.execute(
+            "INSERT INTO saves (player_id, case_id, slot, state, updated_at) VALUES (?, ?, ?, ?, ?)",
+            (player_id, "case_001", "autosave", "not-json", "2026-06-20T12:00:00"),
+        )
+        conn.commit()
+
+        with pytest.raises(CorruptSaveError, match="invalid JSON"):
+            load_player_state("case_001", player_id, "autosave")
 
 
 # ============================================================================
@@ -433,17 +421,7 @@ class TestValidSlotsEnforcement:
 
     @pytest.mark.asyncio
     async def test_unknown_slot_on_save_via_route(self, client: AsyncClient) -> None:
-        """# REGRESSION: route-level VALID_SLOTS guard is bypassed by the conftest mock.
-
-        SaveRequest.slot regex is `^[a-zA-Z0-9_]+$` so "hacker_slot_99"
-        passes Pydantic. In production, save_player_state then raises
-        ValueError ("Invalid slot"), which the route catches and turns into
-        SaveResponse(success=False).
-
-        Under the test mock (conftest._mock_save), there is NO VALID_SLOTS
-        check — the mock just stores. So the route returns success=True
-        for an invalid slot during tests. Document this gap.
-        """
+        """Unknown slot names are rejected at the schema layer via SaveSlotName Literal."""
         r = await client.post(
             "/api/save",
             json={
@@ -452,12 +430,7 @@ class TestValidSlotsEnforcement:
                 "slot": "hacker_slot_99",
             },
         )
-        # REGRESSION: under the mock layer, an unknown slot succeeds.
-        # In production the route would return success=False.
-        assert r.status_code == 200
-        # We don't assert on success= here because behavior diverges between
-        # mock and prod. The next test covers the persistence-layer guard
-        # directly.
+        assert r.status_code == 422
 
     def test_unknown_slot_rejected_at_persistence_layer(self) -> None:
         """VALID_SLOTS guard exists in persistence.py source.

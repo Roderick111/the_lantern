@@ -69,7 +69,7 @@ export interface UseGameActionsParams {
 
 export function useGameActions({
   caseId,
-  playerId,
+  playerId: _playerId,
   modals,
   toast,
   investigation,
@@ -118,6 +118,10 @@ export function useGameActions({
   }, []);
 
   // ---- Briefing ----
+  const handleBriefingDismiss = useCallback(() => {
+    modals.setBriefingModalOpen(false);
+  }, [modals]);
+
   const handleBriefingComplete = useCallback(async () => {
     await briefing.markComplete();
     modals.setBriefingModalOpen(false);
@@ -184,7 +188,7 @@ export function useGameActions({
       setEvidenceLoading(true);
       setEvidenceError(null);
       try {
-        const details = await getEvidenceDetails(evidenceId, caseId, playerId);
+        const details = await getEvidenceDetails(evidenceId, caseId);
         setSelectedEvidence(details);
       } catch (err) {
         const msg =
@@ -194,7 +198,7 @@ export function useGameActions({
         setEvidenceLoading(false);
       }
     },
-    [caseId, playerId],
+    [caseId],
   );
 
   const handleEvidenceModalClose = useCallback(() => {
@@ -317,6 +321,7 @@ export function useGameActions({
     hintsEnabled,
     handleHintsChange,
     // Handlers
+    handleBriefingDismiss,
     handleBriefingComplete,
     handleEvidenceDiscoveredWithMatthew,
     handleMatthewMessage,

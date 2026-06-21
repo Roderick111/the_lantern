@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
+from src.api.errors import llm_http_exception, llm_stream_error_payload, redact_secrets
 from src.api.helpers import (
     SSE_HEADERS,
     detect_secrets_in_response,
@@ -18,9 +19,9 @@ from src.api.helpers import (
     load_or_create_state,
     load_slot_state,
     save_slot_state,
+    state_delta,
     stream_with_keepalive,
 )
-from src.api.llm_client import LLMClientError as ClaudeClientError
 from src.api.llm_client import get_client
 from src.api.rate_limit import LLM_RATE, limiter
 from src.api.routes.mnemonic_delving import handle_programmatic_mnemonic_delving
@@ -351,6 +352,30 @@ async def _finalize_witness_response(
     return trust_delta, clean_response, secrets_revealed, secret_texts
 
 
+def _setup_interrogate_stream(
+    body: InterrogateRequest,
+    player_id: str,
+) -> tuple[dict[str, Any], dict[str, Any], PlayerState, Any, WitnessPrep]:
+    """Sync pre-LLM setup for interrogation stream (run via asyncio.to_thread)."""
+    case_data = load_case_or_404(body.case_id)
+    witness, state, witness_state = _load_witness_context(body, case_data, player_id)
+    prep = _prepare_interrogation(body, case_data, witness, state, witness_state)
+    return case_data, witness, state, witness_state, prep
+
+
+def _setup_present_evidence_stream(
+    body: PresentEvidenceRequest,
+    player_id: str,
+) -> tuple[dict[str, Any], dict[str, Any], PlayerState, Any, WitnessPrep]:
+    """Sync pre-LLM setup for evidence presentation stream (run via asyncio.to_thread)."""
+    case_data = load_case_or_404(body.case_id)
+    witness, state, witness_state = _load_witness_context(body, case_data, player_id)
+    if body.evidence_id not in state.discovered_evidence:
+        raise HTTPException(status_code=400, detail=f"Evidence not discovered: {body.evidence_id}")
+    prep = _prepare_evidence_presentation(body, case_data, witness, witness_state, state=state)
+    return case_data, witness, state, witness_state, prep
+
+
 def _load_witness_context(
     body: InterrogateRequest | PresentEvidenceRequest,
     case_data: dict[str, Any],
@@ -422,10 +447,14 @@ def _stream_witness_llm(
                 "llm_error",
                 player_id,
                 case_id,
-                {"endpoint": endpoint_name, "error": str(e)[:200], "model": llm_config.model},
+                {
+                    "endpoint": endpoint_name,
+                    "error": redact_secrets(str(e)),
+                    "model": llm_config.model,
+                },
             )
             logger.error("LLM stream error in %s: %s", endpoint_name, e)
-            yield f"data: {json.dumps({'error': 'An error occurred while processing your request.'})}\n\n"
+            yield f"data: {json.dumps(llm_stream_error_payload(e))}\n\n"
             return
 
         try:
@@ -443,12 +472,12 @@ def _stream_witness_llm(
                 prep,
                 use_natural_warming=use_natural_warming,
             )
-        except Exception as e:
+        except Exception:
             logger.error("Post-LLM processing failed in %s", endpoint_name, exc_info=True)
-            yield f"data: {json.dumps({'error': 'persist_failed', 'message': str(e)[:200]})}\n\n"
+            yield f"data: {json.dumps({'error': 'Progress may not be saved. Try again.', 'code': 'persist_failed'})}\n\n"
             return
 
-        yield f"data: {json.dumps({'done': True, 'trust': witness_state.trust, 'trust_delta': trust_delta, 'secrets_revealed': secrets_revealed, 'updated_state': state.model_dump(mode='json'), 'meta': {'model': llm_config.model, 'latency_ms': llm_elapsed_ms}})}\n\n"
+        yield f"data: {json.dumps({'done': True, 'trust': witness_state.trust, 'trust_delta': trust_delta, 'secrets_revealed': secrets_revealed, 'updated_state': state_delta(state), 'meta': {'model': llm_config.model, 'latency_ms': llm_elapsed_ms}})}\n\n"
 
     return StreamingResponse(
         event_generator(),
@@ -469,11 +498,11 @@ async def interrogate_witness_stream(
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ):
     """Stream witness interrogation response via SSE."""
-    # player_id from dep, removed from body
-    case_data = load_case_or_404(body.case_id)
-    witness, state, witness_state = _load_witness_context(body, case_data, player_id)
-
-    prep = _prepare_interrogation(body, case_data, witness, state, witness_state)
+    _, witness, state, witness_state, prep = await asyncio.to_thread(
+        _setup_interrogate_stream,
+        body,
+        player_id,
+    )
     if prep.mnemonic_delving_redirect:
         # Mnemonic Delving has its own non-streaming handler; wrap as single SSE event
         result = await handle_programmatic_mnemonic_delving(
@@ -534,8 +563,8 @@ async def interrogate_witness(
             api_key=llm_config.api_key,
             model=llm_config.model,
         )
-    except ClaudeClientError:
-        raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
+    except Exception as e:
+        raise llm_http_exception(e) from e
 
     trust_delta, clean_response, secrets_revealed, secret_texts = await _finalize_witness_response(
         response,
@@ -571,14 +600,11 @@ async def present_evidence_stream(
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ):
     """Stream evidence presentation response via SSE."""
-    # player_id from dep, removed from body
-    case_data = load_case_or_404(body.case_id)
-    witness, state, witness_state = _load_witness_context(body, case_data, player_id)
-
-    if body.evidence_id not in state.discovered_evidence:
-        raise HTTPException(status_code=400, detail=f"Evidence not discovered: {body.evidence_id}")
-
-    prep = _prepare_evidence_presentation(body, case_data, witness, witness_state, state=state)
+    _, witness, state, witness_state, prep = await asyncio.to_thread(
+        _setup_present_evidence_stream,
+        body,
+        player_id,
+    )
 
     return _stream_witness_llm(
         prep,
@@ -621,8 +647,8 @@ async def present_evidence(
             api_key=llm_config.api_key,
             model=llm_config.model,
         )
-    except ClaudeClientError:
-        raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
+    except Exception as e:
+        raise llm_http_exception(e) from e
 
     trust_delta, clean_response, secrets_revealed, secret_texts = await _finalize_witness_response(
         response,

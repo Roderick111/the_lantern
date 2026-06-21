@@ -396,17 +396,33 @@ async def _log_llm_metrics(
 
 # Module-level client instance (lazy initialization)
 _client: LLMClient | None = None
+_client_override: LLMClient | None = None
 
 
 def get_client() -> LLMClient:
     """Get singleton LLM client instance."""
     global _client
+    if _client_override is not None:
+        return _client_override
     if _client is None:
         try:
             _client = LLMClient()
         except ValueError as e:
             raise LLMClientError(str(e)) from e
     return _client
+
+
+def reset_llm_client() -> None:
+    """Reset singleton and test override (for pytest isolation)."""
+    global _client, _client_override
+    _client = None
+    _client_override = None
+
+
+def set_llm_client_override(client: LLMClient | None) -> None:
+    """Inject a test double without patching multiple import sites."""
+    global _client_override
+    _client_override = client
 
 
 async def get_response(prompt: str, system: str | None = None) -> str:

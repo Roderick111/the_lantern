@@ -16,18 +16,16 @@ import {
   SaveSlotsListResponseSchema,
   DeleteSlotResponseSchema,
 } from './schemas';
-import { apiCall, apiCallNullable } from './base';
+import { ApiError, apiCall, apiCallNullable } from './base';
 
 export async function loadState(
   caseId: string,
-  playerId = 'default',
   slot = 'autosave',
   locationId?: string,
 ): Promise<LoadResponse | null> {
   let path =
     `/api/load/${encodeURIComponent(caseId)}` +
-    `?player_id=${encodeURIComponent(playerId)}` +
-    `&slot=${encodeURIComponent(slot)}`;
+    `?slot=${encodeURIComponent(slot)}`;
   if (locationId) {
     path += `&location_id=${encodeURIComponent(locationId)}`;
   }
@@ -40,31 +38,30 @@ export async function saveGameState(
   slot = 'autosave',
   _playerId = 'default',
 ): Promise<SaveSlotResponse> {
-  return apiCall('POST', '/api/save', SaveSlotResponseSchema, {
+  const result = await apiCall('POST', '/api/save', SaveSlotResponseSchema, {
     state: state,
     slot: slot,
   });
+  if (!result.success) {
+    throw new ApiError(200, result.message ?? 'Failed to save game state');
+  }
+  return result;
 }
 
 export async function loadGameState(
   caseId: string,
   slot = 'autosave',
-  playerId = 'default',
 ): Promise<LoadResponse | null> {
   const path =
     `/api/load/${encodeURIComponent(caseId)}` +
-    `?player_id=${encodeURIComponent(playerId)}` +
-    `&slot=${encodeURIComponent(slot)}`;
+    `?slot=${encodeURIComponent(slot)}`;
   return apiCallNullable('GET', path, LoadResponseSchema);
 }
 
 export async function listSaveSlots(
   caseId: string,
-  playerId = 'default',
 ): Promise<SaveSlotMetadata[]> {
-  const path =
-    `/api/case/${encodeURIComponent(caseId)}/saves/list` +
-    `?player_id=${encodeURIComponent(playerId)}`;
+  const path = `/api/case/${encodeURIComponent(caseId)}/saves/list`;
   const data = await apiCall('GET', path, SaveSlotsListResponseSchema);
   return data.saves;
 }
@@ -72,12 +69,9 @@ export async function listSaveSlots(
 export async function deleteSaveSlot(
   caseId: string,
   slot: string,
-  playerId = 'default',
 ): Promise<DeleteSlotResponse> {
   const path =
     `/api/case/${encodeURIComponent(caseId)}` +
-    `/saves/${encodeURIComponent(slot)}` +
-    `?player_id=${encodeURIComponent(playerId)}`;
-  // DELETE with no body — use apiCall but override: no LLM headers needed
+    `/saves/${encodeURIComponent(slot)}`;
   return apiCall('DELETE', path, DeleteSlotResponseSchema);
 }

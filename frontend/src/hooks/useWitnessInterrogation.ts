@@ -209,7 +209,6 @@ function witnessReducer(
 
 export function useWitnessInterrogation({
   caseId = 'case_001',
-  playerId = 'default',
   autoLoad = true,
 }: UseWitnessInterrogationOptions = {}): UseWitnessInterrogationReturn {
   const [state, dispatch] = useReducer(witnessReducer, initialState);
@@ -233,7 +232,7 @@ export function useWitnessInterrogation({
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
-      const witnesses = await getWitnesses(caseId, playerId);
+      const witnesses = await getWitnesses(caseId);
       dispatch({ type: 'SET_WITNESSES', payload: witnesses });
     } catch (err) {
       dispatch({
@@ -243,7 +242,7 @@ export function useWitnessInterrogation({
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [caseId, playerId]);
+  }, [caseId]);
 
   // Auto-load on mount
   useEffect(() => {
@@ -263,7 +262,7 @@ export function useWitnessInterrogation({
       dispatch({ type: 'SET_ERROR', payload: null });
 
       try {
-        const witness = await getWitness(witnessId, caseId, playerId);
+        const witness = await getWitness(witnessId, caseId);
         dispatch({ type: 'SELECT_WITNESS', payload: witness });
       } catch (err) {
         dispatch({
@@ -274,7 +273,7 @@ export function useWitnessInterrogation({
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     },
-    [caseId, playerId]
+    [caseId]
   );
 
   // Ask question to current witness
@@ -308,7 +307,6 @@ export function useWitnessInterrogation({
             witness_id: state.currentWitness.id,
             question,
             case_id: caseId,
-            player_id: playerId,
             slot: 'autosave',
           },
           {
@@ -356,7 +354,7 @@ export function useWitnessInterrogation({
         }
       }
     },
-    [state.currentWitness, caseId, playerId]
+    [state.currentWitness, caseId]
   );
 
   // Present evidence to current witness (streaming)
@@ -390,7 +388,6 @@ export function useWitnessInterrogation({
             witness_id: state.currentWitness.id,
             evidence_id: evidenceId,
             case_id: caseId,
-            player_id: playerId,
             slot: 'autosave',
           },
           {
@@ -438,7 +435,7 @@ export function useWitnessInterrogation({
         }
       }
     },
-    [state.currentWitness, caseId, playerId]
+    [state.currentWitness, caseId]
   );
 
   // Clear conversation

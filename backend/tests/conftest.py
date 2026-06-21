@@ -1,16 +1,15 @@
 """Pytest configuration and fixtures."""
 
-import json
 import os
 import sys
 from pathlib import Path
-from typing import Any
 
 import pytest
 from starlette.requests import Request
 
 # Set test DB path BEFORE any imports that may touch persistence
-os.environ.setdefault("LANTERN_DB_PATH", "saves/lantern_test.db")
+_worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
+os.environ.setdefault("LANTERN_DB_PATH", f"saves/lantern_test_{_worker}.db")
 
 # PLAYER_TOKEN for tests
 os.environ.setdefault(
@@ -18,85 +17,19 @@ os.environ.setdefault(
     "test-secret-for-pytest-minimum-thirty-two-characters-long",
 )
 
-from src.state.player_state import PlayerState
-
 # Add src to path for imports
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
 
-# In-memory store keyed by (player_id, case_id, slot)
-_mem_store: dict[tuple[str, str, str], dict[str, Any]] = {}
+@pytest.fixture(autouse=True)
+def reset_llm_singleton():
+    """Isolate LLM client between tests."""
+    from src.api.llm_client import reset_llm_client
 
-
-def _normalize_slot(slot: str) -> str:
-    return "autosave" if slot == "default" else slot
-
-
-def _mock_save(
-    case_id: str, player_id: str, state: PlayerState, slot: str = "default"
-) -> bool:
-    slot = _normalize_slot(slot)
-    state_json = json.loads(json.dumps(state.model_dump(mode="json"), default=str))
-    _mem_store[(player_id, case_id, slot)] = state_json
-    return True
-
-
-def _mock_load(
-    case_id: str, player_id: str, slot: str = "default"
-) -> PlayerState | None:
-    slot = _normalize_slot(slot)
-    data = _mem_store.get((player_id, case_id, slot))
-    if data is None:
-        return None
-    return PlayerState(**data)
-
-
-def _mock_delete(case_id: str, player_id: str, slot: str) -> bool:
-    slot = _normalize_slot(slot)
-    key = (player_id, case_id, slot)
-    if key in _mem_store:
-        del _mem_store[key]
-        return True
-    return False
-
-
-def _mock_list(case_id: str, player_id: str) -> list[dict[str, Any]]:
-    saves = []
-    for (pid, cid, s), data in _mem_store.items():
-        if pid == player_id and cid == case_id:
-            saves.append({"slot": s, "case_id": cid, "timestamp": "test"})
-    return saves
-
-
-def _mock_get_metadata(
-    case_id: str, player_id: str, slot: str
-) -> dict[str, Any] | None:
-    slot = _normalize_slot(slot)
-    data = _mem_store.get((player_id, case_id, slot))
-    if data is None:
-        return None
-    return {
-        "slot": slot,
-        "case_id": case_id,
-        "timestamp": "test",
-        "location": data.get("current_location", "unknown"),
-        "evidence_count": len(data.get("discovered_evidence", [])),
-        "witnesses_interrogated": 0,
-        "progress_percent": 0,
-        "version": data.get("version", "1.0.0"),
-    }
-
-
-def _mock_init_db() -> None:
-    pass
-
-
-# DISABLED: global mock_persistence removed for real SQLite in tests (Wave 1)
-# @pytest.fixture(autouse=True)
-# def mock_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
-#     """Replace PostgreSQL persistence with in-memory dict for all tests."""
-#     ... (disabled - see git history or prior)
+    reset_llm_client()
+    yield
+    reset_llm_client()
 
 
 @pytest.fixture(autouse=True)
@@ -105,11 +38,13 @@ def clean_test_db():
 
     Tests now hit real SQLite at LANTERN_DB_PATH.
     """
-    from src.state.persistence import init_db, _get_conn
+    from src.api.helpers import clear_state_cache
+    from src.state.persistence import _get_conn, init_db
 
     init_db()
+    clear_state_cache()
     yield
-    # truncate between tests
+    clear_state_cache()
     conn = _get_conn()
     conn.execute("DELETE FROM saves")
     conn.commit()

@@ -12,14 +12,19 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useInvestigation } from '../useInvestigation';
 import * as client from '../../api/client';
+import { ApiError } from '../../api/base';
 import type { LoadResponse, LocationResponse } from '../../types/investigation';
 
-// Mock the API client
-vi.mock('../../api/client', () => ({
-  loadState: vi.fn(),
-  saveGameState: vi.fn(),
-  getLocation: vi.fn(),
-}));
+// Mock the API client (preserve isApiError from barrel)
+vi.mock('../../api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../api/client')>();
+  return {
+    ...actual,
+    loadState: vi.fn(),
+    saveGameState: vi.fn(),
+    getLocation: vi.fn(),
+  };
+});
 
 describe('useInvestigation Hook', () => {
   const mockLocation: LocationResponse = {
@@ -69,6 +74,24 @@ describe('useInvestigation Hook', () => {
         narrator_verbosity: 'storyteller',
         language: 'en',
       });
+      expect(result.current.restoredMessages).toBeNull();
+    });
+
+    it('does not create default state when load fails with an error', async () => {
+      vi.mocked(client.loadState).mockRejectedValue(
+        new ApiError(400, 'Corrupted save in slot autosave: invalid JSON'),
+      );
+
+      const { result } = renderHook(() =>
+        useInvestigation({ caseId: 'case_001', locationId: 'library' }),
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.state).toBeNull();
+      expect(result.current.error).toContain('Corrupted save');
       expect(result.current.restoredMessages).toBeNull();
     });
   });

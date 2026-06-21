@@ -70,7 +70,6 @@ export interface UseBriefingReturn {
 
 export function useBriefing({
   caseId = 'case_001',
-  playerId = 'default',
 }: UseBriefingOptions = {}): UseBriefingReturn {
   // State
   const [briefing, setBriefing] = useState<BriefingContent | null>(null);
@@ -88,7 +87,7 @@ export function useBriefing({
     setError(null);
 
     try {
-      const content = await getBriefingAPI(caseId, playerId);
+      const content = await getBriefingAPI(caseId);
       setBriefing(content);
       // Sync local state with backend-persisted completion status
       if (content.briefing_completed) {
@@ -101,7 +100,7 @@ export function useBriefing({
     } finally {
       setLoading(false);
     }
-  }, [caseId, playerId]);
+  }, [caseId]);
 
   // Select a teaching question choice
   const selectChoice = useCallback(
@@ -137,7 +136,7 @@ export function useBriefing({
       setError(null);
 
       try {
-        const response = await askBriefingQuestionAPI(caseId, question, playerId);
+        const response = await askBriefingQuestionAPI(caseId, question);
 
         // Add to conversation history
         setConversation((prev) => [...prev, { question, answer: response.answer }]);
@@ -147,7 +146,7 @@ export function useBriefing({
         setLoading(false);
       }
     },
-    [caseId, playerId]
+    [caseId]
   );
 
   // Mark briefing as complete
@@ -156,7 +155,7 @@ export function useBriefing({
     setError(null);
 
     try {
-      const response = await markBriefingCompleteAPI(caseId, playerId);
+      const response = await markBriefingCompleteAPI(caseId);
       if (response.success) {
         setCompleted(true);
       }
@@ -165,7 +164,7 @@ export function useBriefing({
     } finally {
       setLoading(false);
     }
-  }, [caseId, playerId]);
+  }, [caseId]);
 
   // Clear error
   const clearError = useCallback(() => {

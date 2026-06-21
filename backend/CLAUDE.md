@@ -4,7 +4,7 @@
 
 ## Stack
 
-Python 3.13 · FastAPI · LiteLLM · Pydantic v2 · PostgreSQL (Neon) · slowapi
+Python 3.13 · FastAPI · LiteLLM · Pydantic v2 · SQLite · slowapi
 
 **Run:** `cd backend && uv run uvicorn src.main:app --reload` (port 8001)
 **Test:** `uv run pytest` · **Lint:** `uv run ruff check .` · **Types:** `uv run mypy src/`
@@ -62,7 +62,7 @@ src/
 │
 ├── state/
 │   ├── player_state.py       # PlayerState dataclass — conversation, evidence, witnesses, trust
-│   └── persistence.py        # PostgreSQL JSONB storage — 4 slots (autosave + 3 manual), per-player UUID
+│   └── persistence.py        # SQLite storage — 4 slots (autosave + 3 manual), per-player UUID
 │
 ├── utils/
 │   ├── evidence.py           # Evidence extraction from LLM text, dedup, hallucination prevention
@@ -86,7 +86,7 @@ tests/
 ├── test_narrator.py          # Narrator context builder
 ├── test_witness.py           # Witness interrogation + trust
 ├── test_evidence.py          # Evidence extraction + dedup
-├── test_persistence.py       # Save/load PostgreSQL
+├── test_persistence.py       # Save/load SQLite
 ├── test_briefing.py          # Briefing Q&A
 ├── test_mentor.py            # Graves feedback
 ├── test_verdict_evaluator.py # Verdict scoring
@@ -108,7 +108,7 @@ tests/
 
 **Evidence discovery** — YAML-driven. LLM narration includes `[EVIDENCE: evidence_id]` tags. `utils/evidence.py` extracts and deduplicates them against player state. Case YAML defines all valid evidence IDs + discovery guidance.
 
-**State management** — `PlayerState` is loaded from PostgreSQL at request start, mutated in the route handler, then saved back. Always pass `player_id` + `slot` from frontend. `"default"` slot maps to `"autosave"`.
+**State management** — `PlayerState` is loaded from SQLite (with bounded LRU cache) at request start, mutated in the route handler, then saved back. Always pass `player_id` + `slot` from frontend. `"default"` slot maps to `"autosave"`.
 
 **Spell detection** — Three-tier priority: exact match → fuzzy match (rapidfuzz) → semantic phrases. Defined in `spells/definitions.py`, detected in `context/spell_detection.py`.
 
@@ -123,7 +123,7 @@ tests/
 ## Env Config (.env)
 
 ```
-DATABASE_URL=              # Neon PostgreSQL connection string
+LANTERN_DB_PATH=           # Optional SQLite path (default: saves/lantern.db or /app/saves/lantern.db in Docker)
 DEFAULT_LLM_PROVIDER=      # anthropic | openrouter | openai | google
 DEFAULT_MODEL=             # e.g. openrouter/x-ai/grok-4.1-fast
 FALLBACK_MODEL=            # e.g. openrouter/google/gemma-4-26b-a4b-it

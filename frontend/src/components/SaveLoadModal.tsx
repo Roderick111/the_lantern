@@ -232,7 +232,7 @@ export function SaveLoadModal({
    */
   const handleExport = async (slotId: string) => {
     try {
-      const state = await loadGameState(caseId, slotId, playerId);
+      const state = await loadGameState(caseId, slotId);
       const data = JSON.stringify(state, null, 2);
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -256,7 +256,7 @@ export function SaveLoadModal({
     setDeleting(true);
     setImportStatus(null);
     try {
-      await deleteSaveSlot(caseId, slotId, playerId);
+      await deleteSaveSlot(caseId, slotId);
       setImportStatus(`Deleted ${slotId.replace('_', ' ')}`);
       onImportSuccess?.();
     } catch {
@@ -332,8 +332,10 @@ export function SaveLoadModal({
             <Dialog.Title className={`text-sm font-bold ${theme.colors.text.primary} ${theme.fonts.ui} uppercase tracking-wider`}>
               {theme.symbols.block} {mode === 'save' ? 'SAVE GAME' : 'LOAD GAME'}
             </Dialog.Title>
-            <Dialog.Description className="sr-only">
-              {mode === 'save' ? 'Save your progress to a slot' : 'Load a saved game from a slot'}
+            <Dialog.Description className={`text-xs ${theme.colors.text.muted} mt-1`}>
+              {mode === 'save'
+                ? 'Manual slots store your latest autosave snapshot (not unsaved in-session changes until autosave runs).'
+                : 'Load a saved game from a slot'}
             </Dialog.Description>
           </div>
 

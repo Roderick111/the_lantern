@@ -17,18 +17,17 @@ import { apiCall } from './base';
 
 export async function getBriefing(
   caseId: string,
-  playerId = 'default',
+  slot = 'autosave',
 ): Promise<BriefingContent> {
   const path =
     `/api/briefing/${encodeURIComponent(caseId)}` +
-    `?player_id=${encodeURIComponent(playerId)}&slot=autosave`;
+    `?slot=${encodeURIComponent(slot)}`;
   return apiCall('GET', path, BriefingContentSchema);
 }
 
 export async function askBriefingQuestion(
   caseId: string,
   question: string,
-  _playerId = 'default',
 ): Promise<BriefingQuestionResponse> {
   const path = `/api/briefing/${encodeURIComponent(caseId)}/question`;
   return apiCall('POST', path, BriefingQuestionResponseSchema, {
@@ -39,10 +38,10 @@ export async function askBriefingQuestion(
 
 export async function markBriefingComplete(
   caseId: string,
-  playerId = 'default',
+  slot = 'autosave',
 ): Promise<BriefingCompleteResponse> {
   const path =
     `/api/briefing/${encodeURIComponent(caseId)}/complete` +
-    `?player_id=${encodeURIComponent(playerId)}&slot=autosave`;
+    `?slot=${encodeURIComponent(slot)}`;
   return apiCall('POST', path, BriefingCompleteResponseSchema);
 }

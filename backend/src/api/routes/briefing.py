@@ -19,6 +19,8 @@ from src.api.schemas import (
     TeachingQuestion,
 )
 from src.case_store.loader import load_case
+from src.api.errors import llm_http_exception
+from src.api.llm_client import LLMClientError
 from src.context.briefing import ask_graves_question
 from src.telemetry.logger import log_event
 
@@ -109,12 +111,9 @@ async def ask_briefing_question(
     player_id = player_id
     briefing = _load_briefing_content(case_id)
 
-    try:
-        case_data = load_case(case_id)
-        case_section = case_data.get("case", case_data)
-        briefing_context = case_section.get("briefing_context", {})
-    except Exception:
-        briefing_context = {}
+    case_data = load_case_or_404(case_id)
+    case_section = case_data.get("case", case_data)
+    briefing_context = case_section.get("briefing_context", {})
 
     state = load_slot_state(case_id, player_id, body.slot)
     if state is None:
@@ -133,18 +132,21 @@ TIME: {dossier.get("time", "Unknown")}
 STATUS: {dossier.get("status", "Unknown")}
 SYNOPSIS: {dossier.get("synopsis", "")}"""
 
-    answer = await ask_graves_question(
-        question=body.question,
-        case_assignment=case_assignment,
-        teaching_moment=first_question.get("prompt", ""),
-        rationality_concept=first_question.get("concept_summary", ""),
-        concept_description=first_question.get("concept_summary", ""),
-        conversation_history=briefing_state.conversation_history,
-        briefing_context=briefing_context,
-        api_key=llm_config.api_key,
-        model=llm_config.model,
-        language=state.language,
-    )
+    try:
+        answer = await ask_graves_question(
+            question=body.question,
+            case_assignment=case_assignment,
+            teaching_moment=first_question.get("prompt", ""),
+            rationality_concept=first_question.get("concept_summary", ""),
+            concept_description=first_question.get("concept_summary", ""),
+            conversation_history=briefing_state.conversation_history,
+            briefing_context=briefing_context,
+            api_key=llm_config.api_key,
+            model=llm_config.model,
+            language=state.language,
+        )
+    except LLMClientError as e:
+        raise llm_http_exception(e) from e
 
     briefing_state.add_question(body.question, answer)
     save_slot_state(state, player_id, body.slot)

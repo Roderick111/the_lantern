@@ -21,7 +21,7 @@ import type { SaveSlotMetadata, InvestigationState, LoadResponse } from '../type
 // Hook
 // ============================================
 
-export function useSaveSlots(caseId: string, playerId: string) {
+export function useSaveSlots(caseId: string, _playerId?: string) {
   const [slots, setSlots] = useState<SaveSlotMetadata[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export function useSaveSlots(caseId: string, playerId: string) {
     try {
       setLoading(true);
       setError(null);
-      const savedSlots = await listSaveSlots(caseId, playerId);
+      const savedSlots = await listSaveSlots(caseId);
       setSlots(savedSlots);
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Failed to load save slots';
@@ -41,7 +41,7 @@ export function useSaveSlots(caseId: string, playerId: string) {
     } finally {
       setLoading(false);
     }
-  }, [caseId, playerId]);
+  }, [caseId]);
 
   /**
    * Save game state to a specific slot via server
@@ -51,7 +51,7 @@ export function useSaveSlots(caseId: string, playerId: string) {
       try {
         setLoading(true);
         setError(null);
-        await saveGameState(caseId, state, slot, playerId);
+        await saveGameState(caseId, state, slot);
         await refreshSlots();
         return true;
       } catch (e) {
@@ -62,7 +62,7 @@ export function useSaveSlots(caseId: string, playerId: string) {
         setLoading(false);
       }
     },
-    [caseId, playerId, refreshSlots]
+    [caseId, refreshSlots]
   );
 
   /**
@@ -73,7 +73,7 @@ export function useSaveSlots(caseId: string, playerId: string) {
       try {
         setLoading(true);
         setError(null);
-        return await loadGameState(caseId, slot, playerId);
+        return await loadGameState(caseId, slot);
       } catch (e) {
         const errorMessage = e instanceof Error ? e.message : `Failed to load from ${slot}`;
         setError(errorMessage);
@@ -82,7 +82,7 @@ export function useSaveSlots(caseId: string, playerId: string) {
         setLoading(false);
       }
     },
-    [caseId, playerId]
+    [caseId]
   );
 
   /**
@@ -93,7 +93,7 @@ export function useSaveSlots(caseId: string, playerId: string) {
       try {
         setLoading(true);
         setError(null);
-        await deleteSaveSlot(caseId, slot, playerId);
+        await deleteSaveSlot(caseId, slot);
         await refreshSlots();
         return true;
       } catch (e) {
@@ -104,7 +104,7 @@ export function useSaveSlots(caseId: string, playerId: string) {
         setLoading(false);
       }
     },
-    [caseId, playerId, refreshSlots]
+    [caseId, refreshSlots]
   );
 
   // Load slots on mount

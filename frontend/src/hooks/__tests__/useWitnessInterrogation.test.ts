@@ -119,7 +119,7 @@ describe('useWitnessInterrogation', () => {
       }, { timeout: 2000 });
 
       expect(result.current.state.witnesses).toEqual(mockWitnesses);
-      expect(api.getWitnesses).toHaveBeenCalledWith('case_001', 'default');
+      expect(api.getWitnesses).toHaveBeenCalledWith('case_001');
     });
   });
 
@@ -266,17 +266,15 @@ describe('useWitnessInterrogation', () => {
           witness_id: 'elena',
           question: 'What did you see?',
           case_id: 'case_001',
-          player_id: 'default',
           slot: 'autosave',
         },
+        /* eslint-disable @typescript-eslint/no-unsafe-assignment -- vitest expect.any matchers */
         expect.objectContaining({
-
           onChunk: expect.any(Function),
-
           onDone: expect.any(Function),
-
           onError: expect.any(Function),
         }),
+        /* eslint-enable @typescript-eslint/no-unsafe-assignment */
         expect.any(AbortSignal),
       );
 
@@ -375,7 +373,6 @@ describe('useWitnessInterrogation', () => {
           witness_id: 'elena',
           evidence_id: 'hidden_note',
           case_id: 'case_001',
-          player_id: 'default',
           slot: 'autosave',
         }),
         expect.any(Object),
@@ -460,7 +457,7 @@ describe('useWitnessInterrogation', () => {
         expect(result.current.state.witnesses.length).toBe(2);
       });
 
-      expect(api.getWitnesses).toHaveBeenCalledWith('case_002', 'player_123');
+      expect(api.getWitnesses).toHaveBeenCalledWith('case_002');
     });
   });
 });

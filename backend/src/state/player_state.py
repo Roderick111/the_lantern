@@ -445,6 +445,8 @@ class MatthewCompanionState(BaseModel):
     total_comments: int = 0  # LLM-based comment count
     last_comment_at: datetime | None = None
 
+    _MAX_CONVERSATION_HISTORY = 50
+
     def get_trust_percentage(self) -> int:
         """Return trust as 0-100 integer for display.
 
@@ -493,6 +495,10 @@ class MatthewCompanionState(BaseModel):
                 "timestamp": _utc_now().isoformat(),
             }
         )
+        if len(self.conversation_history) > self._MAX_CONVERSATION_HISTORY:
+            self.conversation_history = self.conversation_history[
+                -self._MAX_CONVERSATION_HISTORY :
+            ]
         self.total_comments += 1
         self.last_comment_at = _utc_now()
 
@@ -537,6 +543,11 @@ class PlayerState(BaseModel):
     current_location: str
     # Phase 5.3: Save file versioning for migration
     version: str = Field(default="1.0.0", description="Save file version for migration")
+    save_revision: int = Field(
+        default=0,
+        ge=0,
+        description="Optimistic concurrency revision — incremented on each successful save",
+    )
     last_saved: datetime | None = Field(default=None, description="Timestamp of last save")
     discovered_evidence: list[str] = Field(default_factory=list)
     visited_locations: list[str] = Field(default_factory=list)

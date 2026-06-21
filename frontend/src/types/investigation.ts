@@ -12,6 +12,9 @@
 // API Request Types
 // ============================================
 
+/** Valid save slot names (matches backend SaveSlotName Literal). */
+export type SaveSlotName = 'autosave' | 'slot_1' | 'slot_2' | 'slot_3';
+
 /**
  * Request payload for the /api/investigate endpoint
  */
@@ -22,10 +25,8 @@ export interface InvestigateRequest {
   case_id?: string;
   /** Current location ID (defaults to "library") */
   location_id?: string;
-  /** Player identifier for state tracking (defaults to "default") */
-  player_id?: string;
   /** Save slot for state persistence (defaults to "autosave") */
-  slot?: string;
+  slot?: SaveSlotName;
 }
 
 /**
@@ -250,10 +251,8 @@ export interface InterrogateRequest {
   question: string;
   /** Case identifier */
   case_id?: string;
-  /** Player identifier */
-  player_id?: string;
   /** Save slot (defaults to "autosave") */
-  slot?: string;
+  slot?: SaveSlotName;
 }
 
 /**
@@ -282,10 +281,8 @@ export interface PresentEvidenceRequest {
   evidence_id: string;
   /** Case identifier */
   case_id?: string;
-  /** Player identifier */
-  player_id?: string;
   /** Save slot (defaults to "autosave") */
-  slot?: string;
+  slot?: SaveSlotName;
 }
 
 /**
