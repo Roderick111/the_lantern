@@ -214,6 +214,67 @@ cd frontend && bun run build
 
 ---
 
+## 🚢 Production Deployment
+
+**Live site:** https://thelantern.institute
+
+### Deploy
+
+From the repo root (requires SSH access to the server):
+
+```bash
+./deploy.sh              # default: root@188.34.196.228
+./deploy.sh <server-ip>  # override target
+```
+
+The script rsyncs backend/frontend + Docker configs to `/opt/the-lantern`, copies `backend/.env` → `.env.production` on the server, then runs `docker compose build --no-cache && docker compose up -d`.
+
+**Stack:** `nginx-proxy` (TLS) → `lantern-frontend` (nginx, SPA + `/api` proxy) → `lantern-backend` (FastAPI). Game saves live in the `lantern-saves` Docker volume (`/app/saves/lantern.db`).
+
+### Required production env vars
+
+Copy `.env.production.example` → `backend/.env` and fill in API keys before deploying. Minimum:
+
+| Variable | Purpose |
+|----------|---------|
+| `OPENROUTER_API_KEY` | Default LLM provider |
+| `PLAYER_TOKEN_SECRET` | HMAC signing for `X-Player-Token` (32+ chars) |
+| `CORS_ORIGINS` | e.g. `https://thelantern.institute` |
+| `TRUSTED_PROXY` | **Set to `1` when behind nginx/Cloudflare** (see below) |
+
+### `TRUSTED_PROXY=1` (rate limiting)
+
+When the API sits behind a reverse proxy, FastAPI only sees the proxy’s IP—not the browser’s. Without `TRUSTED_PROXY`, unauthenticated rate limits (e.g. `POST /api/session`) can bucket all users together.
+
+Set `TRUSTED_PROXY=1` in `backend/.env` (deployed as `.env.production`) when:
+
+1. Traffic passes through nginx-proxy / Cloudflare / a load balancer, **and**
+2. The backend is not exposed directly to the internet.
+
+The backend then reads the client IP from `X-Forwarded-For` (set by `nginx.conf` on `/api/`). **Do not enable this** on a dev machine where clients can reach the API directly—otherwise anyone could spoof that header.
+
+Authenticated requests are keyed by `player_id`; `TRUSTED_PROXY` mainly affects IP-based limits on session creation and similar endpoints.
+
+### Post-deploy smoke test
+
+```bash
+curl -sS https://thelantern.institute/health
+# → {"status":"ok","db":true}
+
+curl -sS -X POST https://thelantern.institute/api/session \
+  -H 'Content-Type: application/json' -d '{}'
+# → {"player_id":"...","token":"v1...."}
+```
+
+**Server ops:**
+
+```bash
+ssh root@188.34.196.228 'cd /opt/the-lantern && docker compose ps'
+ssh root@188.34.196.228 'cd /opt/the-lantern && docker compose logs -f backend'
+```
+
+---
+
 ## 📊 Project Metrics
 
 **Current Version:** 1.7.0 (Multi-LLM Provider Support)
