@@ -10,6 +10,7 @@
 import { useTheme } from '../context/useTheme';
 import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 import type { BriefingContent } from '../types/investigation';
+import { Button } from './ui/Button';
 
 interface BriefingDossierProps {
     dossier: BriefingContent['dossier'];
@@ -29,60 +30,61 @@ export function BriefingDossier({
             {/* Header Removed (Managed by Parent Window) */}
 
             {/* Grid Layout for Data Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-6">
 
                 {/* Victim */}
                 <div className="space-y-1">
-                    <div className={theme.typography.caption}>VICTIM</div>
-                    <div className={`${theme.typography.body} border-l-2 ${theme.colors.border.default} pl-3`}>
+                    <div className={`${theme.typography.caption} font-bold ${theme.colors.text.primary}`}>VICTIM</div>
+                    <div className={`${theme.typography.bodySm} border-l-2 ${theme.colors.border.default} pl-3`}>
                         {dossier.victim}
                     </div>
                 </div>
 
                 {/* Location */}
                 <div className="space-y-1">
-                    <div className={theme.typography.caption}>LOCATION</div>
-                    <div className={`${theme.typography.body} border-l-2 ${theme.colors.border.default} pl-3`}>
+                    <div className={`${theme.typography.caption} font-bold ${theme.colors.text.primary}`}>LOCATION</div>
+                    <div className={`${theme.typography.bodySm} border-l-2 ${theme.colors.border.default} pl-3`}>
                         {dossier.location}
                     </div>
                 </div>
 
                 {/* Time */}
                 <div className="space-y-1">
-                    <div className={theme.typography.caption}>TIME OF INCIDENT</div>
-                    <div className={`${theme.typography.body} border-l-2 ${theme.colors.border.default} pl-3`}>
+                    <div className={`${theme.typography.caption} font-bold ${theme.colors.text.primary}`}>TIME OF INCIDENT</div>
+                    <div className={`${theme.typography.bodySm} border-l-2 ${theme.colors.border.default} pl-3`}>
                         {dossier.time}
                     </div>
                 </div>
 
                 {/* Status */}
                 <div className="space-y-1">
-                    <div className={theme.typography.caption}>CURRENT STATUS</div>
-                    <div className={`${theme.typography.body} border-l-2 ${theme.colors.border.default} pl-3`}>
+                    <div className={`${theme.typography.caption} font-bold ${theme.colors.text.primary}`}>CURRENT STATUS</div>
+                    <div className={`${theme.typography.bodySm} border-l-2 ${theme.colors.border.default} pl-3`}>
                         {dossier.status}
                     </div>
                 </div>
             </div>
 
             {/* Synopsis / Description */}
-            <div className="flex-grow">
-                <div className={`${theme.typography.caption} mb-2`}>
-                    BRIEFING SYNOPSIS
+            <div className={`flex-grow border-t ${theme.colors.border.default} pt-4`}>
+                <div className={`${theme.typography.caption} font-bold ${theme.colors.text.primary} mb-3`}>
+                    WHAT HAPPENED
                 </div>
-                <div className={`${theme.typography.body} ${theme.colors.bg.semiTransparent} p-4 border ${theme.colors.border.default} rounded leading-relaxed whitespace-pre-wrap text-justify`}>
+                <div className={`${theme.typography.body} text-sm md:text-base leading-relaxed whitespace-pre-wrap max-w-3xl`}>
                     {renderInlineMarkdown(dossier.synopsis)}
                 </div>
             </div>
 
             {/* Footer / Action */}
-            <div className={`mt-8 pt-4 border-t ${theme.colors.border.default} flex justify-end`}>
-                <button
+            <div className={`mt-6 pt-4 border-t ${theme.colors.border.default} flex justify-end`}>
+                <Button
                     onClick={onContinue}
-                    className={`${theme.components.button.base} w-auto px-8 py-3 ${theme.colors.bg.semiTransparent} ${theme.colors.interactive.text} border ${theme.colors.interactive.border} hover:brightness-90 font-bold tracking-widest uppercase transition-all duration-200 group`}
+                    variant="terminal-primary"
+                    size="md"
+                    className="w-full justify-center font-bold"
                 >
-                    <span className="mr-2 group-hover:mr-4 transition-all">{continueLabel}</span>
-                    {theme.symbols.current}
-                </button>
+                    <span>{theme.symbols.doubleArrowRight} {continueLabel}</span>
+                </Button>
             </div>
         </div>
     );

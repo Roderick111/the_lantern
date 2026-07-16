@@ -1859,17 +1859,12 @@ case:
       time: "22:00 (Found)"
       status: "Held in stillness / St. Cuthbert's Ward"
       synopsis: |
-        Professor Aldric Vane found held in stillness in the Sealed Stacks. Evidence of
-        etheric discharge — frost patterns, ritual materials, scattered herbs.
+        Professor Aldric Vane lies motionless beside a circle of melted candles. Frost has
+        spread across the sealed windows from within, and scattered herbs stain the floor
+        with the sharp scent of nightshade.
 
-        Three people had reason to be near the scene that night. One had motive.
-        One had means. One was hiding something else entirely.
-
-        **How to investigate:** Type what you want to do — *"examine the frost patterns"*, *"cast Identify Substance on the body"*, *"search the desk"*. Be specific. The more precise your actions, the more you'll find.
-
-        **Talk to witnesses** by selecting them from the sidebar. Ask questions, build trust, and **present evidence** to see how they react — different people interpret the same clue differently.
-
-        When you're ready, **submit your verdict**. But don't rush — the obvious answer is rarely the right one.
+        Three people were near the stacks that night. Their stories agree on little.
+        Somewhere between them is what happened to Vane — and why the room was sealed.
 
     teaching_question:
       prompt: "A student with strong motive is found at a crime scene. What should you investigate FIRST?"

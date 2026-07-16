@@ -49,6 +49,8 @@ describe('BriefingModal', () => {
     render(<BriefingModal {...defaultProps} />);
     expect(screen.getByText(/VICTIM: Third-year student/)).toBeInTheDocument();
     expect(screen.getByText(/CASE DOSSIER: The Sealed Stacks/)).toBeInTheDocument();
+    expect(screen.getByText('WHAT HAPPENED')).toBeInTheDocument();
+    expect(screen.queryByText(/How to investigate/i)).not.toBeInTheDocument();
   });
 
   it('renders Start Investigation button', () => {
