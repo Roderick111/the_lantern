@@ -311,12 +311,14 @@ export function LandingPage({ onLoadGame, onOpenSettings, shortcutsEnabled = tru
             </div>
             <div className="p-4 md:p-6 flex flex-col justify-center">
               <div className="space-y-3 md:space-y-4 md:px-2">
-                <p className={`${theme.typography.caption} font-bold mb-3`}>INSPECTOR</p>
+                <p className={`${theme.components.message.witness.label} ${theme.colors.character.detective.prefix} mb-3`}>
+                  {theme.symbols.inputPrefix} INSPECTOR
+                </p>
                 <p className={`${theme.typography.bodySm} leading-relaxed mb-3`}>
                   “I kneel beside the locked window and hold the Lantern over the dust.”
                 </p>
                 <div className={`border-t ${theme.colors.border.default} pt-4`}>
-                  <p className={`${theme.typography.caption} font-bold mb-2`}>NARRATOR</p>
+                  <p className={`${theme.components.message.witness.label} ${theme.colors.character.narrator.text} mb-2`}>NARRATOR</p>
                   <p className={`${theme.typography.bodySm} leading-relaxed`}>
                     “Light gathers in a thin trail across the floorboards. Someone crossed here after midnight.”
                   </p>
