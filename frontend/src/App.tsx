@@ -380,7 +380,7 @@ function InvestigationView({
           </div>
 
           {/* Action Buttons — far right */}
-          <div className="flex items-center gap-2 shrink-0 lg:ml-8">
+          <div className="flex items-center gap-4 shrink-0 lg:ml-8">
             <button
               onClick={() => modals.setMenuOpen(true)}
               className={`flex items-center gap-2 ${theme.colors.text.tertiary} hover:${theme.colors.text.primary} ${theme.fonts.ui} text-xs uppercase tracking-widest transition-colors active:opacity-70`}
@@ -388,10 +388,10 @@ function InvestigationView({
               aria-label="Open game menu"
               title="Menu"
             >
+              <span>Menu</span>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                 <path d="M4 7h16M4 12h16M4 17h16"/>
               </svg>
-              <span>Menu</span>
             </button>
             <Button
               onClick={actions.handleOpenVerdictModal}
