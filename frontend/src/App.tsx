@@ -46,6 +46,8 @@ import { useGameActions } from "./hooks/useGameActions";
 import { useTheme } from "./context/useTheme";
 import { logSessionStart } from "./api/telemetry";
 import { usePlayerId } from "./utils/playerId";
+import { getGamePreferences } from "./utils/gamePreferences";
+import { updateSettings } from "./api/client";
 import type { ChangeLocationResponse } from "./types/investigation";
 
 // ============================================
@@ -125,6 +127,8 @@ function navigateWithTransition(nav: ReturnType<typeof useNavigate>, to: string)
 function LandingRoute() {
   const navigate = useNavigate();
   const [loadModalOpen, setLoadModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [gamePreferences, setGamePreferences] = useState(getGamePreferences);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"success" | "error" | "info">("success");
 
@@ -163,9 +167,38 @@ function LandingRoute() {
     [loadFromSlot, saveSlotsError, navigate],
   );
 
+  const handlePrepareStartCase = useCallback(async (caseId: string) => {
+    const preferences = getGamePreferences();
+    try {
+      const result = await updateSettings({
+        case_id: caseId,
+        narrator_verbosity: preferences.narratorVerbosity,
+        language: preferences.language,
+      });
+      if (!result.success) console.error('Failed to apply game preferences:', result.message);
+    } catch (error) {
+      console.error('Failed to apply game preferences:', error);
+    }
+  }, []);
+
   return (
     <>
-      <LandingPage onLoadGame={handleLoadGameFromLanding} />
+      <LandingPage
+        onLoadGame={handleLoadGameFromLanding}
+        onOpenSettings={() => setSettingsOpen(true)}
+        shortcutsEnabled={!loadModalOpen && !settingsOpen}
+        onPrepareStartCase={handlePrepareStartCase}
+      />
+
+      <SettingsModal
+        mode="general"
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        narratorVerbosity={gamePreferences.narratorVerbosity}
+        onVerbosityChange={(value) => setGamePreferences((prev) => ({ ...prev, narratorVerbosity: value }))}
+        language={gamePreferences.language}
+        onLanguageChange={(value) => setGamePreferences((prev) => ({ ...prev, language: value }))}
+      />
 
       <SaveLoadModal
         isOpen={loadModalOpen}

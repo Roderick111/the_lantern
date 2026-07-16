@@ -1,8 +1,8 @@
 /**
  * SettingsModal Component
  *
- * Compact settings modal with segmented controls, collapsible AI section,
- * and dense audio controls. Matches System Menu aesthetic.
+ * Scoped settings modal with segmented controls and collapsible AI section.
+ * Game mode also exposes hints and dense audio controls.
  *
  * @module components/SettingsModal
  */
@@ -23,6 +23,7 @@ import {
   updateSettings,
   type ModelInfo,
 } from '../api/client';
+import { updateGamePreferences } from '../utils/gamePreferences';
 
 // ============================================
 // Types
@@ -45,18 +46,28 @@ const LANGUAGE_OPTIONS: { value: GameLanguage; label: string }[] = [
   { value: 'ko', label: '한국어' },
 ];
 
-export interface SettingsModalProps {
+interface SharedSettingsProps {
   isOpen: boolean;
   onClose: () => void;
-  caseId: string;
-  playerId: string;
   narratorVerbosity: NarratorVerbosity;
   onVerbosityChange?: (v: NarratorVerbosity) => void;
   language: GameLanguage;
   onLanguageChange?: (v: GameLanguage) => void;
+}
+
+interface GameSettingsProps extends SharedSettingsProps {
+  mode?: 'game';
+  caseId: string;
+  playerId: string;
   hintsEnabled: boolean;
   onHintsChange: (v: boolean) => void;
 }
+
+interface GeneralSettingsProps extends SharedSettingsProps {
+  mode: 'general';
+}
+
+export type SettingsModalProps = GameSettingsProps | GeneralSettingsProps;
 
 // ============================================
 // Segmented Control
@@ -106,18 +117,19 @@ function SegmentedControl<T extends string>({
 // Component
 // ============================================
 
-export function SettingsModal({
-  isOpen,
-  onClose,
-  caseId,
-  playerId: _playerId,
-  narratorVerbosity,
-  onVerbosityChange,
-  language,
-  onLanguageChange,
-  hintsEnabled,
-  onHintsChange,
-}: SettingsModalProps) {
+export function SettingsModal(props: SettingsModalProps) {
+  const {
+    isOpen,
+    onClose,
+    narratorVerbosity,
+    onVerbosityChange,
+    language,
+    onLanguageChange,
+  } = props;
+  const isGeneral = props.mode === 'general';
+  const caseId = isGeneral ? '' : props.caseId;
+  const hintsEnabled = isGeneral ? false : props.hintsEnabled;
+  const onHintsChange = isGeneral ? undefined : props.onHintsChange;
   const { mode, toggleTheme, theme } = useTheme();
   const [updating, setUpdating] = useState(false);
 
@@ -229,6 +241,11 @@ export function SettingsModal({
 
   const handleVerbosityChange = async (newVerbosity: NarratorVerbosity) => {
     if (newVerbosity === selectedVerbosity || updating) return;
+    if (isGeneral) {
+      updateGamePreferences({ narratorVerbosity: newVerbosity });
+      onVerbosityChange?.(newVerbosity);
+      return;
+    }
     setUpdating(true);
     try {
       const data = await updateSettings({
@@ -236,6 +253,7 @@ export function SettingsModal({
         narrator_verbosity: newVerbosity,
       });
       if (data.success) {
+        updateGamePreferences({ narratorVerbosity: newVerbosity });
         onVerbosityChange?.(newVerbosity);
       } else {
         console.error('Failed to update verbosity:', data.message);
@@ -249,6 +267,11 @@ export function SettingsModal({
 
   const handleLanguageChange = async (newLang: GameLanguage) => {
     if (newLang === language || updating) return;
+    if (isGeneral) {
+      updateGamePreferences({ language: newLang });
+      onLanguageChange?.(newLang);
+      return;
+    }
     setUpdating(true);
     try {
       const data = await updateSettings({
@@ -256,6 +279,7 @@ export function SettingsModal({
         language: newLang,
       });
       if (data.success) {
+        updateGamePreferences({ language: newLang });
         onLanguageChange?.(newLang);
       } else {
         console.error('Failed to update language:', data.message);
@@ -318,20 +342,24 @@ export function SettingsModal({
 
             <div className={`border-t ${theme.colors.border.separator}`} />
 
-            {/* Hints Toggle */}
-            <div className="flex items-center justify-between gap-3">
-              <span className={sectionLabel}>Hints</span>
-              <SegmentedControl
-                options={[
-                  { value: 'on' as const, label: 'On' },
-                  { value: 'off' as const, label: 'Off' },
-                ]}
-                value={hintsEnabled ? 'on' : 'off'}
-                onChange={(v) => onHintsChange(v === 'on')}
-              />
-            </div>
+            {!isGeneral && onHintsChange && (
+              <>
+                {/* Hints Toggle */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className={sectionLabel}>Hints</span>
+                  <SegmentedControl
+                    options={[
+                      { value: 'on' as const, label: 'On' },
+                      { value: 'off' as const, label: 'Off' },
+                    ]}
+                    value={hintsEnabled ? 'on' : 'off'}
+                    onChange={(v) => onHintsChange(v === 'on')}
+                  />
+                </div>
 
-            <div className={`border-t ${theme.colors.border.separator}`} />
+                <div className={`border-t ${theme.colors.border.separator}`} />
+              </>
+            )}
 
             {/* Narrator Style — label + 3-segment control */}
             <div className="space-y-2">
@@ -499,7 +527,7 @@ export function SettingsModal({
             <div className={`border-t ${theme.colors.border.separator}`} />
 
             {/* Audio — compact layout */}
-            <div className="space-y-2.5">
+            {!isGeneral && <div className="space-y-2.5">
               <span className={sectionLabel}>Audio</span>
 
               {/* Row 1: Music toggle + track navigation */}
@@ -599,7 +627,7 @@ export function SettingsModal({
                   {musicMuted ? 'Muted' : 'Mute'}
                 </button>
               </div>
-            </div>
+            </div>}
           </div>
 
           {/* Footer — hidden on mobile */}

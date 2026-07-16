@@ -20,7 +20,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '../../test/render';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { LandingPage } from '../LandingPage';
 import * as client from '../../api/client';
 import type { CaseListResponse } from '../../types/investigation';
@@ -99,6 +99,7 @@ describe('LandingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockNavigate.mockClear();
+    localStorage.removeItem('lantern-onboarding-seen');
     (client.getCases as any).mockResolvedValue(mockCasesResponse);
   });
 
@@ -215,6 +216,33 @@ describe('LandingPage', () => {
       await waitFor(() => {
         expect(screen.getByText(/held in stillness/i)).toBeInTheDocument();
       });
+    });
+
+    it('shows onboarding and remembers explicit dismissal', async () => {
+      render(<LandingPage {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Your own way through mysteries/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Close onboarding/i }));
+
+      expect(screen.queryByRole('heading', { name: /Your own way through mysteries/i })).not.toBeInTheDocument();
+      expect(localStorage.getItem('lantern-onboarding-seen')).toBe('true');
+      expect(screen.getByRole('button', { name: /What is The Lantern/i })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /What is The Lantern/i }));
+      expect(screen.getByRole('heading', { name: /Your own way through mysteries/i })).toBeInTheDocument();
+    });
+
+    it('hides onboarding after it was dismissed on a previous visit', async () => {
+      localStorage.setItem('lantern-onboarding-seen', 'true');
+      render(<LandingPage {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText(/The Sealed Stacks/i).length).toBeGreaterThan(0);
+      });
+      expect(screen.queryByRole('heading', { name: /Your own way through mysteries/i })).not.toBeInTheDocument();
     });
 
     it.todo('renders Load Game button');

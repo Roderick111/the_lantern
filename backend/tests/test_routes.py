@@ -71,6 +71,36 @@ class TestCasesEndpoint:
         assert data["count"] == len(data["cases"])
 
 
+class TestSettingsEndpoint:
+    """Tests for settings updates before a case has an autosave."""
+
+    @pytest.mark.asyncio
+    async def test_settings_create_state_at_case_first_location(
+        self, client: AsyncClient
+    ) -> None:
+        from src.case_store.loader import get_first_location_id, load_case
+        from src.state.persistence import load_player_state
+
+        player_id = "settings_defaults_player"
+        response = await client.post(
+            "/api/settings/update",
+            params={"player_id": player_id},
+            json={
+                "case_id": "case_001",
+                "language": "fr",
+                "narrator_verbosity": "atmospheric",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+        state = load_player_state("case_001", player_id, "autosave")
+        assert state is not None
+        assert state.current_location == get_first_location_id(load_case("case_001"))
+        assert state.language == "fr"
+        assert state.narrator_verbosity == "atmospheric"
+
+
 class TestLocationEndpoint:
     """Tests for location info endpoint."""
 

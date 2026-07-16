@@ -129,7 +129,11 @@ async def update_settings(
     try:
         state = load_slot_state(request.case_id, player_id, request.slot)
         if not state:
-            state = PlayerState(case_id=request.case_id)
+            case_data = load_case(request.case_id)
+            state = PlayerState(
+                case_id=request.case_id,
+                current_location=get_first_location_id(case_data),
+            )
 
         if request.narrator_verbosity:
             valid_options = ["concise", "storyteller", "atmospheric"]

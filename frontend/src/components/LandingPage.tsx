@@ -1,7 +1,7 @@
 /**
  * LandingPage Component
  *
- * Two-pane terminal layout: case list (left) + selected case details (right).
+ * First-visit onboarding above a two-pane terminal case selector.
  * Minimal B&W aesthetic, scalable to multiple cases.
  *
  * Phase 5.4: Dynamic case loading from backend API.
@@ -28,6 +28,12 @@ import type { CaseMetadata, ApiCaseMetadata } from '../types/investigation';
 export interface LandingPageProps {
   /** Callback when player clicks Load Game */
   onLoadGame: () => void;
+  /** Callback when player opens general settings */
+  onOpenSettings?: () => void;
+  /** Disable landing keyboard shortcuts while a modal is open */
+  shortcutsEnabled?: boolean;
+  /** Apply browser-wide preferences before starting a fresh case */
+  onPrepareStartCase?: (caseId: string) => Promise<void>;
 }
 
 // ============================================
@@ -66,9 +72,12 @@ function transformCase(apiCase: ApiCaseMetadata): CaseMetadata {
 // Component
 // ============================================
 
-export function LandingPage({ onLoadGame }: LandingPageProps) {
+export function LandingPage({ onLoadGame, onOpenSettings, shortcutsEnabled = true, onPrepareStartCase }: LandingPageProps) {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => localStorage.getItem('lantern-onboarding-seen') !== 'true',
+  );
 
   // Dynamic case state (Phase 5.4)
   const [cases, setCases] = useState<CaseMetadata[]>([]);
@@ -110,12 +119,14 @@ export function LandingPage({ onLoadGame }: LandingPageProps) {
   // Start case handler — always reset so "Start Case" is a fresh investigation
   const handleStartCase = useCallback(async (caseId: string) => {
     await resetCase(caseId).catch(() => undefined);
+    await onPrepareStartCase?.(caseId);
     void navigate(`/case/${caseId}`);
-  }, [navigate]);
+  }, [navigate, onPrepareStartCase]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!shortcutsEnabled) return;
       // Ignore if user is typing in an input
       if (
         e.target instanceof HTMLInputElement ||
@@ -158,7 +169,7 @@ export function LandingPage({ onLoadGame }: LandingPageProps) {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleStartCase, onLoadGame, cases, selectedCase, selectedIndex]);
+  }, [handleStartCase, onLoadGame, cases, selectedCase, selectedIndex, shortcutsEnabled]);
 
   // ============================================
   // Loading State
@@ -236,16 +247,85 @@ export function LandingPage({ onLoadGame }: LandingPageProps) {
   // Main Render
   // ============================================
   return (
-    <div className={`min-h-screen ${theme.colors.bg.primary} ${theme.colors.text.secondary} flex flex-col items-center justify-center p-4 md:p-8`}>
+    <div className={`relative min-h-screen ${theme.colors.bg.primary} ${theme.colors.text.secondary} flex flex-col items-center justify-start xl:justify-center p-4 md:p-8`}>
+      {onOpenSettings && (
+        <button
+          onClick={onOpenSettings}
+          className={`absolute top-4 right-4 md:top-8 md:right-8 z-10 flex items-center gap-2 ${theme.colors.text.tertiary} ${theme.colors.text.primaryHover} ${theme.fonts.ui} text-xs md:text-sm transition-colors`}
+          type="button"
+          aria-label="Open settings"
+          title="Settings"
+        >
+          <span>Settings</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      )}
       {/* Title */}
-      <div className="text-center mb-4 md:mb-8">
+      <div className="w-full max-w-5xl text-center mb-4 md:mb-8">
         <h1 className={`text-2xl md:text-4xl font-bold ${theme.colors.text.primary} ${theme.fonts.ui} tracking-widest mb-1`}>
           THE LANTERN
         </h1>
         <p className={`${theme.colors.text.muted} text-sm ${theme.fonts.ui}`}>
           Case Investigation System v1.0
         </p>
+        {!showOnboarding && (
+          <button
+            onClick={() => setShowOnboarding(true)}
+            className={`mt-3 ${theme.colors.interactive.text} ${theme.colors.interactive.hover} ${theme.fonts.ui} text-sm font-bold uppercase tracking-wider transition-colors`}
+            type="button"
+          >
+            What is The Lantern?
+          </button>
+        )}
       </div>
+
+      {showOnboarding && (
+        <section className={`relative max-w-5xl w-full border ${theme.colors.border.default} mb-4 md:mb-6`} aria-labelledby="onboarding-title">
+          <button
+            onClick={() => {
+              localStorage.setItem('lantern-onboarding-seen', 'true');
+              setShowOnboarding(false);
+            }}
+            className={`absolute top-3 right-4 z-10 ${theme.colors.text.muted} ${theme.colors.text.primaryHover} ${theme.fonts.ui} text-sm`}
+            type="button"
+            aria-label="Close onboarding"
+          >
+            [X]
+          </button>
+          <div className={`grid grid-cols-1 md:grid-cols-2 ${theme.colors.bg.primary}`}>
+            <div className={`p-4 md:p-6 md:border-r ${theme.colors.border.default}`}>
+              <h2 id="onboarding-title" className={`${theme.typography.header} font-bold mb-3 pr-8`}>
+                Your own way through mysteries
+              </h2>
+              <p className={`${theme.typography.bodySm} leading-relaxed mb-4 md:mb-6`}>
+                You are a novice inspector in an old occult academy. Describe what you do in natural language, and the world responds.
+              </p>
+              <ol className={`${theme.typography.bodySm} leading-relaxed list-decimal pl-5 space-y-2`}>
+                <li>Interrogate suspects and uncover their secrets.</li>
+                <li>Investigate every room to find evidence.</li>
+                <li>Piece together what happened.</li>
+              </ol>
+            </div>
+            <div className="p-4 md:p-6 flex flex-col justify-center">
+              <div className="space-y-3 md:space-y-4 md:px-2">
+                <p className={`${theme.typography.caption} font-bold mb-3`}>INSPECTOR</p>
+                <p className={`${theme.typography.bodySm} leading-relaxed mb-3`}>
+                  “I kneel beside the locked window and hold the Lantern over the dust.”
+                </p>
+                <div className={`border-t ${theme.colors.border.default} pt-4`}>
+                  <p className={`${theme.typography.caption} font-bold mb-2`}>NARRATOR</p>
+                  <p className={`${theme.typography.bodySm} leading-relaxed`}>
+                    “Light gathers in a thin trail across the floorboards. Someone crossed here after midnight.”
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Two-Pane Layout */}
       <div className={`max-w-5xl w-full border ${theme.colors.border.default} ${theme.colors.bg.primary}`}>
