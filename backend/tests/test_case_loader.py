@@ -1,5 +1,7 @@
 """Tests for case loader module."""
 
+import re
+
 import pytest
 
 from src.case_store.loader import (
@@ -55,14 +57,14 @@ class TestGetLocation:
         assert location["name"] == "Sealed Archive"
         assert "description" in location
 
-    def test_location_has_description_multiline(self) -> None:
-        """Location description has multiple lines (YAML pipe)."""
+    def test_location_description_breaks_only_between_paragraphs(self) -> None:
+        """Location prose uses blank lines for paragraphs, not hard wraps."""
         case_data = load_case("case_001")
         location = get_location(case_data, "library")
 
         description = location["description"]
-        assert "\n" in description
-        # Description should have substantive content
+        assert "\n\n" in description
+        assert re.search(r"[^\n]\n[^\n]", description) is None
         assert len(description) > 50
 
     def test_location_has_hidden_evidence(self) -> None:

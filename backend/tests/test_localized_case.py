@@ -1,5 +1,7 @@
 """Locale overlay loading and mechanics-preservation tests."""
 
+import re
+
 import pytest
 
 from src.case_store.loader import (
@@ -18,6 +20,10 @@ def test_russian_case_overlay_localizes_player_text() -> None:
     assert localized["title"] == "Запечатанный архив"
     assert localized["locations"]["library"]["name"] == "Запечатанный архив"
     assert localized["locations"]["library"]["description"] != base["locations"]["library"]["description"]
+    for case_data in (base, localized):
+        description = case_data["locations"]["library"]["description"]
+        assert "\n\n" in description
+        assert re.search(r"[^\n]\n[^\n]", description) is None
     assert localized["locations"]["library"]["surface_elements"][0] != base["locations"]["library"]["surface_elements"][0]
     assert localized["locations"]["library"]["not_present"][0]["response"] != base["locations"]["library"]["not_present"][0]["response"]
     assert localized["locations"]["library"]["hidden_evidence"][0]["id"] == base["locations"]["library"]["hidden_evidence"][0]["id"]

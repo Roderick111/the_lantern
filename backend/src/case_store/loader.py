@@ -60,6 +60,19 @@ _PROTECTED_LOCALE_KEYS = {
 }
 
 
+def _normalize_case_text(value: Any) -> Any:
+    """Fold authored line wraps while preserving intentional blank lines."""
+    if isinstance(value, dict):
+        return {key: _normalize_case_text(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_normalize_case_text(item) for item in value]
+    if isinstance(value, str):
+        text = value.replace("\r\n", "\n")
+        text = re.sub(r"(?<!\n)\n(?!\n)", " ", text)
+        return text.strip()
+    return value
+
+
 def load_case(case_id: str) -> dict[str, Any]:
     """Load a case definition from YAML (cached until file changes on disk).
 
@@ -88,7 +101,7 @@ def load_case(case_id: str) -> dict[str, Any]:
         return _case_cache[case_id]
 
     with open(case_path, encoding="utf-8") as f:
-        data: dict[str, Any] = yaml.safe_load(f)
+        data: dict[str, Any] = _normalize_case_text(yaml.safe_load(f))
 
     is_valid, errors, _warnings = validate_case(data, case_id)
     if not is_valid:
@@ -192,7 +205,7 @@ def load_localized_case(case_id: str, language: str = "en") -> dict[str, Any]:
         return cached[1]
 
     with open(locale_path, encoding="utf-8") as f:
-        overlay: dict[str, Any] = yaml.safe_load(f) or {}
+        overlay: dict[str, Any] = _normalize_case_text(yaml.safe_load(f) or {})
     if not isinstance(overlay, dict) or set(overlay) != {"case"}:
         raise ValueError(f"Invalid locale wrapper in {locale_path}")
     overlay_case = overlay["case"]
@@ -863,7 +876,7 @@ def discover_cases(
         try:
             # Load YAML safely
             with open(yaml_file, encoding="utf-8") as f:
-                case_data = yaml.safe_load(f)
+                case_data = _normalize_case_text(yaml.safe_load(f))
 
             # Handle empty file
             if case_data is None:

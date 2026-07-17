@@ -99,7 +99,7 @@ case:
       name: "Sealed Archive"
       type: "micro"
 
-      description: >
+      description: |
         Frost on the windows. Unnatural cold.
 
         The archive is divided into three alcoves by towering shelves. Ancient
@@ -465,7 +465,7 @@ case:
       name: "Iron Lodge Common Room"
       type: "micro"
 
-      description: >
+      description: |
         Professor Whitmore's authorization spell tingles at your wrist —
         temporary access for the investigation. The stone wall slides open.
         You're not welcome here. Every surface reminds you.
@@ -672,7 +672,7 @@ case:
       name: "Third Floor Corridor"
       type: "micro"
 
-      description: >
+      description: |
         The third-floor corridor outside the archive. Torches flicker in wall
         sconces, casting long shadows across worn flagstones. A window at the
         far end offers a clear view of the grounds.
@@ -789,7 +789,7 @@ case:
       name: "Blackwood Collegiate Kitchens"
       type: "micro"
 
-      description: >
+      description: |
         You ring the brass service bell beside the warded pantry hatch. It chimes
         twice, low and resonant, and the hatch unlatches — service access to the
         kitchens below the refectory.
@@ -972,7 +972,7 @@ case:
     # =========================================================================
     - id: "elena"
       name: "Elena Marsh"
-      description: >
+      description: |
         Brilliant third-year Scarlet Court, top of her class. Speaks quickly when
         nervous, becomes defensive when accused. Was in the Sealed Archive the
         night of the attack. Professor Vane had publicly confronted her earlier that day.
@@ -1083,7 +1083,7 @@ case:
     # =========================================================================
     - id: "cassian"
       name: "Cassian Thorne"
-      description: >
+      description: |
         Third-year Iron Lodge with an arrogant exterior. Son of Lord Magnus Thorne.
         Becomes hostile under pressure. Connected to a cursed artifact found near
         the crime scene.
@@ -1203,7 +1203,7 @@ case:
     # =========================================================================
     - id: "whitmore"
       name: "Professor Minerva Whitmore"
-      description: >
+      description: |
         Deputy Headmistress. Stern, fair, deeply principled. Speaks precisely and
         weighs every word. Was on patrol the night of the attack and may have seen
         something.
@@ -1294,7 +1294,7 @@ case:
     # =========================================================================
     - id: "wisp"
       name: "Wisp"
-      description: >
+      description: |
         A bound familiar who serves the Thorne family. Speaks in third person, wrings
         his hands constantly. Admitted to stealing nightshade from Professor Vane's stores
         days before the attack. Appears unusually distressed.
@@ -1666,20 +1666,20 @@ case:
     correct:
       confrontation:
         - speaker: "graves"
-          text: >
+          text: |
             *Inspector Graves's magical eye fixes on the small figure*
 
             "Wisp. Step forward."
 
         - speaker: "wisp"
-          text: >
+          text: |
             *Wisp steps forward, trembling. He does not resist. He does not deny.*
 
             Wisp knew this day would come. Wisp has been waiting.
           tone: "resigned"
 
         - speaker: "graves"
-          text: >
+          text: |
             "You used bound familiar binding magic on Professor Aldric Vane while
             he was trying to save a student from his own stupidity. Your magic
             combined with the artifact's discharge and caused full paralytic binding.
@@ -1687,7 +1687,7 @@ case:
             Is this true?"
 
         - speaker: "wisp"
-          text: >
+          text: |
             *quietly*
 
             Yes, sir. Wisp did this. Lord Magnus said protect young master
@@ -1708,13 +1708,13 @@ case:
           tone: "broken"
 
         - speaker: "graves"
-          text: >
+          text: |
             *long pause*
 
             "And Cassian Thorne? He doesn't even know you were there?"
 
         - speaker: "wisp"
-          text: >
+          text: |
             Young master didn't see Wisp. Young master thinks HE did it.
             Young master has been suffering for what he thinks he did.
 
@@ -1724,7 +1724,7 @@ case:
           tone: "whisper"
 
         - speaker: "graves"
-          text: >
+          text: |
             *Graves turns to you*
 
             "Here's the question that doesn't have a clean answer,
@@ -1745,7 +1745,7 @@ case:
             without a satisfying response. Write it up, recruit. All of it.
             Let the Occult Bench sort out what we can't."
 
-      aftermath: >
+      aftermath: |
         Wisp was placed under Ministry custody while the Occult Bench debated
         a question it had never seriously considered: can a bound familiar be held
         criminally responsible for actions taken under magical compulsion?
@@ -1780,7 +1780,7 @@ case:
 
     incorrect:
       - suspect_accused: "elena"
-        reveal: >
+        reveal: |
           *Inspector Graves shakes his head*
 
           GRAVES: "Wrong, recruit. You fell for motive blindness.
@@ -1798,7 +1798,7 @@ case:
           used binding magic to finish the job. Two crimes, two perpetrators,
           and a slave who had no choice."
 
-        teaching_moment: >
+        teaching_moment: |
           You prioritized MOTIVE over EVIDENCE. Elena's story looked
           guilty. But the physical evidence told a different story:
           TIMELINE — She was in the alcove before and during the attack.
@@ -1810,7 +1810,7 @@ case:
         confrontation_anyway: true
 
       - suspect_accused: "cassian"
-        reveal: >
+        reveal: |
           *Inspector Graves's eye spins slowly*
 
           GRAVES: "Close, recruit. Very close. But incomplete.
@@ -1830,7 +1830,7 @@ case:
 
           You found half the truth. The harder half was hiding in plain sight."
 
-        teaching_moment: >
+        teaching_moment: |
           You fell for ANCHORING BIAS. The evidence against Cassian was so
           overwhelming that you stopped looking for alternatives — even when
           his own testimony contradicted his guilt.
