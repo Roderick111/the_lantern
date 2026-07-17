@@ -17,7 +17,9 @@ from src.api.helpers import (
     SSE_HEADERS,
     detect_secrets_in_response,
     load_case_or_404,
+    load_localized_case_or_404,
     load_or_create_state,
+    load_slot_state,
     save_slot_state,
     state_delta,
     stream_with_keepalive,
@@ -335,7 +337,12 @@ def setup_interrogate_stream(
     player_id: str,
 ) -> tuple[dict[str, Any], dict[str, Any], PlayerState, Any, WitnessPrep]:
     """Sync pre-LLM setup for interrogation stream (run via asyncio.to_thread)."""
-    case_data = load_case_or_404(body.case_id)
+    load_case_or_404(body.case_id)
+    existing_state = load_slot_state(body.case_id, player_id, body.slot)
+    case_data = load_localized_case_or_404(
+        body.case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
     witness, state, witness_state = load_witness_context(body, case_data, player_id)
     prep = prepare_interrogation(body, case_data, witness, state, witness_state)
     return case_data, witness, state, witness_state, prep
@@ -346,7 +353,12 @@ def setup_present_evidence_stream(
     player_id: str,
 ) -> tuple[dict[str, Any], dict[str, Any], PlayerState, Any, WitnessPrep]:
     """Sync pre-LLM setup for evidence presentation stream (run via asyncio.to_thread)."""
-    case_data = load_case_or_404(body.case_id)
+    load_case_or_404(body.case_id)
+    existing_state = load_slot_state(body.case_id, player_id, body.slot)
+    case_data = load_localized_case_or_404(
+        body.case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
     witness, state, witness_state = load_witness_context(body, case_data, player_id)
     if body.evidence_id not in state.discovered_evidence:
         raise HTTPException(status_code=400, detail=f"Evidence not discovered: {body.evidence_id}")

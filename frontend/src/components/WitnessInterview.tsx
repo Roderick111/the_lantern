@@ -12,6 +12,8 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { renderInlineMarkdown } from "../utils/renderInlineMarkdown";
 import { stripTrustTags } from "../hooks/useWitnessInterrogation";
 import type {
@@ -20,6 +22,7 @@ import type {
 } from "../types/investigation";
 import { generateAsciiBar } from "../styles/terminal-theme";
 import { useTheme } from "../context/useTheme";
+import { backdropVariants, contentVariants, reducedMotionVariants } from "../utils/modalAnimations";
 
 // ============================================
 // Types
@@ -82,9 +85,11 @@ function TrustMeter({ trust }: TrustMeterProps) {
 interface PortraitImageProps {
   witnessId: string;
   witnessName: string;
+  onOpenFullscreen?: () => void;
+  onImageResolved?: (src: string) => void;
 }
 
-function PortraitImage({ witnessId, witnessName }: PortraitImageProps) {
+function PortraitImage({ witnessId, witnessName, onOpenFullscreen, onImageResolved }: PortraitImageProps) {
   const { theme } = useTheme();
   const [hasError, setHasError] = React.useState(false);
   const [imgSrc, setImgSrc] = React.useState<string | null>(null);
@@ -114,6 +119,7 @@ function PortraitImage({ witnessId, witnessName }: PortraitImageProps) {
         // (Vite returns 200 with text/html for missing files)
         if (!cancelled && response.ok && contentType.startsWith("image/")) {
           setImgSrc(url);
+          onImageResolved?.(url);
           return;
         }
       } catch {
@@ -160,7 +166,7 @@ function PortraitImage({ witnessId, witnessName }: PortraitImageProps) {
     );
   }
 
-  return (
+  const imageContent = (
     <div className="w-full h-full overflow-hidden relative">
       <img
         src={imgSrc}
@@ -171,6 +177,107 @@ function PortraitImage({ witnessId, witnessName }: PortraitImageProps) {
       {/* Scanline overlay */}
       <div className={`absolute inset-0 ${theme.effects.scanlines}`}></div>
     </div>
+  );
+
+  if (onOpenFullscreen) {
+    return (
+      <button
+        type="button"
+        onClick={onOpenFullscreen}
+        className="w-full h-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-current"
+        aria-label={`View ${witnessName} portrait fullscreen`}
+      >
+        {imageContent}
+      </button>
+    );
+  }
+
+  return imageContent;
+}
+
+function PortraitFullscreenModal({
+  isOpen,
+  onClose,
+  imageSrc,
+  witnessName,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  imageSrc: string | null;
+  witnessName: string;
+}) {
+  const { theme, isDark } = useTheme();
+  const prefersReducedMotion = useReducedMotion();
+  const motionBackdrop = prefersReducedMotion ? reducedMotionVariants : backdropVariants;
+  const motionContent = prefersReducedMotion ? reducedMotionVariants : contentVariants;
+
+  const handleEscape = useCallback((event: KeyboardEvent) => {
+    if (event.key === "Escape" && isOpen) onClose();
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [handleEscape]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [isOpen]);
+
+  if (!imageSrc) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="portrait-modal-backdrop"
+          className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-[4px] flex items-center justify-center p-4 md:p-8"
+          onClick={onClose}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="portrait-modal-title"
+          variants={motionBackdrop}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+        >
+          <motion.div
+            className={`relative w-[min(80vw,72vh)] h-[min(80vw,72vh)] ${theme.colors.bg.primary} border ${theme.colors.border.default} shadow-2xl cursor-pointer lg:cursor-default`}
+            onClick={(event) => {
+              if (window.innerWidth < 1024) onClose();
+              else event.stopPropagation();
+            }}
+            variants={motionContent}
+          >
+            <h2 id="portrait-modal-title" className="sr-only">{witnessName} portrait</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className={`absolute -top-10 right-0 z-10 min-w-[44px] min-h-[44px] px-2 flex items-center justify-end ${isDark ? `${theme.colors.text.tertiary} ${theme.colors.text.primaryHover}` : "text-black hover:text-black"} ${theme.fonts.ui} text-sm font-bold uppercase tracking-wider transition-colors`}
+              aria-label="Close portrait fullscreen"
+            >
+              <span className="hidden md:inline">[ESC] </span>CLOSE
+            </button>
+            <div className={`w-full h-full bg-black border ${theme.colors.border.default} p-[1px] shadow-lg relative`}>
+              <div className={theme.effects.cornerBrackets.topLeft}></div>
+              <div className={theme.effects.cornerBrackets.topRight}></div>
+              <div className={theme.effects.cornerBrackets.bottomLeft}></div>
+              <div className={theme.effects.cornerBrackets.bottomRight}></div>
+              <img src={imageSrc} alt={witnessName} className="w-full h-full object-contain" />
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body,
   );
 }
 
@@ -281,6 +388,8 @@ export function WitnessInterview({
   const [inputValue, setInputValue] = useState("");
   const [showEvidenceMenu, setShowEvidenceMenu] = useState(false);
   const [showMobileProfile, setShowMobileProfile] = useState(false);
+  const [showPortraitFullscreen, setShowPortraitFullscreen] = useState(false);
+  const [portraitImageSrc, setPortraitImageSrc] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const historyEndRef = useRef<HTMLDivElement>(null);
   const historyContainerRef = useRef<HTMLDivElement>(null);
@@ -534,7 +643,12 @@ export function WitnessInterview({
                 <div className={theme.effects.cornerBrackets.topRight}></div>
                 <div className={theme.effects.cornerBrackets.bottomLeft}></div>
                 <div className={theme.effects.cornerBrackets.bottomRight}></div>
-                <PortraitImage witnessId={witness.id} witnessName={witness.name} />
+                <PortraitImage
+                  witnessId={witness.id}
+                  witnessName={witness.name}
+                  onOpenFullscreen={() => setShowPortraitFullscreen(true)}
+                  onImageResolved={setPortraitImageSrc}
+                />
               </div>
               <h2 className={`${theme.typography.header} tracking-[0.2em] mb-1`}>{witness.name}</h2>
               <TrustMeter trust={trust} />
@@ -583,7 +697,12 @@ export function WitnessInterview({
             <div className={theme.effects.cornerBrackets.bottomRight}></div>
 
             {/* Portrait - auto-generated from witness ID */}
-            <PortraitImage witnessId={witness.id} witnessName={witness.name} />
+            <PortraitImage
+              witnessId={witness.id}
+              witnessName={witness.name}
+              onOpenFullscreen={() => setShowPortraitFullscreen(true)}
+              onImageResolved={setPortraitImageSrc}
+            />
           </div>
 
           <h2 className={`${theme.typography.header} tracking-[0.2em] mb-1`}>
@@ -673,6 +792,12 @@ export function WitnessInterview({
         </div>
       </div>{" "}
       {/* Close mt-auto wrapper */}
+      <PortraitFullscreenModal
+        isOpen={showPortraitFullscreen}
+        onClose={() => setShowPortraitFullscreen(false)}
+        imageSrc={portraitImageSrc}
+        witnessName={witness.name}
+      />
     </div>
   );
 }

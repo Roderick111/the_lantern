@@ -10,7 +10,7 @@ from src.api.helpers import (
     check_spell_already_discovered,
     extract_new_evidence,
     find_witness_for_mnemonic_delving,
-    load_case_or_404,
+    load_localized_case_or_404,
     load_slot_state,
     process_spell_flags,
     resolve_location,
@@ -79,10 +79,12 @@ class InvestigationContext:
 
 def setup_investigation(body: InvestigateRequest, player_id: str) -> InvestigationContext:
     """Common setup for all investigation endpoints."""
-    case_data = load_case_or_404(body.case_id)
+    # Load the save first so its locale selects the authored case view.
+    state = load_slot_state(body.case_id, player_id, body.slot)
+    language = getattr(state, "language", "en") if state else "en"
+    case_data = load_localized_case_or_404(body.case_id, language)
     locations = list_locations(case_data)
 
-    state = load_slot_state(body.case_id, player_id, body.slot)
     target_location_id, location = resolve_location(
         body,
         case_data,

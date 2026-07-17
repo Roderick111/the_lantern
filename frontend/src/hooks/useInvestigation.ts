@@ -153,10 +153,12 @@ export function useInvestigation({
 
     try {
       // Always load from server
-      const [loadedState, locationData] = await Promise.all([
-        loadState(caseId, slot, locationId),
-        getLocation(caseId, locationId),
-      ]);
+      const loadedState = await loadState(caseId, slot, locationId);
+      const locationData = await getLocation(
+        caseId,
+        locationId,
+        loadedState?.language ?? 'en',
+      );
 
       // Use loaded state or create default
       if (loadedState) {

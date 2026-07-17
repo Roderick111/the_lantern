@@ -98,6 +98,26 @@ def init_db() -> None:
             conn.execute(migration)
         except sqlite3.OperationalError:
             pass
+    # Idempotency table (Telegram durable jobs). See migrations/*.sql for owner-run SQL.
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS idempotency_records (
+            player_id TEXT NOT NULL,
+            operation TEXT NOT NULL,
+            request_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            response_status INTEGER,
+            response_body TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (player_id, operation, request_id)
+        )
+    """)
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_idempotency_updated_at
+        ON idempotency_records(updated_at)
+        """
+    )
     conn.commit()
     logger.info("Database initialized: %s", _DB_PATH)
 

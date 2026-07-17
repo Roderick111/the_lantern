@@ -34,6 +34,8 @@ export interface LandingPageProps {
   shortcutsEnabled?: boolean;
   /** Apply browser-wide preferences before starting a fresh case */
   onPrepareStartCase?: (caseId: string) => Promise<void>;
+  /** Preferred authored case language. */
+  language?: string;
 }
 
 // ============================================
@@ -72,7 +74,7 @@ function transformCase(apiCase: ApiCaseMetadata): CaseMetadata {
 // Component
 // ============================================
 
-export function LandingPage({ onLoadGame, onOpenSettings, shortcutsEnabled = true, onPrepareStartCase }: LandingPageProps) {
+export function LandingPage({ onLoadGame, onOpenSettings, shortcutsEnabled = true, onPrepareStartCase, language = 'en' }: LandingPageProps) {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [showOnboarding, setShowOnboarding] = useState(
@@ -93,7 +95,7 @@ export function LandingPage({ onLoadGame, onOpenSettings, shortcutsEnabled = tru
     try {
       setLoading(true);
       setError(null);
-      const response = await getCases();
+      const response = await getCases(language);
 
       // Transform backend format to frontend format
       const transformedCases = response.cases.map(transformCase);
@@ -110,7 +112,7 @@ export function LandingPage({ onLoadGame, onOpenSettings, shortcutsEnabled = tru
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     void fetchCases();

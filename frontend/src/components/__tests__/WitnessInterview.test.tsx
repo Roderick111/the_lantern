@@ -14,7 +14,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '../../test/render';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { WitnessInterview } from '../WitnessInterview';
 import type { WitnessInfo, WitnessConversationItem } from '../../types/investigation';
 
@@ -233,5 +234,26 @@ describe('WitnessInterview', () => {
     it.todo('has accessible trust meter');
 
     it.todo('has accessible question input');
+  });
+
+  it('opens witness portrait fullscreen and closes it', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'image/png' },
+    } as unknown as Response);
+    const user = userEvent.setup();
+
+    render(<WitnessInterview {...defaultProps} />);
+
+    const portraitButtons = await screen.findAllByRole('button', {
+      name: /View Elena Marsh portrait fullscreen/i,
+    });
+    await user.click(portraitButtons[0]);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Close portrait fullscreen/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Close portrait fullscreen/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 });

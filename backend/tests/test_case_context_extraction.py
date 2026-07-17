@@ -46,8 +46,8 @@ class TestCaseContextExtraction:
 
         assert context["victim_name"] == "Professor Aldric Vane"
         assert context["crime_type"] == "Layered"
-        # Case 001 redesign: location is now "Sealed Stacks" (not "Library")
-        assert context["location"] == "Sealed Stacks"
+        # Case 001 uses a plain-language crime-scene name.
+        assert context["location"] == "Sealed Archive"
 
     def test_case_002_context_extraction(self):
         """Verify case_002 context is correctly extracted."""

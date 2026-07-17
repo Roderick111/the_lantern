@@ -28,7 +28,7 @@ class TestLoadCase:
 
         assert "case" in case_data
         assert case_data["case"]["id"] == "case_001"
-        assert case_data["case"]["title"] == "The Sealed Stacks"
+        assert case_data["case"]["title"] == "The Sealed Archive"
 
     def test_load_case_has_locations(self) -> None:
         """Case has locations dictionary."""
@@ -52,7 +52,7 @@ class TestGetLocation:
         location = get_location(case_data, "library")
 
         assert location["id"] == "library"
-        assert location["name"] == "Sealed Stacks"
+        assert location["name"] == "Sealed Archive"
         assert "description" in location
 
     def test_location_has_description_multiline(self) -> None:

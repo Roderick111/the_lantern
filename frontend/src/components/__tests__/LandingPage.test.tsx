@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
- 
- 
- 
 /**
  * LandingPage Component Tests
  *
@@ -50,7 +46,7 @@ const mockCasesResponse: CaseListResponse = {
   cases: [
     {
       id: 'case_001',
-      title: 'The Sealed Stacks',
+      title: 'The Sealed Archive',
       difficulty: 'intermediate',
       description:
         'A third-year student has been found held in stillness in the Blackwood Collegiate Library.',
@@ -74,7 +70,7 @@ const mockPartialErrorResponse: CaseListResponse = {
   cases: [
     {
       id: 'case_001',
-      title: 'The Sealed Stacks',
+      title: 'The Sealed Archive',
       difficulty: 'intermediate',
       description: 'A student has been found held in stillness.',
     },
@@ -100,7 +96,7 @@ describe('LandingPage', () => {
     vi.clearAllMocks();
     mockNavigate.mockClear();
     localStorage.removeItem('lantern-onboarding-seen');
-    (client.getCases as any).mockResolvedValue(mockCasesResponse);
+    vi.mocked(client.getCases).mockResolvedValue(mockCasesResponse);
   });
 
   afterEach(() => {
@@ -115,7 +111,7 @@ describe('LandingPage', () => {
     it.todo('displays loading state while fetching cases');
 
     it('shows game title during loading', () => {
-      (client.getCases as any).mockImplementation(
+      vi.mocked(client.getCases).mockImplementation(
         () => new Promise<CaseListResponse>(() => { /* intentionally never resolves */ })
       );
 
@@ -134,7 +130,7 @@ describe('LandingPage', () => {
     it.todo('displays error message when API fails');
 
     it('shows retry button on error', async () => {
-      (client.getCases as any).mockRejectedValue(new Error('API error'));
+      vi.mocked(client.getCases).mockRejectedValue(new Error('API error'));
 
       render(<LandingPage {...defaultProps} />);
 
@@ -154,7 +150,7 @@ describe('LandingPage', () => {
     it.todo('displays empty state when no cases available');
 
     it('shows help text in empty state', async () => {
-      (client.getCases as any).mockResolvedValue(mockEmptyResponse);
+      vi.mocked(client.getCases).mockResolvedValue(mockEmptyResponse);
 
       render(<LandingPage {...defaultProps} />);
 
@@ -184,7 +180,7 @@ describe('LandingPage', () => {
     it('logs warnings when some cases fail to load', async () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { /* suppress console output */ });
 
-      (client.getCases as any).mockResolvedValue(mockPartialErrorResponse);
+      vi.mocked(client.getCases).mockResolvedValue(mockPartialErrorResponse);
 
       render(<LandingPage {...defaultProps} />);
 
@@ -240,7 +236,7 @@ describe('LandingPage', () => {
       render(<LandingPage {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText(/The Sealed Stacks/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/The Sealed Archive/i).length).toBeGreaterThan(0);
       });
       expect(screen.queryByRole('heading', { name: /Your own way through mysteries/i })).not.toBeInTheDocument();
     });

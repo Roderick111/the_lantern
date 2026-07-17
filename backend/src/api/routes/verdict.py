@@ -5,7 +5,13 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
-from src.api.helpers import load_case_or_404, load_or_create_state, save_slot_state
+from src.api.helpers import (
+    load_case_or_404,
+    load_localized_case_or_404,
+    load_or_create_state,
+    load_slot_state,
+    save_slot_state,
+)
 from src.api.rate_limit import LLM_RATE, limiter
 from src.api.schemas import (
     ConfrontationDialogue,
@@ -25,6 +31,7 @@ from src.context.mentor import (
     get_wrong_suspect_response,
 )
 from src.state.exceptions import StaleStateError
+from src.state.idempotency import IdempotencyGuard
 from src.state.player_state import VerdictState
 from src.telemetry.logger import log_event
 from src.verdict.evaluator import check_verdict
@@ -43,8 +50,32 @@ async def submit_verdict(
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ) -> SubmitVerdictResponse:
     """Submit verdict and get Graves mentor feedback."""
-    # player_id injected via auth dep; body no longer carries it
-    case_data = load_case_or_404(body.case_id)
+    guard = IdempotencyGuard(player_id, "submit_verdict", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return SubmitVerdictResponse.model_validate(early)
+
+    try:
+        result = await _submit_verdict_impl(body, player_id, llm_config)
+    except HTTPException:
+        guard.fail_before_mutation()
+        raise
+
+    guard.complete(result)
+    return result
+
+
+async def _submit_verdict_impl(
+    body: SubmitVerdictRequest,
+    player_id: str,
+    llm_config: UserLLMConfig,
+) -> SubmitVerdictResponse:
+    load_case_or_404(body.case_id)
+    existing_state = load_slot_state(body.case_id, player_id, body.slot)
+    case_data = load_localized_case_or_404(
+        body.case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
     state = load_or_create_state(body.case_id, player_id, case_data, slot=body.slot)
 
     solution = load_solution(case_data)
@@ -58,21 +89,21 @@ async def submit_verdict(
 
     verdict_state = state.verdict_state
 
-
-
     if verdict_state.attempts_remaining <= 0:
         raise HTTPException(
             status_code=400,
-            detail=f"No attempts remaining. You've used all {10 - verdict_state.attempts_remaining} attempts. Use 'Reset Case' to start over.",
+            detail=(
+                f"No attempts remaining. You've used all "
+                f"{10 - verdict_state.attempts_remaining} attempts. "
+                "Use 'Reset Case' to start over."
+            ),
         )
 
     correct = check_verdict(body.accused_suspect_id, solution)
 
-    # Get case context for evaluator
     case_section = case_data.get("case", case_data)
     briefing_context = case_section.get("briefing_context", {})
 
-    # LLM-based reasoning evaluation (replaces rule-based scoring)
     evaluator_result = await evaluate_reasoning_llm(
         correct=correct,
         reasoning=body.reasoning,

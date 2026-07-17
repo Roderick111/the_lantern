@@ -1,10 +1,20 @@
 """Pydantic request/response models for all API endpoints."""
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
 SaveSlotName = Literal["autosave", "slot_1", "slot_2", "slot_3"]
+
+# Opaque ASCII request id for durable clients (Telegram gateway). Optional.
+RequestId = Annotated[
+    str | None,
+    Field(
+        max_length=128,
+        pattern=r"^[\x21-\x7E]{1,128}$",
+        description="Opaque ASCII idempotency key (max 128). Omit for legacy clients.",
+    ),
+]
 
 # ============================================
 # Investigation models
@@ -36,6 +46,7 @@ class InvestigateRequest(BaseModel):
         default="autosave",
         description="Save slot to load/save state from",
     )
+    request_id: RequestId = None
 
 
 class StateDeltaResponse(BaseModel):
@@ -110,6 +121,7 @@ class UpdateSettingsRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to load/save state from",
     )
+    request_id: RequestId = None
 
 
 class UpdateSettingsResponse(BaseModel):
@@ -227,6 +239,7 @@ class InterrogateRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to load/save state from",
     )
+    request_id: RequestId = None
 
 
 class InterrogateResponse(BaseModel):
@@ -272,6 +285,7 @@ class PresentEvidenceRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to load/save state from",
     )
+    request_id: RequestId = None
 
 
 class PresentEvidenceResponse(BaseModel):
@@ -333,6 +347,7 @@ class SubmitVerdictRequest(BaseModel):
         description="Player's reasoning for accusation (max 2000 chars, ~500 tokens)",
     )
     evidence_cited: list[str] = Field(default_factory=list, description="Evidence IDs player cites")
+    request_id: RequestId = None
 
 
 class FallacyDetail(BaseModel):
@@ -440,6 +455,17 @@ class BriefingQuestionResponse(BaseModel):
 
     answer: str = Field(..., description="Graves's response")
     updated_state: dict[str, Any] | None = None
+
+
+class BriefingCompleteRequest(BaseModel):
+    """Optional body for briefing complete. Query-only calls remain valid."""
+
+    slot: str = Field(
+        default="autosave",
+        pattern=r"^[a-zA-Z0-9_]+$",
+        description="Save slot to load/save state from",
+    )
+    request_id: RequestId = None
 
 
 class BriefingCompleteResponse(BaseModel):
@@ -569,6 +595,7 @@ class ChangeLocationRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to load/save state from",
     )
+    request_id: RequestId = None
 
 
 class ChangeLocationResponse(BaseModel):
@@ -577,6 +604,58 @@ class ChangeLocationResponse(BaseModel):
     success: bool
     location: dict[str, Any]
     updated_state: dict[str, Any] | None = None
+
+
+# ============================================
+# Telegram snapshot (internal gateway)
+# ============================================
+
+
+class TelegramWitnessSnapshot(BaseModel):
+    """Canonical witness id + display name for Telegram clients."""
+
+    id: str
+    name: str
+    description: str = ""
+
+
+class TelegramEvidenceSnapshot(BaseModel):
+    """Player-safe localized evidence text for Telegram casebook/buttons."""
+
+    id: str
+    name: str
+    description: str = ""
+    location_found: str = ""
+    type: str = ""
+    location_name: str = ""
+
+
+class TelegramLocationSnapshot(BaseModel):
+    """Player-safe localized location text for Telegram navigation."""
+
+    id: str
+    name: str
+    description: str = ""
+
+
+class TelegramSnapshotResponse(BaseModel):
+    """Compact case snapshot for Telegram gateway. No secrets/solution."""
+
+    case_id: str
+    case_title: str = ""
+    case_description: str = ""
+    current_location: str
+    current_location_view: TelegramLocationSnapshot | None = None
+    available_locations: list[TelegramLocationSnapshot] = Field(default_factory=list)
+    visited_locations: list[str] = Field(default_factory=list)
+    discovered_evidence: list[str] = Field(default_factory=list)
+    evidence_details: list[TelegramEvidenceSnapshot] = Field(default_factory=list)
+    briefing_completed: bool = False
+    language: str = "en"
+    save_revision: int = 0
+    available_witnesses: list[TelegramWitnessSnapshot] = Field(default_factory=list)
+    verdict_attempts_remaining: int = 10
+    case_solved: bool = False
 
 
 # ============================================

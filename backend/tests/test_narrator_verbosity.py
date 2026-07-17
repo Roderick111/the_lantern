@@ -18,7 +18,7 @@ from src.context.narrator import build_narrator_prompt, build_system_prompt
 
 LOCATION_DESC = """Frost on the windows. Unnatural cold.
 
-The Sealed Stacks spans three alcoves separated by towering shelves —
+The Sealed Archive spans three alcoves separated by towering shelves —
 each a world unto itself, sound muffled by ancient tomes. You stand in
 the western alcove. The eastern alcove, where a reading chair sits with
 a burned-down candle, is forty feet away and out of direct sight line.
@@ -93,7 +93,7 @@ The school is tense, divided, suspicious."""
 
 PLAYER_INPUTS = [
     # 1. Generic atmospheric exploration
-    "I step into the Sealed Stacks and take in the scene. What does it feel like?",
+    "I step into the Sealed Archive and take in the scene. What does it feel like?",
     # 2. Specific object examination (no evidence match)
     "I kneel beside Professor Vane's body and study his face. What expression is frozen there?",
     # 3. Sensory exploration

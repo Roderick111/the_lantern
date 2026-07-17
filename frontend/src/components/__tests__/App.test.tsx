@@ -97,7 +97,7 @@ vi.mock('../../api/client', async (importOriginal) => {
       cases: [
         {
           id: 'case_001',
-          title: 'The Sealed Stacks',
+          title: 'The Sealed Archive',
           difficulty: 'beginner',
           description: 'A held in stillness student found in the library.',
         },
@@ -172,7 +172,7 @@ describe('App', () => {
       // LandingPage shows the case Title in both the list and detail pane
       // → multiple matches expected. We assert at least one is present.
       await waitFor(() => {
-        const matches = screen.getAllByText(/The Sealed Stacks/i);
+        const matches = screen.getAllByText(/The Sealed Archive/i);
         expect(matches.length).toBeGreaterThan(0);
       });
     });

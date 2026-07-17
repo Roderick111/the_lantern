@@ -112,7 +112,7 @@ class TestLocationEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == "library"
-        assert "Sealed Stacks" in data["name"]
+        assert "Sealed Archive" in data["name"]
         assert "description" in data
         assert "surface_elements" in data
 
@@ -524,6 +524,19 @@ class TestWitnessesEndpoint:
 
         assert elena["trust"] == 55  # base_trust
         assert cassian["trust"] == 30  # base_trust
+
+    @pytest.mark.asyncio
+    async def test_list_witnesses_accepts_locale(self, client: AsyncClient) -> None:
+        """Explicit locale returns authored witness names."""
+        response = await client.get(
+            "/api/witnesses",
+            params={"case_id": "case_001", "language": "ru"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        elena = next(w for w in data if w["id"] == "elena")
+        assert elena["name"] == "Елена Марш"
 
 
 class TestWitnessInfoEndpoint:

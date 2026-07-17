@@ -1,5 +1,5 @@
 # ============================================================================
-# CASE 001: The Sealed Stacks (Full Redesign v3)
+# CASE 001: The Sealed Archive (Full Redesign v3)
 # ============================================================================
 # Mystery structure:
 # - Three-phase suspicion: Elena (early) -> Cassian (mid) -> Wisp (truth)
@@ -43,31 +43,31 @@
 
 case:
   id: "case_001"
-  title: "The Sealed Stacks"
+  title: "The Sealed Archive"
   difficulty: beginner
-  description: "Professor Aldric Vane found held in stillness in the Sealed Stacks. Three suspects. Multiple crimes. One truth hidden beneath the obvious answer."
+  description: "Professor Aldric Vane lies frozen in Blackwood's sealed archive. Three suspects, two thefts, and a spell no one will claim. The first answer looks obvious. That is why it cannot be trusted."
 
   crime_type: "assault"
   setting: "Blackwood Collegiate, autumn 1890"
-  crime_scene: "the Sealed Stacks"
-  hook: "A professor frozen mid-reach. A student with motive. Another with means. And a bound familiar who was just trying to help. The truth is darker than any of them admit."
+  crime_scene: "the Sealed Archive"
+  hook: "A professor frozen with one hand outstretched. A student with a motive. Another with a dangerous relic. And a bound familiar who only meant to help. Everyone is guilty of something; only one act became this crime."
   twist: "Cassian's ritual stunned Professor Vane but didn't finish the job. Wisp — still enslaved, following Magnus's orders — used bound familiar binding magic to freeze Professor Vane completely. The two magics layered together. Everyone assumes it was the Thief's Candle alone."
 
   # ---------------------------------------------------------------------------
   # WORLD CONTEXT (injected into narrator prompt for atmospheric grounding)
   # ---------------------------------------------------------------------------
   world_context: |
-    Active Crown Occult Bureau investigation. Lantern Order investigators are on scene at Blackwood Collegiate now — live witnesses, sealed stacks under guard, college authorities anxious for a quiet resolution.
+    The Crown Bureau of Supernatural Investigations has sent an investigator from the Lantern Order — its field order for cases ordinary constables cannot touch — to Blackwood Collegiate. Witnesses are being held, the archive is under guard, and the college authorities want the matter buried before breakfast.
 
     London in 1890 is mad for spiritualism: slate-writing, phosphor ghosts, hidden wires — parlour fraud everywhere. What happened here involved genuine warded craft, not stage tricks. Bureau men speak in cautions and forms; collegians and bound familiars live under sharper class lines than either side admits.
 
-    It is autumn term at Blackwood Collegiate. Three nights ago someone breached the ward on the eastern alcove of the Sealed Stacks — not simple theft, but the prelude to something worse. Mr. Crankshaw's raven was found stiff on the parapet last month. Graffiti about an Iron Lodge succession feud has appeared on the walls. Uninitiated-born students live in fear. The college is tense, divided, suspicious.
+    It is autumn term at Blackwood Collegiate. Three nights ago someone damaged the ward on the archive's eastern alcove. Last month the custodian's raven was found stiff on the parapet. Someone has painted threats about the Iron Lodge succession on the walls. Iron Lodge is one of the college's old student houses, and its heirs guard the name like property. Students born without the old families' gift keep their heads down. The college is tense, divided, and waiting for the next door to lock.
 
     Cassian, Elena, and the other students are sixteen or seventeen — young initiates dealing with forces beyond their understanding.
 
-    Wisp is still enslaved by the Thorne family. He has no legal rights. Bound familiars at Blackwood Collegiate work without pay, sleep in kitchens, and are invisible to most initiates. Wisp's growing conscience clashes with the binding magic that compels his obedience.
+    Wisp is still enslaved by the Thorne family and has no legal rights. Bound familiars at Blackwood Collegiate work without pay, sleep beside the kitchens, and disappear from notice whenever that is convenient. Wisp's conscience keeps colliding with the magic that compels obedience.
 
-    Lord Magnus Thorne sits on the Blackwood Collegiate Board of Governors. His influence reaches everywhere. His letters to Cassian mix parental expectation with pressure to uphold the family legacy. Cassian desperately wants to prove himself worthy.
+    Lord Magnus Thorne sits on the Blackwood Collegiate Board of Governors. His influence reaches every corridor. His letters to Cassian mix affection with pressure to uphold the family legacy. Cassian is desperate to prove he deserves the name.
 
     The school atmosphere is one of whispered rumors, sidelong glances, and locked doors. Paralytic binding is on everyone's mind. Anyone researching it — for any reason — looks suspicious.
 
@@ -76,11 +76,11 @@ case:
   # ---------------------------------------------------------------------------
   victim:
     name: "Professor Aldric Vane"
-    age: "Alchemy Master, Head of Iron Lodge House"
+    age: "Alchemy Master, head of the Iron Lodge house"
     humanization: |
       The most feared professor at Blackwood Collegiate — harsh, unforgiving, brilliant.
-      Three days ago, he discovered potion ingredients missing from his private stores.
-      Yesterday, more vanished. He was hunting the thief when he found something worse.
+      Three days ago, he found ingredients missing from his private stores. Yesterday,
+      more vanished. He was hunting a thief when he found something worse.
       His arm is outstretched, reaching toward a student he was trying to protect.
       Even Professor Vane didn't deserve this. Especially not for trying to help.
     memorable_trait: "Knew cursed artifacts better than anyone — which is why he recognized the danger"
@@ -92,25 +92,25 @@ case:
   # ---------------------------------------------------------------------------
   locations:
     # =========================================================================
-    # Location 1: Library - Sealed Stacks (Crime Scene)
+    # Location 1: Library - Sealed Archive (Crime Scene)
     # =========================================================================
     library:
       id: "library"
-      name: "Sealed Stacks"
+      name: "Sealed Archive"
       type: "micro"
 
       description: >
         Frost on the windows. Unnatural cold.
 
-        The Sealed Stacks spans three alcoves separated by towering shelves —
-        each a world unto itself, sound muffled by ancient tomes. You stand in
-        the western alcove. The eastern alcove, where a reading chair sits with
-        a burned-down candle, is forty feet away and out of direct sight line.
+        The archive is divided into three alcoves by towering shelves. Ancient
+        tomes swallow every sound. You stand in the western alcove. The eastern
+        alcove, where a reading chair sits beside a burned-down candle, is forty
+        feet away and hidden around a corner.
 
-        Professor Aldric Vane lies motionless near the reading desk. Black robes pooled
-        around him. His right arm outstretched — reaching toward a circle of melted
-        candles. His expression: not anger. Concern. His focus is partially drawn
-        from his robes, as if he started to react to something.
+        Professor Aldric Vane lies motionless beside the reading desk. Black robes
+        pool around him. His right arm reaches towards a circle of melted candles.
+        His face holds no anger, only concern. His focus is half-drawn from his robes,
+        as if he began to answer a danger and never finished.
 
         The smell of nightshade. Scattered herbs. The air feels wrong — heavy,
         charged, cold in a way that has nothing to do with the season.
@@ -294,7 +294,7 @@ case:
           description: |
             A Scarlet Court library access badge near Professor Vane's body. The name
             engraved: "Elena Marsh." Students need these badges for
-            after-hours Sealed Stacks access.
+            after-hours Sealed Archive access.
           tag: "[EVIDENCE: dropped_badge]"
           significance: "Places Elena at the scene. Dropped during discovery or during the attack?"
           strength: 55
@@ -388,12 +388,12 @@ case:
 
             The alcove shows signs of recent use — a reading chair slightly displaced, a candle stub that has burned down roughly twenty minutes' worth. The alcove is around a corner from the main scene, separated by towering shelves that muffle sound.
           tag: "[EVIDENCE: elena_book_slip]"
-          significance: "Elena was already in the Sealed Stacks BEFORE the attack — reading a book about paralytic binding. Innocent research or preparation?"
+          significance: "Elena was already in the Sealed Archive BEFORE the attack — reading a book about paralytic binding. Innocent research or preparation?"
           strength: 70
           points_to: ["elena"]
           witness_reactions:
             elena: "I was researching paralytic binding because of the UNDERCROFT BREACH attacks! the custodian's raven was found stiff! uninitiated-borns are being targeted! Someone has to understand what's happening — and that book covers counter-curses too!"
-            cassian: "She was reading a book about paralytic binding? The same night a professor got held in stillness? And she was ALREADY there? How much more obvious can it get?"
+            cassian: "She was reading a book about paralytic binding? The same night a professor was frozen? And she was ALREADY there? How much more obvious can it get?"
             whitmore: "The candle burn time is consistent — she was reading for roughly twenty minutes before the incident. The book itself... many students have been researching paralytic binding since the undercroft breach attacks. It's concerning but not conclusive."
             wisp: "Wisp knows Miss Marsh reads a lot. She is always in the library."
 
@@ -412,7 +412,7 @@ case:
             - Three students caught trying to access the undercroft breach lore section after hours
             - Graffiti cleaned from shelf: 'SUCCESSION TO THE LODGE WILL PREVAIL'
 
-            NOTE: Increased traffic to paralytic binding-related texts since the attack on the custodian's raven. Half the school seems to be researching it. Sealed Stacks requests up 300%."
+            NOTE: Increased traffic to paralytic binding-related texts since the attack on the custodian's raven. Half the school seems to be researching it. Sealed Archive requests up 300%."
           tag: "[EVIDENCE: hawthorne_confiscation_log]"
           significance: "Shows the school atmosphere — paralytic binding research is widespread, not unique to any suspect. World context."
           strength: 10
@@ -430,13 +430,13 @@ case:
           type: "magical"
           discovery_guidance: "Revealed when player examines the library entrance carefully, casts Identify Substance on the doorway, or investigates the magical protections."
           description: |
-            A small ward stone embedded in the doorframe of the Sealed Stacks shows hairline fractures. Identify Substance reveals it has been stressed by multiple magical events — not just tonight's.
+            A small ward stone embedded in the doorframe of the Sealed Archive shows hairline fractures. Identify Substance reveals it has been stressed by multiple magical events — not just tonight's.
 
-            The stone's protective enchantments are weakened. Whatever protections the Sealed Stacks once had against unauthorized magic have been failing for weeks. the undercroft breach attacks have strained Blackwood Collegiate' wards throughout the castle.
+            The stone's protective enchantments are weakened. Whatever protections the Sealed Archive once had against unauthorized magic have been failing for weeks. The undercroft breach attacks have strained Blackwood Collegiate's wards throughout the castle.
 
             Tonight's etheric discharge was the final blow to this stone.
           tag: "[EVIDENCE: damaged_ward_stone]"
-          significance: "The castle's wards are weakening from the undercroft breach attacks. The Sealed Stacks had degraded protections — anyone could have performed magic here undetected."
+          significance: "The castle's wards are weakening from the undercroft breach attacks. The Sealed Archive had degraded protections — anyone could have performed magic here undetected."
           strength: 15
           points_to: []
           witness_reactions:
@@ -470,9 +470,9 @@ case:
         temporary access for the investigation. The stone wall slides open.
         You're not welcome here. Every surface reminds you.
 
-        The Iron Lodge common room stretches beneath the Greymere. Green-tinted
-        light filters through windows looking into murky water. Leather armchairs
-        surround a dying fireplace. The room is quiet. Most students in bed.
+        The common room of Blackwood's old Iron Lodge house stretches beneath the
+        Greymere. Green light filters through windows looking into murky water.
+        Leather armchairs surround a dying fireplace. Most students are in bed.
 
         Cassian Thorne's corner is unmistakable — the most expensive armchair, worn
         from habitual use. His trunk sits nearby, closed, silver "CT" monogram
@@ -531,7 +531,7 @@ case:
             The package has arrived. A genuine Thief's Candle — one of three
             known to exist. Your grandfather used it during the first war.
 
-            The activation ritual is in the Sealed Stacks. You'll need
+            The activation ritual is in the Sealed Archive. You'll need
             fresh nightshade. I've included some, but if you need more, Professor Vane
             keeps stores in his office. Be careful — Aldric will recognize
             the artifact.
@@ -673,9 +673,9 @@ case:
       type: "micro"
 
       description: >
-        The third floor corridor outside the library. Torches flicker in wall
+        The third-floor corridor outside the archive. Torches flicker in wall
         sconces, casting long shadows across worn flagstones. A window at the
-        corridor's end offers a clear view of the grounds.
+        far end offers a clear view of the grounds.
 
         This is Professor Whitmore's patrol route. From here, she can see the library
         doors, the stairway to the dungeons, and the main corridor. A portrait
@@ -766,7 +766,7 @@ case:
 
             The library wing had no prefect coverage after 9 PM. Only Professor Whitmore's patrol route passed this corridor.
           tag: "[EVIDENCE: prefect_patrol_notes]"
-          significance: "Security gaps explain how multiple people accessed the Sealed Stacks undetected. the undercroft breach attacks weakened school security."
+          significance: "Security gaps explain how multiple people accessed the Sealed Archive undetected. The undercroft breach attacks weakened school security."
           strength: 15
           points_to: []
           witness_reactions:
@@ -779,7 +779,7 @@ case:
         - triggers:
             - "blood"
             - "evidence of struggle"
-          response: "No signs of violence here. Whatever happened was inside the Sealed Stacks."
+          response: "No signs of violence here. Whatever happened was inside the Sealed Archive."
 
     # =========================================================================
     # Location 4: Blackwood Collegiate Kitchens (Wisp's location)
@@ -974,7 +974,7 @@ case:
       name: "Elena Marsh"
       description: >
         Brilliant third-year Scarlet Court, top of her class. Speaks quickly when
-        nervous, becomes defensive when accused. Was in the Sealed Stacks the
+        nervous, becomes defensive when accused. Was in the Sealed Archive the
         night of the attack. Professor Vane had publicly confronted her earlier that day.
       personality: |
         Brilliant, rule-conscious, but fiercely loyal to friends. Speaks quickly
@@ -988,14 +988,14 @@ case:
 
         Professor Vane caught Rowan practicing, forced him to confess, and confronted Elena that afternoon. He threatened to have them both expelled.
 
-        That evening, she went to the Sealed Stacks to research both her disciplinary defense AND paralytic binding countermeasures. She was reading "Paralytic binding: Causes, Cures, and Controversies" — a book that covers everything from deep-binding stares to binding magic. She entered the eastern alcove — forty feet from the crime scene, around a corner — and was deep in research when the attack happened. She heard a muffled sound but assumed it was students. Minutes later, she investigated and found Professor Vane frozen.
+        That evening, she went to the Sealed Archive to research both her disciplinary defense AND paralytic binding countermeasures. She was reading "Paralytic binding: Causes, Cures, and Controversies" — a book that covers everything from deep-binding stares to binding magic. She entered the eastern alcove — forty feet from the crime scene, around a corner — and was deep in research when the attack happened. She heard a muffled sound but assumed it was students. Minutes later, she investigated and found Professor Vane frozen.
 
         She saw a cloaked figure disappearing toward the exit but couldn't identify them.
 
       wants: "Prove her innocence without getting Rowan expelled for the lessons she taught him"
       fears: "Being expelled, being blamed for Professor Vane's attack, Rowan being punished, the undercroft breach attacks"
       moral_complexity: |
-        Elena looks genuinely guilty. She had motive (expulsion threat), opportunity (present in the Sealed Stacks), and was actively researching paralytic binding magic — the exact type of attack used on Professor Vane. Her focus shows Binding Cantrip cast that same day.
+        Elena looks genuinely guilty. She had motive (expulsion threat), opportunity (present in the Sealed Archive), and was actively researching paralytic binding magic — the exact type of attack used on Professor Vane. Her focus shows Binding Cantrip cast that same day.
 
         But she's innocent. Her paralytic binding research was driven by fear of the undercroft breach attacks, and her spells were for Rowan's lessons. She arrived in the alcove before the attack and was reading when it happened.
 
@@ -1005,7 +1005,7 @@ case:
       mind_shield_skill: 0
 
       knowledge:
-        - "I was in the Sealed Stacks that evening, in the eastern alcove"
+        - "I was in the Sealed Archive that evening, in the eastern alcove"
         - "I found Professor Aldric Vane already frozen near the ritual circle"
         - "I saw someone leaving — a cloaked figure heading toward the exit. I couldn't see their face."
         - "My library badge must have fallen when I discovered the body and panicked"
@@ -1042,7 +1042,7 @@ case:
           risk_level: "medium"
           why_hiding: "Focus shows paralytic binding magic"
           text: |
-            Cast Binding Cantrip multiple times that day teaching Rowan in an empty classroom. But Binding Cantrip signature is completely different from whatever held in stillness Professor Vane — simple body-bind vs. unknown magic.
+            Cast Binding Cantrip multiple times that day teaching Rowan in an empty classroom. But Binding Cantrip signature is completely different from whatever froze Professor Vane — simple body-bind vs. unknown magic.
           keywords:
             - "binding cantrip teaching"
             - "different signature"
@@ -1075,7 +1075,7 @@ case:
           topics:
             - "why were you there"
             - "what were you doing"
-            - "sealed stacks"
+            - "sealed archive"
           response: "I was researching. Advanced Transmutation theory. Nothing unusual."
 
     # =========================================================================
@@ -1090,7 +1090,7 @@ case:
       personality: |
         Arrogant exterior hiding genuine terror. Crushed by pressure to uphold
         family legacy. Currently experiencing the worst night of his life — he
-        believes he held in stillness Professor Vane. He's not evil. He's a scared teenager who
+        believes he froze Professor Vane. He's not evil. He's a scared teenager who
         thinks he made a catastrophic mistake.
 
         His deflection toward Elena is learned behavior from Magnus, not
@@ -1100,7 +1100,7 @@ case:
       background: |
         Third-year Iron Lodge. His father sent him a Thief's Candle with instructions
         to activate it. Cassian stole nightshade from Professor Vane's stores to complete the
-        ritual. He snuck to the Sealed Stacks and began the activation.
+        ritual. He snuck to the Sealed Archive and began the activation.
 
         Professor Vane caught him mid-ritual and tried to safely cancel it with Dispel.
         The interruption destabilized the magic. The Thief's Candle
@@ -1160,10 +1160,10 @@ case:
           risk_level: "high"
           why_hiding: "Places him at scene performing the causal act"
           text: |
-            Was in the Sealed Stacks performing the Thief's Candle activation ritual — candles, nightshade, incantation. Supposed to be simple. Didn't expect Professor Vane to find him or try to stop it.
+            Was in the Sealed Archive performing the Thief's Candle activation ritual — candles, nightshade, incantation. Supposed to be simple. Didn't expect Professor Vane to find him or try to stop it.
           keywords:
             - "performing ritual"
-            - "sealed stacks candles"
+            - "sealed archive candles"
 
         - id: "vane_still_moving"
           trigger: "trust>70 OR (evidence:focus_signature AND evidence:frost_pattern)"
@@ -1182,7 +1182,7 @@ case:
           topics:
             - "where were you"
             - "that night"
-            - "sealed stacks"
+            - "sealed archive"
           response: "I was in the common room. Ask anyone. Marsh did it — she had the fight with Professor Vane."
 
         - condition: "trust<55"
@@ -1282,7 +1282,7 @@ case:
           risk_level: "medium"
           why_hiding: "Reveals Professor Vane's past and genuine care"
           text: |
-            Aldric recognized cursed artifact signs from his past. Ingredient theft made him suspect a ritual. Told me he was worried about Cassian specifically — Magnus had been "posturing about family heirlooms." Aldric went to the Sealed Stacks to stop Cassian from hurting himself. His Dispel focus signature proves he was casting a cancellation spell — trying to protect the student.
+            Aldric recognized cursed artifact signs from his past. Ingredient theft made him suspect a ritual. Told me he was worried about Cassian specifically — Magnus had been "posturing about family heirlooms." Aldric went to the Sealed Archive to stop Cassian from hurting himself. His Dispel focus signature proves he was casting a cancellation spell — trying to protect the student.
           keywords:
             - "aldric worried cassian"
             - "protect student"
@@ -1484,7 +1484,7 @@ case:
       points_to: ["elena"]
       witness_reactions:
         elena: "I was teaching Rowan! Binding Cantrip is completely different from whatever happened to Professor Vane — compare the signatures!"
-        cassian: "She was practicing paralytic binding spells the same day Professor Vane was held in stillness? How convenient."
+        cassian: "She was practicing paralytic binding spells the same day Professor Vane was frozen? How convenient."
         whitmore: "Binding Cantrip is a clean, controlled spell. What happened to Aldric was chaotic, layered, involving at least two magical sources. These are not the same thing."
         wisp: "Wisp does not understand focus magic very well. Bound familiar magic is different."
 
@@ -1513,12 +1513,12 @@ case:
       evidence: ["hallway_confrontation"]
 
     - time: "Late evening, shortly before curfew"
-      event: "Elena enters the Sealed Stacks to research her defense. Around the same time, Cassian leaves the Iron Lodge common room carrying the wrapped Thief's Candle."
+      event: "Elena enters the Sealed Archive to research her defense. Around the same time, Cassian leaves the Iron Lodge common room carrying the wrapped Thief's Candle."
       witnesses: []
       evidence: ["elena_book_slip", "dropped_badge", "student_testimony"]
 
     - time: "Shortly before the attack"
-      event: "Cassian sets up the activation ritual in the Sealed Stacks. Wisp slips out of the kitchens following Magnus's orders."
+      event: "Cassian sets up the activation ritual in the Sealed Archive. Wisp slips out of the kitchens following Magnus's orders."
       witnesses: []
       evidence: ["ritual_book", "frost_pattern", "kitchen_log"]
 
@@ -1648,7 +1648,7 @@ case:
         But that yellowish-green shimmer? That's bound familiar binding magic.
 
         And Thorne's own confession — he says Professor Vane was STILL MOVING when
-        he ran. If his artifact fully held in stillness Professor Vane, why was the victim
+        he ran. If his artifact fully froze Professor Vane, why was the victim
         still conscious?
 
         Someone else was there. Someone finished what the artifact started.
@@ -1757,7 +1757,7 @@ case:
 
         Cassian Thorne was expelled for possession and reckless use of a
         cursed artifact. When he learned that Wisp — not his ritual — had
-        actually held in stillness Professor Vane, he sat in silence for a very long time.
+        actually froze Professor Vane, he sat in silence for a very long time.
         Then he said: "Father sent him to protect me. And I let Professor Vane
         take the blame." It was the first time anyone had seen a Thorne
         express something like shame.
@@ -1853,9 +1853,9 @@ case:
     case_id: "case_001"
 
     dossier:
-      title: "The Sealed Stacks"
+      title: "The Sealed Archive"
       victim: "Professor Aldric Vane (Alchemy Master)"
-      location: "Blackwood Collegiate Library - Sealed Stacks"
+      location: "Blackwood Collegiate Library - Sealed Archive"
       time: "22:00 (Found)"
       status: "Held in stillness / St. Cuthbert's Ward"
       synopsis: |
@@ -1908,7 +1908,7 @@ case:
     transition: |
       *Inspector Graves's magical eye spins, locking onto you*
 
-      Three suspects. Multiple crimes. Layers you haven't seen yet.
+      Three suspects. Two thefts. More than one spell at work.
 
       A student who had a screaming match with the victim. Another student
       seen fleeing the scene. A bound familiar who was already stealing from
@@ -1930,16 +1930,16 @@ case:
     witnesses:
       - name: "Elena Marsh"
         personality: "Brilliant Scarlet Court, terrified. Had public confrontation with victim hours before attack."
-        background: "Was in Sealed Stacks researching defense for disciplinary hearing. Present before and during the attack."
+        background: "Was in Sealed Archive researching defense for disciplinary hearing. Present before and during the attack."
         general_knowledge:
-          - "Entered Sealed Stacks at 9:47 PM, eastern alcove"
+          - "Entered Sealed Archive at 9:47 PM, eastern alcove"
           - "Found Professor Vane frozen at 10:05 PM"
           - "Saw cloaked figure fleeing toward exit"
           - "Professor Vane confronted her that afternoon about unauthorized teaching"
 
       - name: "Cassian Thorne"
         personality: "Arrogant exterior, terrified underneath. Son of Lord Magnus Thorne."
-        background: "Father sent him a cursed artifact. Evidence suggests he was in the Sealed Stacks that night."
+        background: "Father sent him a cursed artifact. Evidence suggests he was in the Sealed Archive that night."
         general_knowledge:
           - "Claims he was in common room all night"
           - "Students give conflicting accounts of his movements"
@@ -1970,13 +1970,13 @@ case:
       - "Wisp (previous theft from victim, unusually distressed)"
 
     location:
-      name: "Blackwood Collegiate Library - Sealed Stacks"
+      name: "Blackwood Collegiate Library - Sealed Archive"
       description: "Crime scene with ritual materials, unusual frost patterns, and evidence of etheric discharge. The victim shows an odd dual-tone shimmer on his skin."
 
     case_overview: |
-      Professor Vane held in stillness in Sealed Stacks around 10:00 PM. Evidence of ritual
+      Professor Vane was found frozen in the Sealed Archive around 10:00 PM. Evidence of ritual
       materials (candles, nightshade) and etheric discharge (frost patterns).
-      Elena was in the Sealed Stacks before the attack. Cassian seen
+      Elena was in the Sealed Archive before the attack. Cassian seen
       leaving with a wrapped object. Wisp stole ingredients days earlier.
       Two separate ingredient thefts from different perpetrators.
       The victim shows two distinct magical signatures — unusual for a single attack.

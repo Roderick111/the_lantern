@@ -2,11 +2,16 @@
 
 import asyncio
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
 from src.api.errors import llm_http_exception
-from src.api.helpers import load_case_or_404, load_slot_state, state_delta
+from src.api.helpers import (
+    load_case_or_404,
+    load_localized_case_or_404,
+    load_slot_state,
+    state_delta,
+)
 from src.api.llm_client import get_client
 from src.api.rate_limit import LLM_RATE, limiter
 from src.api.routes.mnemonic_delving import handle_programmatic_mnemonic_delving
@@ -28,6 +33,7 @@ from src.api.schemas import (
     WitnessInfo,
 )
 from src.case_store.loader import get_witness, list_witnesses
+from src.state.idempotency import IdempotencyGuard
 
 router = APIRouter()
 
@@ -81,7 +87,32 @@ async def interrogate_witness(
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ) -> InterrogateResponse:
     """Interrogate a witness (non-streaming, used by tests)."""
-    case_data = load_case_or_404(body.case_id)
+    guard = IdempotencyGuard(player_id, "interrogate", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return InterrogateResponse.model_validate(early)
+
+    try:
+        result = await _interrogate_impl(body, player_id, llm_config)
+    except HTTPException:
+        guard.fail_before_mutation()
+        raise
+
+    guard.complete(result)
+    return result
+
+
+async def _interrogate_impl(
+    body: InterrogateRequest,
+    player_id: str,
+    llm_config: UserLLMConfig,
+) -> InterrogateResponse:
+    load_case_or_404(body.case_id)
+    existing_state = load_slot_state(body.case_id, player_id, body.slot)
+    case_data = load_localized_case_or_404(
+        body.case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
     witness, state, witness_state = load_witness_context(body, case_data, player_id)
 
     prep = prepare_interrogation(body, case_data, witness, state, witness_state)
@@ -168,7 +199,32 @@ async def present_evidence(
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ) -> PresentEvidenceResponse:
     """Present evidence to a witness (non-streaming, used by tests)."""
-    case_data = load_case_or_404(body.case_id)
+    guard = IdempotencyGuard(player_id, "present_evidence", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return PresentEvidenceResponse.model_validate(early)
+
+    try:
+        result = await _present_evidence_impl(body, player_id, llm_config)
+    except HTTPException:
+        guard.fail_before_mutation()
+        raise
+
+    guard.complete(result)
+    return result
+
+
+async def _present_evidence_impl(
+    body: PresentEvidenceRequest,
+    player_id: str,
+    llm_config: UserLLMConfig,
+) -> PresentEvidenceResponse:
+    load_case_or_404(body.case_id)
+    existing_state = load_slot_state(body.case_id, player_id, body.slot)
+    case_data = load_localized_case_or_404(
+        body.case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
     witness, state, witness_state = load_witness_context(body, case_data, player_id)
 
     if body.evidence_id not in state.discovered_evidence:
@@ -215,12 +271,15 @@ async def get_witnesses(
     case_id: str = "case_001",
     player_id: str = Depends(get_authenticated_player_id),
     slot: str = "autosave",
+    language: str | None = Query(default=None, pattern=r"^[a-zA-Z]{2}$"),
 ) -> list[WitnessInfo]:
     """List available witnesses with current trust levels."""
-    case_data = load_case_or_404(case_id)
-    witness_ids = list_witnesses(case_data)
     state = load_slot_state(case_id, player_id, slot)
-
+    case_data = load_localized_case_or_404(
+        case_id,
+        language or (getattr(state, "language", "en") if state else "en"),
+    )
+    witness_ids = list_witnesses(case_data)
     witnesses: list[WitnessInfo] = []
     for witness_id in witness_ids:
         witness = get_witness(case_data, witness_id)
@@ -253,13 +312,15 @@ async def get_witness_info(
     slot: str = "autosave",
 ) -> WitnessInfo:
     """Get single witness info with current trust level."""
-    case_data = load_case_or_404(case_id)
+    state = load_slot_state(case_id, player_id, slot)
+    case_data = load_localized_case_or_404(
+        case_id,
+        getattr(state, "language", "en") if state else "en",
+    )
     try:
         witness = get_witness(case_data, witness_id)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Witness not found: {witness_id}")
-
-    state = load_slot_state(case_id, player_id, slot)
 
     if state and witness_id in state.witness_states:
         ws = state.witness_states[witness_id]

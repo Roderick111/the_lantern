@@ -26,7 +26,7 @@ vi.mock('../../api/client');
 const mockBriefing: BriefingContent = {
   case_id: 'case_001',
   dossier: {
-    title: 'The Sealed Stacks',
+    title: 'The Sealed Archive',
     victim: 'Third-year student',
     location: 'Library',
     time: '9:15pm',

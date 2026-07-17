@@ -18,7 +18,7 @@ src/
 ├── main.py                  # FastAPI app, CORS, rate limiting, body size limit, health check
 │
 ├── api/
-│   ├── schemas.py           # All Pydantic request/response models (~15 models)
+│   ├── schemas.py           # Pydantic models (+ optional request_id, Telegram snapshot)
 │   ├── llm_client.py        # LiteLLM wrapper: async completion, streaming (SSE), BYOK, fallback
 │   ├── helpers.py            # Shared route utils: state loading, unified secret scorer, evidence extraction
 │   ├── rate_limit.py         # slowapi config (10/min LLM, 100/min standard)
@@ -34,6 +34,7 @@ src/
 │       ├── cases.py          # Case discovery + location info
 │       ├── evidence.py       # GET /api/evidence — list discovered evidence
 │       ├── llm_config.py     # GET /api/llm-config — expose model info to frontend
+│       ├── telegram.py       # GET /api/telegram/snapshot/{case_id} — compact gateway snapshot
 │       └── telemetry.py      # POST /api/telemetry — client-side event logging
 │
 ├── config/
@@ -62,7 +63,8 @@ src/
 │
 ├── state/
 │   ├── player_state.py       # PlayerState dataclass — conversation, evidence, witnesses, trust
-│   └── persistence.py        # SQLite storage — 4 slots (autosave + 3 manual), per-player UUID
+│   ├── persistence.py        # SQLite storage — 4 slots (autosave + 3 manual), per-player UUID
+│   └── idempotency.py        # (player_id, operation, request_id) durable mutation dedupe
 │
 ├── utils/
 │   ├── evidence.py           # Evidence extraction from LLM text, dedup, hallucination prevention
@@ -109,6 +111,8 @@ tests/
 **Evidence discovery** — YAML-driven. LLM narration includes `[EVIDENCE: evidence_id]` tags. `utils/evidence.py` extracts and deduplicates them against player state. Case YAML defines all valid evidence IDs + discovery guidance.
 
 **State management** — `PlayerState` is loaded from SQLite (with bounded LRU cache) at request start, mutated in the route handler, then saved back. Always pass `player_id` + `slot` from frontend. `"default"` slot maps to `"autosave"`.
+
+**Idempotency** — Optional `request_id` on mutation bodies (investigate, interrogate, present-evidence, submit-verdict, change-location, briefing complete, settings update). Keyed `(player_id, operation, request_id)` in `idempotency_records`. Completed → replay body; `in_progress` → `409 request_in_progress`; `failed_before_mutation` → retry. Telegram gateway uses non-streaming endpoints only. Contract: `docs/plans/2026-07-17-telegram-phase1-api-contract.md`. Owner-run SQL: `migrations/2026-07-17-idempotency-records.sql`.
 
 **Spell detection** — Three-tier priority: exact match → fuzzy match (rapidfuzz) → semantic phrases. Defined in `spells/definitions.py`, detected in `context/spell_detection.py`.
 

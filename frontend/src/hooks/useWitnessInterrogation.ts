@@ -84,6 +84,8 @@ interface UseWitnessInterrogationOptions {
   playerId?: string;
   /** Auto-load witnesses on mount */
   autoLoad?: boolean;
+  /** Reload authored witness labels when game language changes */
+  language?: string;
 }
 
 interface UseWitnessInterrogationReturn {
@@ -121,7 +123,13 @@ function witnessReducer(
 ): WitnessInterrogationState {
   switch (action.type) {
     case 'SET_WITNESSES':
-      return { ...state, witnesses: action.payload };
+      return {
+        ...state,
+        witnesses: action.payload,
+        currentWitness: state.currentWitness
+          ? action.payload.find((witness) => witness.id === state.currentWitness?.id) ?? null
+          : null,
+      };
 
     case 'SELECT_WITNESS':
       return {
@@ -256,6 +264,7 @@ function useBatchedChunkAppender(dispatch: ChunkDispatch) {
 export function useWitnessInterrogation({
   caseId = 'case_001',
   autoLoad = true,
+  language = 'en',
 }: UseWitnessInterrogationOptions = {}): UseWitnessInterrogationReturn {
   const [state, dispatch] = useReducer(witnessReducer, initialState);
   const { appendChunk, flushNow } = useBatchedChunkAppender(dispatch);
@@ -279,7 +288,9 @@ export function useWitnessInterrogation({
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
-      const witnesses = await getWitnesses(caseId);
+      const witnesses = language === 'en'
+        ? await getWitnesses(caseId)
+        : await getWitnesses(caseId, 'autosave', language);
       dispatch({ type: 'SET_WITNESSES', payload: witnesses });
     } catch (err) {
       dispatch({
@@ -289,7 +300,7 @@ export function useWitnessInterrogation({
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [caseId]);
+  }, [caseId, language]);
 
   // Auto-load on mount
   useEffect(() => {

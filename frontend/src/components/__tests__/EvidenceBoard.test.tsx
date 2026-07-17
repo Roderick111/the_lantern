@@ -75,6 +75,19 @@ describe('EvidenceBoard', () => {
       expect(screen.getByText(/Hidden Note/i)).toBeInTheDocument();
     });
 
+    it('uses authored localized evidence names when provided', () => {
+      render(
+        <EvidenceBoard
+          evidence={['hidden_note']}
+          evidenceNames={{ hidden_note: 'Смятая записка с извинениями' }}
+          caseId="case_001"
+        />,
+      );
+
+      expect(screen.getByText('Смятая записка с извинениями')).toBeInTheDocument();
+      expect(screen.queryByText('Hidden Note')).not.toBeInTheDocument();
+    });
+
     it('displays multiple evidence items', () => {
       render(
         <EvidenceBoard

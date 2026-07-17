@@ -35,8 +35,6 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
     "mnemonic_delving": [
         "mnemonic_delving",
         "mnemonic delving",
-        "mnemonic_delving",
-        "mnemonic delving",
         "legulemancy",
         "read mind",
         "read her mind",
@@ -49,59 +47,95 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
         "enter mind",
         "invade mind",
         "see thought",
+        # Russian (player freeform)
+        "погружение в память",
+        "чтение мыслей",
+        "заглянуть в мысли",
+        "прочитать мысли",
+        "в её мысли",
+        "в его мысли",
+        "в память",
+        "читать мысли",
     ],
     "unveil": [
-        "unveil",
         "unveil",
         "reveal hidden",
         "show hidden",
         "uncover hidden",
         "make visible",
+        "снять покров",
+        "снять покровы",
+        "раскрыть скрытое",
+        "явить скрытое",
+        "показать скрытое",
+        "снять маскировку",
+        "проявить невидимые",
     ],
     "raise_the_lamp": [
         "raise_the_lamp",
         "raise the lamp",
-        "raise_the_lamp",
         "light up",
         "illuminate",
         "brighten",
         "cast light",
+        "поднять лампу",
+        "подними лампу",
+        "осветить",
+        "освещаю",
+        "зажечь лампу",
+        "свет лампы",
     ],
     "sense_presence": [
         "sense_presence",
         "sense presence",
-        "homenum unveil",
         "homenum unveil",
         "homenum",
         "detect people",
         "detect person",
         "find people",
         "locate people",
+        "ощутить присутствие",
+        "почувствовать присутствие",
+        "ощущаю присутствие",
+        "кто рядом",
+        "есть ли кто",
     ],
     "identify_substance": [
         "identify_substance",
-        "specialis unveil",
         "specialis unveil",
         "specialis",
         "identify substance",
         "identify potion",
         "analyze substance",
+        "опознать вещество",
+        "определить вещество",
+        "опознать зелье",
+        "анализ вещества",
+        "что за вещество",
     ],
     "echo_reading": [
         "echo_reading",
         "echo reading",
-        "echo reading",
         "last spell",
         "focus history",
         "previous spell",
+        "чтение эха",
+        "прочитать эхо",
+        "эхо на фокусе",
+        "последнее заклинание",
+        "история фокуса",
     ],
     "mend": [
-        "mend",
         "mend",
         "repair this",
         "fix this",
         "mend this",
         "restore this",
+        "починить",
+        "почини",
+        "восстановить",
+        "чинить",
+        "собрать разбитое",
     ],
 }
 
@@ -131,6 +165,15 @@ INTENT_PHRASES = [
     "searching for",
     "looking for",
     "checking for",
+    # Russian
+    "чтобы найти",
+    "чтобы увидеть",
+    "чтобы проверить",
+    "чтобы осмотреть",
+    "чтобы раскрыть",
+    "ищу",
+    "проверяю",
+    "осматриваю",
 ]
 
 
@@ -162,6 +205,14 @@ def extract_target_from_input(text: str) -> str | None:
     match = re.search(r"\b(?:on|at)\s+(.+)$", text, re.IGNORECASE)
     if match:
         return match.group(1).strip()
+    # Russian prepositions (на / по / со / с / у / к)
+    match_ru = re.search(
+        r"(?:^|[\s,])(?:на|по|со|с|у|к)\s+(.+)$",
+        text,
+        re.IGNORECASE,
+    )
+    if match_ru:
+        return match_ru.group(1).strip()
 
     return None
 
@@ -399,23 +450,60 @@ def _is_valid_spell_cast(
         return False
 
     # Rule 1: Action verb present
-    action_verbs = ["cast", "casting", "use", "try", "perform", "execute", "do", "invoke", "channel"]
-    intent_phrases = ["i want to", "i'll", "let me", "going to", "gonna", "i will", "i'm casting", "im casting", "i am casting"]
+    action_verbs = [
+        "cast",
+        "casting",
+        "use",
+        "try",
+        "perform",
+        "execute",
+        "do",
+        "invoke",
+        "channel",
+        # Russian
+        "применить",
+        "применю",
+        "использую",
+        "использовать",
+        "колдую",
+        "читать",
+        "прочитать",
+        "наложить",
+        "накладываю",
+        "сотворить",
+        "творить",
+    ]
+    intent_phrases = [
+        "i want to",
+        "i'll",
+        "let me",
+        "going to",
+        "gonna",
+        "i will",
+        "i'm casting",
+        "im casting",
+        "i am casting",
+        "хочу",
+        "давай",
+        "сейчас",
+        "я применяю",
+        "я использую",
+    ]
 
     for verb in action_verbs:
-        if re.search(rf"\b{verb}\b", text_lower):
+        if re.search(rf"\b{re.escape(verb)}\b", text_lower):
             return True
 
     for phrase in intent_phrases:
         if phrase in text_lower:
             return True
 
-    # Rule 2: Target pattern present ("on X", "at Y")
+    # Rule 2: Target pattern present ("on X", "at Y", or RU prepositions)
     target = extract_target_from_input(text)
     if target:
         return True
 
-    # Rule 3: Spell at sentence start
+    # Rule 3: Spell at sentence start (EN name/id or matched phrase/word)
     cleaned_start = text_lower.lstrip("\"'!.,-; ")
 
     if matched_word and cleaned_start.startswith(matched_word.lower()):
@@ -425,6 +513,12 @@ def _is_valid_spell_cast(
         return True
     if cleaned_start.startswith(spell_id.replace("_", " ")):
         return True
+
+    # Multi-word semantic phrase at start (e.g. "снять покров со стола")
+    phrases = SPELL_SEMANTIC_PHRASES.get(spell_id, [])
+    for phrase in phrases:
+        if len(phrase) >= 4 and cleaned_start.startswith(phrase):
+            return True
 
     return False
 

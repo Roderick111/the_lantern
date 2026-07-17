@@ -4,7 +4,7 @@ import asyncio
 import logging
 import time
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
@@ -31,6 +31,7 @@ from src.api.routes.investigation_logic import (
 from src.api.schemas import InvestigateRequest, InvestigateResponse
 from src.api.sse_format import sse_json_event, sse_text_event
 from src.context.spell_llm import detect_spell_with_fuzzy
+from src.state.idempotency import IdempotencyGuard
 from src.telemetry.logger import log_event
 from src.utils.evidence import check_already_discovered, find_not_present_response
 
@@ -199,6 +200,30 @@ async def investigate(
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ) -> InvestigateResponse:
     """Process player investigation action (non-streaming, used by tests)."""
+    guard = IdempotencyGuard(player_id, "investigate", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return InvestigateResponse.model_validate(early)
+
+    try:
+        result = await _investigate_impl(body, player_id, llm_config)
+    except ClaudeClientError as e:
+        guard.fail_before_mutation()
+        raise llm_http_exception(e) from e
+    except HTTPException:
+        guard.fail_before_mutation()
+        raise
+
+    guard.complete(result)
+    return result
+
+
+async def _investigate_impl(
+    body: InvestigateRequest,
+    player_id: str,
+    llm_config: UserLLMConfig,
+) -> InvestigateResponse:
+    """Core investigate logic (idempotency-agnostic)."""
     ctx = await asyncio.to_thread(setup_investigation, body, player_id)
 
     new_loc_id, new_loc_name, has_nav_intent = detect_location_command(
@@ -290,16 +315,13 @@ async def investigate(
         narrator_hint=narrator_hint,
     )
 
-    try:
-        client = get_client()
-        narrator_response = await client.get_response(
-            prompt,
-            system=system_prompt,
-            api_key=llm_config.api_key,
-            model=llm_config.model,
-        )
-    except ClaudeClientError as e:
-        raise llm_http_exception(e) from e
+    client = get_client()
+    narrator_response = await client.get_response(
+        prompt,
+        system=system_prompt,
+        api_key=llm_config.api_key,
+        model=llm_config.model,
+    )
 
     new_evidence, evidence_names = await process_investigation_response(
         narrator_response,

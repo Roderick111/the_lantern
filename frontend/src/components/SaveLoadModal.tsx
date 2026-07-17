@@ -185,7 +185,7 @@ export function SaveLoadModal({
    */
   const getCaseName = (caseId: string): string => {
     const caseNames: Record<string, string> = {
-      case_001: 'The Sealed Stacks',
+      case_001: 'The Sealed Archive',
       case_002: 'The Poisoned Potion',
       case_003: 'The Missing Focus',
       case_004: 'The Forbidden Forest',

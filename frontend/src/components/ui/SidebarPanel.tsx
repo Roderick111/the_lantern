@@ -45,7 +45,7 @@ function ImageModal({
   locationId: string;
   locationName: string;
 }) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   const handleEscape = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape" && isOpen) onClose();
@@ -97,7 +97,7 @@ function ImageModal({
           >
         <button
           onClick={onClose}
-          className={`absolute -top-10 right-0 min-w-[44px] min-h-[44px] flex items-center justify-end ${theme.colors.text.tertiary} ${theme.colors.text.primaryHover} ${theme.fonts.ui} text-sm uppercase tracking-wider transition-colors`}
+          className={`absolute -top-10 right-0 min-w-[44px] min-h-[44px] flex items-center justify-end ${isDark ? `${theme.colors.text.tertiary} ${theme.colors.text.primaryHover}` : "text-black hover:text-black"} ${theme.fonts.ui} text-sm font-bold uppercase tracking-wider transition-colors`}
         >
           <span className="hidden md:inline">[ESC] </span>CLOSE
         </button>

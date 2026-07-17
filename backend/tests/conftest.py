@@ -47,6 +47,10 @@ def clean_test_db():
     clear_state_cache()
     conn = _get_conn()
     conn.execute("DELETE FROM saves")
+    try:
+        conn.execute("DELETE FROM idempotency_records")
+    except Exception:
+        pass
     conn.commit()
 
 

@@ -18,6 +18,7 @@ from src.case_store.loader import (
     get_location,
     list_locations,
     load_case,
+    load_localized_case,
     load_witnesses,
 )
 from src.context.spell_llm import calculate_spell_success
@@ -498,6 +499,18 @@ def load_case_or_404(case_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"Case not found: {case_id}")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+def load_localized_case_or_404(case_id: str, language: str = "en") -> dict[str, Any]:
+    """Load a case with authored player-facing locale text."""
+    try:
+        if language == "en":
+            return load_case_or_404(case_id)
+        return load_localized_case(case_id, language)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Case or locale not found: {case_id}/{language}")
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def load_or_create_state(

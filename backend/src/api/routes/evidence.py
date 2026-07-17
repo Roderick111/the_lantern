@@ -6,9 +6,9 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.dependencies import get_authenticated_player_id
-from src.api.helpers import load_slot_state
+from src.api.helpers import load_localized_case_or_404, load_slot_state
 from src.api.schemas import EvidenceDetailItem, EvidenceDetailResponse, EvidenceResponse
-from src.case_store.loader import get_all_evidence, get_evidence_by_id, load_case
+from src.case_store.loader import get_all_evidence, get_evidence_by_id
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -39,12 +39,11 @@ async def get_evidence_details(
     slot: str = "autosave",
 ) -> EvidenceDetailResponse:
     """Get detailed evidence info for discovered evidence."""
-    try:
-        case_data = load_case(case_id)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Case not found: {case_id}")
-
     state = await asyncio.to_thread(load_slot_state, case_id, player_id, slot)
+    case_data = load_localized_case_or_404(
+        case_id,
+        getattr(state, "language", "en") if state else "en",
+    )
     discovered_ids = state.discovered_evidence if state else []
 
     all_evidence = get_all_evidence(case_data, location_id)
@@ -72,12 +71,11 @@ async def get_single_evidence(
     slot: str = "autosave",
 ) -> EvidenceDetailItem:
     """Get single evidence item with full metadata."""
-    try:
-        case_data = load_case(case_id)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Case not found: {case_id}")
-
     state = await asyncio.to_thread(load_slot_state, case_id, player_id, slot)
+    case_data = load_localized_case_or_404(
+        case_id,
+        getattr(state, "language", "en") if state else "en",
+    )
     discovered_ids = state.discovered_evidence if state else []
 
     if evidence_id not in discovered_ids:

@@ -22,10 +22,12 @@ import type { StreamCallbacks } from './base';
 export async function getWitnesses(
   caseId = 'case_001',
   slot = 'autosave',
+  language = 'en',
 ): Promise<WitnessInfo[]> {
-  const path =
+  let path =
     `/api/witnesses?case_id=${encodeURIComponent(caseId)}` +
     `&slot=${encodeURIComponent(slot)}`;
+  if (language !== 'en') path += `&language=${encodeURIComponent(language)}`;
   return apiCall('GET', path, z.array(WitnessInfoSchema));
 }
 

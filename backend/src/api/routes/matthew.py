@@ -10,8 +10,9 @@ from src.api.dependencies import get_authenticated_player_id
 from src.api.helpers import (
     build_case_context,
     get_witness_history_summary,
-    load_case_or_404,
+    load_localized_case_or_404,
     load_or_create_state,
+    load_slot_state,
     save_slot_state,
 )
 from src.api.rate_limit import LLM_RATE, limiter
@@ -98,7 +99,11 @@ async def check_matthew_trigger(
     """Check legacy YAML triggers for Matthew companion (optional)."""
     from src.context.matthew_triggers import load_matthew_triggers, select_matthew_trigger
 
-    case_data = load_case_or_404(case_id)
+    existing_state = load_slot_state(case_id, player_id, slot)
+    case_data = load_localized_case_or_404(
+        case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
     state = load_or_create_state(case_id, player_id, case_data, slot=slot)
     companion_state = state.get_matthew_companion_state()
 
@@ -150,7 +155,11 @@ async def matthew_auto_comment(
     """Generate Matthew's automatic comment after evidence discovery."""
     from src.context.matthew_llm import check_matthew_should_comment
 
-    case_data = load_case_or_404(case_id)
+    existing_state = load_slot_state(case_id, player_id, slot)
+    case_data = load_localized_case_or_404(
+        case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
 
     should_comment = await check_matthew_should_comment(body.is_critical)
     if not should_comment:
@@ -196,7 +205,11 @@ async def matthew_direct_chat(
     slot: str = "autosave",
 ) -> MatthewResponseModel:
     """Handle direct conversation with Matthew."""
-    case_data = load_case_or_404(case_id)
+    existing_state = load_slot_state(case_id, player_id, slot)
+    case_data = load_localized_case_or_404(
+        case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
     state = load_or_create_state(case_id, player_id, case_data, slot=slot)
     companion_state = state.get_matthew_companion_state()
 

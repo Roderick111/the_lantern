@@ -1,7 +1,8 @@
 """Game language configuration.
 
 Provides language instruction blocks for LLM prompts.
-Only narration/dialogue gets translated — tags and metadata stay in English.
+Generated narration/dialogue follows this instruction; authored case text comes
+from the locale overlay while IDs and structured tags stay stable.
 """
 
 SUPPORTED_LANGUAGES: dict[str, str] = {

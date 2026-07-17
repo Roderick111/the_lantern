@@ -35,6 +35,8 @@ interface UseLocationOptions {
   autoLoad?: boolean;
   /** Save slot for state (defaults to "autosave") */
   slot?: string;
+  /** Content language for location labels and descriptions */
+  language?: string;
   /** Callback when location changes successfully */
   onLocationChange?: (locationId: string, response: ChangeLocationResponse) => void;
 }
@@ -76,6 +78,7 @@ export function useLocation({
   sessionId,
   autoLoad = true,
   slot = 'autosave',
+  language = 'en',
   onLocationChange,
 }: UseLocationOptions): UseLocationReturn {
   // State — restore from localStorage if no explicit initialLocationId
@@ -114,7 +117,9 @@ export function useLocation({
     setError(null);
 
     try {
-      const locs = await getLocations(caseId, sessionId);
+      const locs = language === 'en'
+        ? await getLocations(caseId, sessionId)
+        : await getLocations(caseId, sessionId, language);
       setLocations(locs);
 
       // If no current location set (initial load), default to the first available location
@@ -133,7 +138,7 @@ export function useLocation({
     } finally {
       setLoading(false);
     }
-  }, [caseId, sessionId]);
+  }, [caseId, sessionId, language]);
 
   // Auto-load on mount
   useEffect(() => {

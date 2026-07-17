@@ -58,20 +58,27 @@ export async function getEvidenceDetails(
 export async function getLocation(
   caseId: string,
   locationId: string,
+  language = 'en',
 ): Promise<LocationResponse> {
   const path =
     `/api/case/${encodeURIComponent(caseId)}` +
-    `/location/${encodeURIComponent(locationId)}`;
+    `/location/${encodeURIComponent(locationId)}` +
+    `?language=${encodeURIComponent(language)}`;
   return apiCall('GET', path, LocationResponseSchema);
 }
 
 export async function getLocations(
   caseId: string,
   sessionId?: string,
+  language = 'en',
 ): Promise<LocationInfo[]> {
   let path = `/api/case/${encodeURIComponent(caseId)}/locations`;
-  if (sessionId) {
-    path += `?session_id=${encodeURIComponent(sessionId)}`;
+  const params = new URLSearchParams();
+  if (sessionId) params.set('session_id', sessionId);
+  if (language !== 'en') params.set('language', language);
+  const query = params.toString();
+  if (query) {
+    path += `?${query}`;
   }
   return apiCall('GET', path, z.array(LocationInfoSchema));
 }
@@ -94,8 +101,12 @@ export async function changeLocation(
   return apiCall('POST', path, ChangeLocationResponseSchema, body);
 }
 
-export async function getCases(): Promise<CaseListResponse> {
-  return apiCall('GET', '/api/cases', CaseListResponseSchema);
+export async function getCases(language = 'en'): Promise<CaseListResponse> {
+  return apiCall(
+    'GET',
+    `/api/cases?language=${encodeURIComponent(language)}`,
+    CaseListResponseSchema,
+  );
 }
 
 export interface ResetResponse {

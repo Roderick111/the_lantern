@@ -5,7 +5,12 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from src.api.dependencies import get_authenticated_player_id
-from src.api.helpers import invalidate_state_cache, load_slot_state, save_slot_state
+from src.api.helpers import (
+    invalidate_state_cache,
+    load_localized_case_or_404,
+    load_slot_state,
+    save_slot_state,
+)
 from src.api.rate_limit import SAVE_LOAD_RATE, limiter
 from src.api.schemas import (
     ChangeLocationRequest,
@@ -23,6 +28,7 @@ from src.api.schemas import (
 )
 from src.case_store.loader import get_first_location_id, get_location, list_locations, load_case
 from src.state.exceptions import StaleStateError
+from src.state.idempotency import IdempotencyGuard
 from src.state.persistence import (
     delete_player_save,
     list_player_saves,
@@ -125,7 +131,11 @@ async def update_settings(
     player_id: str = Depends(get_authenticated_player_id),
 ) -> UpdateSettingsResponse:
     """Update player settings (narrator verbosity, etc.)."""
-    player_id = player_id
+    guard = IdempotencyGuard(player_id, "settings_update", request.request_id)
+    early = guard.begin()
+    if early is not None:
+        return UpdateSettingsResponse.model_validate(early)
+
     try:
         state = load_slot_state(request.case_id, player_id, request.slot)
         if not state:
@@ -138,25 +148,32 @@ async def update_settings(
         if request.narrator_verbosity:
             valid_options = ["concise", "storyteller", "atmospheric"]
             if request.narrator_verbosity not in valid_options:
-                return UpdateSettingsResponse(
+                result = UpdateSettingsResponse(
                     success=False,
                     message=f"Invalid verbosity. Must be one of: {', '.join(valid_options)}",
                 )
+                guard.complete(result)
+                return result
             state.narrator_verbosity = request.narrator_verbosity
 
         if request.language:
             from src.config.language import SUPPORTED_LANGUAGES
 
             if request.language not in SUPPORTED_LANGUAGES:
-                return UpdateSettingsResponse(
+                result = UpdateSettingsResponse(
                     success=False,
                     message=f"Invalid language. Must be one of: {', '.join(SUPPORTED_LANGUAGES)}",
                 )
+                guard.complete(result)
+                return result
             state.language = request.language
 
         save_slot_state(state, player_id, request.slot)
-        return UpdateSettingsResponse(success=True, message="Settings updated successfully")
+        result = UpdateSettingsResponse(success=True, message="Settings updated successfully")
+        guard.complete(result)
+        return result
     except Exception as e:
+        guard.fail_before_mutation()
         return UpdateSettingsResponse(success=False, message=f"Failed to update settings: {e}")
 
 
@@ -288,10 +305,13 @@ async def delete_save_slot_endpoint(
 
 
 @router.get("/case/{case_id}/locations", response_model=list[LocationInfo])
-async def get_locations(case_id: str) -> list[LocationInfo]:
+async def get_locations(
+    case_id: str,
+    language: str = Query(default="en", pattern=r"^[a-zA-Z]{2}$"),
+) -> list[LocationInfo]:
     """Get all locations for LocationSelector."""
     try:
-        case_data = load_case(case_id)
+        case_data = load_localized_case_or_404(case_id, language)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Case not found: {case_id}")
 
@@ -306,16 +326,25 @@ async def change_location(
     player_id: str = Depends(get_authenticated_player_id),
 ) -> ChangeLocationResponse:
     """Change player location."""
-    player_id = player_id
-    try:
-        case_data = load_case(case_id)
-        location = get_location(case_data, request.location_id)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Case not found: {case_id}")
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Location not found: {request.location_id}")
+    guard = IdempotencyGuard(player_id, "change_location", request.request_id)
+    early = guard.begin()
+    if early is not None:
+        return ChangeLocationResponse.model_validate(early)
 
     state = load_slot_state(case_id, player_id, request.slot)
+    try:
+        case_data = load_localized_case_or_404(
+            case_id,
+            getattr(state, "language", "en") if state else "en",
+        )
+        location = get_location(case_data, request.location_id)
+    except HTTPException:
+        guard.fail_before_mutation()
+        raise
+    except KeyError:
+        guard.fail_before_mutation()
+        raise HTTPException(status_code=404, detail=f"Location not found: {request.location_id}")
+
     if state is None:
         state = PlayerState(case_id=case_id, current_location=request.location_id)
 
@@ -332,7 +361,7 @@ async def change_location(
         },
     )
 
-    return ChangeLocationResponse(
+    result = ChangeLocationResponse(
         success=True,
         location={
             "id": location.get("id", request.location_id),
@@ -343,3 +372,5 @@ async def change_location(
         },
         updated_state=state.model_dump(mode="json"),
     )
+    guard.complete(result)
+    return result

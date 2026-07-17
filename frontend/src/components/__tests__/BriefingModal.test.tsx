@@ -17,13 +17,13 @@ import type { BriefingContent } from '../../types/investigation';
 const mockBriefing: BriefingContent = {
   case_id: 'case_001',
   dossier: {
-    title: 'The Sealed Stacks',
+    title: 'The Sealed Archive',
     victim: 'Third-year student',
-    location: 'Blackwood Collegiate Library, Sealed Stacks',
+    location: 'Blackwood Collegiate Library, Sealed Archive',
     time: 'Approximately 9:15pm last night',
     status: 'Found held in stillness near frost-covered window',
     synopsis: `VICTIM: Third-year student
-LOCATION: Blackwood Collegiate Library, Sealed Stacks`,
+LOCATION: Blackwood Collegiate Library, Sealed Archive`,
   },
   teaching_questions: [],
   transition: 'Trust nothing unseen.',
@@ -48,7 +48,7 @@ describe('BriefingModal', () => {
   it('renders case dossier content', () => {
     render(<BriefingModal {...defaultProps} />);
     expect(screen.getByText(/VICTIM: Third-year student/)).toBeInTheDocument();
-    expect(screen.getByText(/CASE DOSSIER: The Sealed Stacks/)).toBeInTheDocument();
+    expect(screen.getByText(/CASE DOSSIER: The Sealed Archive/)).toBeInTheDocument();
     expect(screen.getByText('WHAT HAPPENED')).toBeInTheDocument();
     expect(screen.queryByText(/How to investigate/i)).not.toBeInTheDocument();
   });

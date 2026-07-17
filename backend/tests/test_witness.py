@@ -161,12 +161,12 @@ class TestBuildWitnessPrompt:
             player_input="Where were you?",
             case_context={
                 "crime_type": "assault",
-                "location": "the Sealed Stacks",
+                "location": "the Sealed Archive",
                 "setting": "Blackwood Collegiate, autumn 1890",
             },
         )
         assert "Elena Marsh" in prompt
-        assert "the Sealed Stacks" in prompt
+        assert "the Sealed Archive" in prompt
         assert "Blackwood Collegiate, autumn 1890" in prompt
         assert "crime at Blackwood Collegiate" not in prompt
 

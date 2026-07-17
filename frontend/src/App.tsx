@@ -47,7 +47,7 @@ import { useTheme } from "./context/useTheme";
 import { logSessionStart } from "./api/telemetry";
 import { usePlayerId } from "./utils/playerId";
 import { getGamePreferences } from "./utils/gamePreferences";
-import { updateSettings } from "./api/client";
+import { getEvidenceDetails, updateSettings } from "./api/client";
 import type { ChangeLocationResponse } from "./types/investigation";
 
 // ============================================
@@ -186,6 +186,7 @@ function LandingRoute() {
       <LandingPage
         onLoadGame={handleLoadGameFromLanding}
         onOpenSettings={() => setSettingsOpen(true)}
+        language={gamePreferences.language}
         shortcutsEnabled={!loadModalOpen && !settingsOpen}
         onPrepareStartCase={handlePrepareStartCase}
       />
@@ -243,6 +244,7 @@ function GameRoute() {
     <InvestigationView
       caseId={caseId}
       playerId={playerId}
+      language={getGamePreferences().language}
       onExitToMainMenu={() => navigateWithTransition(navigate, "/")}
     />
   );
@@ -255,12 +257,14 @@ function GameRoute() {
 interface InvestigationViewProps {
   caseId: string;
   playerId: string;
+  language: string;
   onExitToMainMenu: () => void;
 }
 
 function InvestigationView({
   caseId,
   playerId,
+  language,
   onExitToMainMenu,
 }: InvestigationViewProps) {
   // Toast state
@@ -270,6 +274,7 @@ function InvestigationView({
 
   // B3/B1: ref for cross-hook location change handler (to sync apply without circular hook init)
   const locationChangeHandlerRef = useRef<((id: string, resp: ChangeLocationResponse) => void) | null>(null);
+  const [locationLanguage, setLocationLanguage] = useState(language);
 
   // Domain hooks
   // B1: pass slot to useLocation (was missing), B3: wire onChange via ref for apply
@@ -277,6 +282,7 @@ function InvestigationView({
     caseId,
     playerId,
     slot: "autosave",
+    language: locationLanguage,
     onLocationChange: (id, resp) => {
       locationChangeHandlerRef.current?.(id, resp);
     },
@@ -286,12 +292,21 @@ function InvestigationView({
   const investigation = useInvestigation({ caseId, locationId: currentLocationId, playerId, slot: "autosave" });
   const { state, location, loading, error, clearError, setNarratorVerbosity, setLanguage, applyLocationChange } = investigation;
 
+  useEffect(() => {
+    if (state?.language) setLocationLanguage(state.language);
+  }, [state?.language]);
+
   // wire after both hooks defined (ref holds latest)
   locationChangeHandlerRef.current = (_id, resp) => {
     applyLocationChange(resp);
   };
 
-  const witnessHook = useWitnessInterrogation({ caseId, playerId, autoLoad: true });
+  const witnessHook = useWitnessInterrogation({
+    caseId,
+    playerId,
+    autoLoad: true,
+    language: state?.language ?? locationLanguage,
+  });
   const { state: witnessState, askQuestion, presentEvidenceToWitness } = witnessHook;
 
   const verdictHook = useVerdictFlow({ caseId, playerId });
@@ -324,7 +339,44 @@ function InvestigationView({
 
   // Derived data
   const suspects = useMemo(() => witnessState.witnesses.map((w) => ({ id: w.id, name: w.name })), [witnessState.witnesses]);
-  const discoveredEvidenceWithNames = useMemo(() => (state?.discovered_evidence ?? []).map((id) => ({ id, name: id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) })), [state?.discovered_evidence]);
+  const evidenceIds = useMemo(() => state?.discovered_evidence ?? [], [state?.discovered_evidence]);
+  const evidenceKey = evidenceIds.join("|");
+  const contentLanguage = state?.language ?? "en";
+  const [evidenceNames, setEvidenceNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const lookupIds = evidenceKey ? evidenceKey.split("|") : [];
+    if (lookupIds.length === 0) {
+      setEvidenceNames({});
+      return;
+    }
+
+    let cancelled = false;
+    void Promise.all(
+      lookupIds.map(async (id) => {
+        try {
+          const details = await getEvidenceDetails(id, caseId);
+          return details?.name ? [id, details.name] as const : null;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((entries) => {
+      if (!cancelled) setEvidenceNames(Object.fromEntries(entries.filter(Boolean) as [string, string][]));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId, contentLanguage, evidenceKey]);
+
+  const discoveredEvidenceWithNames = useMemo(
+    () => evidenceIds.map((id) => ({
+      id,
+      name: evidenceNames[id] ?? id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    })),
+    [evidenceIds, evidenceNames],
+  );
 
   // Theme
   const { theme } = useTheme();
@@ -545,6 +597,7 @@ function InvestigationView({
         isOpen={modals.evidenceListModalOpen}
         onClose={() => modals.setEvidenceListModalOpen(false)}
         evidence={[...(state?.discovered_evidence ?? [])]}
+        evidenceNames={evidenceNames}
         caseId={caseId}
         onEvidenceClick={(id) => void actions.handleEvidenceClick(id)}
       />
@@ -664,7 +717,10 @@ function InvestigationView({
         narratorVerbosity={state?.narrator_verbosity ?? 'storyteller'}
         onVerbosityChange={setNarratorVerbosity}
         language={(state?.language ?? 'en') as import('./components/SettingsModal').GameLanguage}
-        onLanguageChange={setLanguage}
+        onLanguageChange={(value) => {
+          setLanguage(value);
+          setLocationLanguage(value);
+        }}
         hintsEnabled={actions.hintsEnabled}
         onHintsChange={actions.handleHintsChange}
       />

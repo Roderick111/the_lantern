@@ -348,7 +348,8 @@ You: "The robes are undisturbed. The face is frozen in surprise."
 {hint_section}== PLAYER ACTION ==
 "{player_input}"
 
-Respond as the narrator:"""
+Respond as the narrator:
+"""
 
 
 def get_response_guidelines(verbosity: str = "storyteller") -> str:
@@ -556,7 +557,6 @@ def build_narrator_or_spell_prompt(
         spell_id, target = detect_spell_with_fuzzy(player_input)
 
     if spell_id is not None:
-
         # Build location context for spell
         location_context = {
             "description": location_desc,

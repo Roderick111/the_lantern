@@ -7,6 +7,7 @@ Phase 5.4: Added case discovery and validation for "drop YAML -> case works" wor
 
 import logging
 import re
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +23,41 @@ CASE_STORE_DIR = Path(__file__).parent
 # In-memory cache for parsed YAML case files (invalidated when file mtime changes)
 _case_cache: dict[str, dict[str, Any]] = {}
 _case_mtime: dict[str, float] = {}
-_evidence_index_cache: dict[str, tuple[float, dict[str, dict[str, Any]]]] = {}
+_evidence_index_cache: dict[tuple[str, int], dict[str, dict[str, Any]]] = {}
+_locale_cache: dict[tuple[str, str], tuple[float, dict[str, Any]]] = {}
+
+_LOCALE_LIST_KEYS = {"witnesses", "hidden_evidence", "additional_evidence", "choices", "secrets"}
+_LOCALE_TEXT_LIST_KEYS = {
+    "knowledge",
+    "surface_elements",
+    "general_knowledge",
+    "keywords",
+    "deductions_required",
+    "correct_reasoning_requires",
+    "suspects",
+}
+_LOCALE_INDEXED_LIST_PATHS = {
+    ("case", "timeline"),
+    ("case", "briefing_context", "witnesses"),
+    ("case", "post_verdict", "correct", "confrontation"),
+    ("case", "post_verdict", "incorrect"),
+}
+_PROTECTED_LOCALE_KEYS = {
+    "triggers",
+    "trigger",
+    "condition",
+    "culprit",
+    "key_evidence",
+    "evidence",
+    "suspect_accused",
+    "confrontation_anyway",
+    "strength",
+    "points_to",
+    "tag",
+    "spell_contexts",
+    "available_spells",
+    "special_interactions",
+}
 
 
 def load_case(case_id: str) -> dict[str, Any]:
@@ -63,6 +98,111 @@ def load_case(case_id: str) -> dict[str, Any]:
     _case_cache[case_id] = data
     _case_mtime[case_id] = mtime
     return data
+
+
+def _merge_locale_values(
+    base: Any,
+    overlay: Any,
+    *,
+    path: tuple[str, ...] = (),
+) -> Any:
+    """Merge authored locale text into canonical case data.
+
+    Locale files use dictionaries keyed by stable IDs for list-shaped case
+    sections. This prevents translations from drifting when evidence order
+    changes in the English source file.
+    """
+    if isinstance(base, dict) and isinstance(overlay, dict):
+        merged = deepcopy(base)
+        for key, value in overlay.items():
+            if key in _PROTECTED_LOCALE_KEYS:
+                raise ValueError(f"Locale cannot override mechanics at {'.'.join(path + (key,))}")
+            if key not in merged:
+                raise ValueError(f"Locale key does not exist at {'.'.join(path + (key,))}")
+            merged[key] = _merge_locale_values(merged[key], value, path=path + (key,))
+        return merged
+
+    if isinstance(base, list) and isinstance(overlay, dict):
+        if not path or path[-1] not in _LOCALE_LIST_KEYS:
+            raise ValueError(
+                f"Locale list override must use a stable-ID section at {'.'.join(path)}"
+            )
+        by_id = {str(item.get("id")): item for item in base if isinstance(item, dict) and item.get("id")}
+        merged = deepcopy(base)
+        for item_id, item_overlay in overlay.items():
+            if item_id not in by_id:
+                raise ValueError(f"Locale ID does not exist at {'.'.join(path)}: {item_id}")
+            if not isinstance(item_overlay, dict):
+                raise ValueError(f"Locale entry must be a mapping at {'.'.join(path + (item_id,))}")
+            index = next(i for i, item in enumerate(merged) if item.get("id") == item_id)
+            merged[index] = _merge_locale_values(
+                merged[index], item_overlay, path=path + (item_id,)
+            )
+        return merged
+
+    if isinstance(base, list) and isinstance(overlay, list):
+        if path in _LOCALE_INDEXED_LIST_PATHS or (path and path[-1] == "not_present"):
+            if len(base) != len(overlay):
+                raise ValueError(f"Locale list length mismatch at {'.'.join(path)}")
+            merged = deepcopy(base)
+            for index, item_overlay in enumerate(overlay):
+                if not isinstance(item_overlay, dict) or not isinstance(base[index], dict):
+                    raise ValueError(f"Locale entry must be a mapping at {'.'.join(path)}[{index}]")
+                merged[index] = _merge_locale_values(
+                    base[index], item_overlay, path=path + (str(index),)
+                )
+            return merged
+        if not path or path[-1] not in _LOCALE_TEXT_LIST_KEYS:
+            raise ValueError(f"Locale list override is not text-only at {'.'.join(path)}")
+        if not all(isinstance(item, str) for item in overlay):
+            raise ValueError(f"Locale text list contains non-text at {'.'.join(path)}")
+        return overlay
+
+    if isinstance(base, str) and isinstance(overlay, str):
+        return overlay
+
+    raise ValueError(f"Locale type mismatch at {'.'.join(path)}")
+
+
+def load_localized_case(case_id: str, language: str = "en") -> dict[str, Any]:
+    """Return canonical case with locale-authored player text merged in.
+
+    English remains the canonical source. Russian has an explicit locale file;
+    other legacy languages keep the existing English-authored static content
+    until their authored overlays are added.
+    """
+    base = load_case(case_id)
+    if language == "en":
+        return base
+    if not re.match(r"^[a-zA-Z]{2}$", language):
+        raise ValueError(f"Invalid language: {language}")
+
+    locale_path = CASE_STORE_DIR / "locales" / language / f"{case_id}.yaml"
+    if not locale_path.exists():
+        # Existing non-EN languages currently localize generated narration only.
+        # Keep their legacy behavior until authored case overlays exist.
+        if language != "ru":
+            return base
+        raise FileNotFoundError(f"Locale not found for {case_id}: {language}")
+
+    cache_key = (case_id, language)
+    mtime = locale_path.stat().st_mtime
+    cached = _locale_cache.get(cache_key)
+    if cached and cached[0] == mtime:
+        return cached[1]
+
+    with open(locale_path, encoding="utf-8") as f:
+        overlay: dict[str, Any] = yaml.safe_load(f) or {}
+    if not isinstance(overlay, dict) or set(overlay) != {"case"}:
+        raise ValueError(f"Invalid locale wrapper in {locale_path}")
+    overlay_case = overlay["case"]
+    base_case = get_case_section(base)
+    if overlay_case.get("id") != base_case.get("id"):
+        raise ValueError(f"Locale case.id mismatch in {locale_path}")
+
+    merged = _merge_locale_values(base, overlay)
+    _locale_cache[cache_key] = (mtime, merged)
+    return merged
 
 
 def get_case_section(case_data: dict[str, Any]) -> dict[str, Any]:
@@ -163,13 +303,13 @@ def build_evidence_index(case_data: dict[str, Any]) -> dict[str, dict[str, Any]]
 
 
 def get_evidence_index(case_id: str, case_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    """Cached evidence index keyed by case file mtime."""
-    mtime = _case_mtime.get(case_id, 0.0)
-    cached = _evidence_index_cache.get(case_id)
-    if cached and cached[0] == mtime:
-        return cached[1]
+    """Cached evidence index, isolated per canonical or localized case object."""
+    cache_key = (case_id, id(case_data))
+    cached = _evidence_index_cache.get(cache_key)
+    if cached is not None:
+        return cached
     index = build_evidence_index(case_data)
-    _evidence_index_cache[case_id] = (mtime, index)
+    _evidence_index_cache[cache_key] = index
     return index
 
 
@@ -680,7 +820,10 @@ def validate_case(
     return (len(errors) == 0, errors, warnings)
 
 
-def discover_cases(case_dir: str | Path | None = None) -> tuple[list[CaseMetadata], list[str]]:
+def discover_cases(
+    case_dir: str | Path | None = None,
+    language: str = "en",
+) -> tuple[list[CaseMetadata], list[str]]:
     """Scan directory for case YAML files, validate, and extract metadata.
 
     Gracefully handles errors:
@@ -742,8 +885,17 @@ def discover_cases(case_dir: str | Path | None = None) -> tuple[list[CaseMetadat
             for warning in validation_warnings:
                 logger.warning(f"{case_id}: {warning}")
 
-            # Extract metadata
+            # Extract metadata from the authored locale when requested.
             case_section = case_data.get("case", {})
+            if language != "en" and case_dir == CASE_STORE_DIR:
+                try:
+                    case_section = get_case_section(load_localized_case(case_id, language))
+                except FileNotFoundError:
+                    if language == "ru":
+                        # Do not show a Russian player an English-only case.
+                        # Publish its authored overlay before making it selectable.
+                        logger.info("Skipped %s from %s case list: locale missing", case_id, language)
+                        continue
             metadata = CaseMetadata(
                 id=case_section.get("id", case_id),
                 title=case_section.get("title", "Untitled Case"),
@@ -769,10 +921,10 @@ def discover_cases(case_dir: str | Path | None = None) -> tuple[list[CaseMetadat
     return cases, errors
 
 
-def list_cases_with_metadata() -> tuple[list[CaseMetadata], list[str]]:
+def list_cases_with_metadata(language: str = "en") -> tuple[list[CaseMetadata], list[str]]:
     """List all cases with metadata (convenience wrapper).
 
     Returns:
         Tuple of (list of CaseMetadata, list of error messages)
     """
-    return discover_cases(CASE_STORE_DIR)
+    return discover_cases(CASE_STORE_DIR, language=language)
