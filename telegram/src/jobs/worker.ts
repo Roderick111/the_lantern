@@ -42,17 +42,48 @@ export interface WorkerDeps {
   publicUrl?: string;
 }
 
+/** Max users processed concurrently (per-user steps stay serialized). */
+const USER_CONCURRENCY = 8;
+
+async function mapPool(
+  items: number[],
+  limit: number,
+  fn: (userId: number) => Promise<void>,
+): Promise<void> {
+  let i = 0;
+  const n = Math.min(limit, items.length);
+  if (n === 0) return;
+  const workers = Array.from({ length: n }, async () => {
+    while (i < items.length) {
+      const idx = i++;
+      const userId = items[idx];
+      try {
+        await fn(userId);
+      } catch (err) {
+        log({
+          level: "error",
+          msg: "worker_user_step_failed",
+          telegram_user_id: userId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+  });
+  await Promise.all(workers);
+}
+
 /**
  * Process durable jobs for all users with work.
  * One active mutation per user; arrival order via job id FIFO.
+ * Users run in parallel (bounded); failures isolated per user.
  */
 export async function processQueue(deps: WorkerDeps): Promise<void> {
   for (let round = 0; round < 100; round++) {
     const users = deps.repos.listUsersWithWork();
     if (users.length === 0) return;
-    for (const userId of users) {
-      await processUserStep(deps, userId);
-    }
+    await mapPool(users, USER_CONCURRENCY, (userId) =>
+      processUserStep(deps, userId),
+    );
   }
 }
 
@@ -204,41 +235,66 @@ async function deliverJob(deps: WorkerDeps, job: JobRow): Promise<void> {
   }
 
   try {
-    // Notices first (evidence discovery)
-    if (stored.notices) {
-      for (const n of stored.notices) {
+    // Silent jobs (e.g. retry_job ack after requeue)
+    const noText = !stored.reply_text.trim();
+    const noNotices = !stored.notices?.length;
+    const noPhoto = !stored.photo;
+    if (noText && noNotices && noPhoto) {
+      deps.repos.markDelivered(job.id);
+      return;
+    }
+
+    // Notices first (evidence discovery) — trim after each send for retry safety
+    if (stored.notices && stored.notices.length > 0) {
+      const remaining = [...stored.notices];
+      while (remaining.length > 0) {
+        const n = remaining[0];
         await deps.delivery.sendMessage(payload.chatId, escapeHtml(n), {
           parseMode: "HTML",
         });
+        remaining.shift();
+        stored = { ...stored, notices: remaining.length ? remaining : undefined };
+        deps.repos.updateEngineResponse(job.id, stored);
       }
     }
 
-    // Photo once (first visit/contact)
+    // Photo once — skip if already receipted
     if (stored.photo && deps.delivery.sendPhoto) {
-      try {
-        const result = await deps.delivery.sendPhoto(
-          payload.chatId,
-          {
-            fileId: stored.photo.fileId,
-            path: stored.photo.path,
-          },
-          stored.photo.caption,
-        );
-        deps.repos.recordMediaReceipt(
+      const photo = stored.photo;
+      const already =
+        deps.repos.hasMediaReceipt(
           job.telegram_user_id,
-          stored.photo.kind,
-          stored.photo.mediaId,
-          result.fileId ?? stored.photo.fileId ?? null,
+          photo.kind,
+          photo.mediaId,
         );
-      } catch {
-        // Still record receipt so we don't spam retries of missing assets
-        deps.repos.recordMediaReceipt(
-          job.telegram_user_id,
-          stored.photo.kind,
-          stored.photo.mediaId,
-          stored.photo.fileId ?? null,
-        );
+      if (!already) {
+        try {
+          const result = await deps.delivery.sendPhoto(
+            payload.chatId,
+            {
+              fileId: photo.fileId,
+              path: photo.path,
+            },
+            photo.caption,
+          );
+          deps.repos.recordMediaReceipt(
+            job.telegram_user_id,
+            photo.kind,
+            photo.mediaId,
+            result.fileId ?? photo.fileId ?? null,
+          );
+        } catch {
+          // Still record receipt so we don't spam retries of missing assets
+          deps.repos.recordMediaReceipt(
+            job.telegram_user_id,
+            photo.kind,
+            photo.mediaId,
+            photo.fileId ?? null,
+          );
+        }
       }
+      stored = { ...stored, photo: undefined };
+      deps.repos.updateEngineResponse(job.id, stored);
     }
 
     const chunks = splitMessage(stored.reply_text);

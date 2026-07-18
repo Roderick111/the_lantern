@@ -94,9 +94,18 @@ export function moveKeyboard(
   locations?: Array<{ id: string; name: string }>,
 ): InlineButton[][] {
   const labels = new Map(locations?.map((location) => [location.id, location.name]));
-  return LOCATION_IDS.map((id) => {
+  const ids =
+    locations && locations.length > 0
+      ? locations.map((location) => location.id)
+      : [...LOCATION_IDS];
+  return ids.map((id) => {
     const names = LOCATION_NAMES[id as LocationId];
-    const label = labels.get(id) ?? (lang === "ru" ? names.ru : names.en);
+    const fallback = names
+      ? lang === "ru"
+        ? names.ru
+        : names.en
+      : id;
+    const label = labels.get(id) ?? fallback;
     return [{ text: label, callback_data: encodeMove(id) }];
   });
 }
@@ -106,9 +115,18 @@ export function witnessesKeyboard(
   witnesses?: Array<{ id: string; name: string }>,
 ): InlineButton[][] {
   const labels = new Map(witnesses?.map((witness) => [witness.id, witness.name]));
-  return WITNESS_IDS.map((id) => {
+  const ids =
+    witnesses && witnesses.length > 0
+      ? witnesses.map((witness) => witness.id)
+      : [...WITNESS_IDS];
+  return ids.map((id) => {
     const names = WITNESS_NAMES[id as WitnessId];
-    const label = labels.get(id) ?? (lang === "ru" ? names.ru : names.en);
+    const fallback = names
+      ? lang === "ru"
+        ? names.ru
+        : names.en
+      : id;
+    const label = labels.get(id) ?? fallback;
     return [{ text: label, callback_data: encodeWitness(id) }];
   });
 }

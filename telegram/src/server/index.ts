@@ -53,21 +53,29 @@ async function main(): Promise<void> {
   };
 
   let workerRunning = false;
+  let kickRequested = false;
   const kickWorker = () => {
+    kickRequested = true;
     if (workerRunning) return;
     workerRunning = true;
-    void processQueue(workerDeps)
-      .catch((err) => {
+    void (async () => {
+      try {
+        while (kickRequested) {
+          kickRequested = false;
+          await processQueue(workerDeps);
+        }
+      } catch (err) {
         log({
           level: "error",
           msg: "worker_error",
           status: "error",
           error_code: err instanceof Error ? err.message : "unknown",
         });
-      })
-      .finally(() => {
+      } finally {
         workerRunning = false;
-      });
+        if (kickRequested) kickWorker();
+      }
+    })();
   };
 
   if (config.TELEGRAM_MODE === "polling") {
@@ -93,6 +101,24 @@ async function main(): Promise<void> {
     kickWorker,
     miniAppDir,
   });
+
+  // Retention off the health path (HIGH-07)
+  const retentionMs = 15 * 60 * 1000;
+  setInterval(() => {
+    try {
+      const purged = repos.purgeOldJobs(config.RETENTION_DAYS, 200);
+      if (purged.jobs > 0 || purged.updates > 0) {
+        log({
+          msg: "retention_purge",
+          status: "ok",
+          purged_jobs: purged.jobs,
+          purged_updates: purged.updates,
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+  }, retentionMs);
 
   log({
     msg: "start_webhook_server",

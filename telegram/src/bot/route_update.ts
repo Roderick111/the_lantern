@@ -416,14 +416,22 @@ function extractCallback(
         operation: "local_reply",
         payload: { chatId, callbackData: data, kind: "reset_cancel" },
       };
-    case "retry":
+    case "retry": {
+      // Requeue before enqueue so needs_manual_retry does not block claim.
+      const requeued = repos.requeueOldestManualJob(from.id);
       return {
         telegramUserId: from.id,
         chatId,
         requestId,
         operation: "local_reply",
-        payload: { chatId, callbackData: data, kind: "retry_hint" },
+        payload: {
+          chatId,
+          callbackData: data,
+          kind: requeued != null ? "retry_job" : "retry_hint",
+          meta: requeued != null ? { requeuedJobId: String(requeued) } : undefined,
+        },
       };
+    }
     default:
       break;
   }

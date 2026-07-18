@@ -150,6 +150,10 @@ export async function handleLocal(
       buttons: invButtons(lang, ctx.publicUrl),
     };
   }
+  if (kind === "retry_job") {
+    // Manual job already requeued in route_update; silent ack (requeued work delivers).
+    return { reply_text: "" };
+  }
   if (kind === "retry_hint") {
     return {
       reply_text: t(lang, "engine_unknown"),

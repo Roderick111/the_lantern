@@ -4,7 +4,6 @@ import type { AppConfig } from "../server/config";
 import type { Repositories } from "../db/repositories";
 import type { EngineClient } from "../engine/client";
 import type { WorkerDeps } from "../jobs/worker";
-import { processQueue } from "../jobs/worker";
 import { DAILY_LLM_LIMIT, FREE_CASE_ID, type Language } from "../domain/types";
 import { isWitnessId } from "../domain/case_meta";
 import { CASE_META, RITES, pick } from "../i18n/case_catalog";
@@ -237,8 +236,7 @@ export function createMiniAppRouter(deps: MiniAppDeps): Hono {
     if (!isWitnessId(id)) return err(c, "unknown_witness", 400);
 
     deps.repos.ensureUser(session.uid, session.uid);
-    deps.repos.setSessionMode(session.uid, "witness", id);
-    deps.repos.setOnboardingStep(session.uid, "active");
+    // Mode set in worker after select_witness job runs (avoid split-brain).
 
     const chatId = deps.repos.getUser(session.uid)?.chat_id ?? session.uid;
     const updateId = syntheticUpdateId();
@@ -257,7 +255,6 @@ export function createMiniAppRouter(deps: MiniAppDeps): Hono {
       },
     });
     deps.kickWorker?.();
-    void processQueue(deps.workerDeps).catch(() => undefined);
 
     return c.json(
       SelectWitnessResponseSchema.parse({
@@ -292,7 +289,6 @@ export function createMiniAppRouter(deps: MiniAppDeps): Hono {
     const chatId = deps.repos.getUser(session.uid)?.chat_id ?? session.uid;
     const updateId = syntheticUpdateId();
     const requestId = `ma-ev-${session.uid}-${evidenceId}-${Date.now()}`;
-    deps.repos.setSessionMode(session.uid, "witness", witnessId);
     const enq = deps.repos.tryEnqueueUpdate({
       updateId,
       telegramUserId: session.uid,
@@ -306,7 +302,6 @@ export function createMiniAppRouter(deps: MiniAppDeps): Hono {
       },
     });
     deps.kickWorker?.();
-    void processQueue(deps.workerDeps).catch(() => undefined);
 
     return c.json(
       PresentEvidenceResponseSchema.parse({
@@ -362,36 +357,36 @@ export function createMiniAppRouter(deps: MiniAppDeps): Hono {
       return err(c, "cap_reached", 429);
     }
 
-    try {
-      await deps.engine.ensureSession(session.uid);
-      const res = await deps.engine.submitVerdict(session.uid, {
-        case_id: FREE_CASE_ID,
-        slot: "autosave",
-        accused_suspect_id: parsed.data.accused_suspect_id,
-        reasoning: parsed.data.reasoning,
-        evidence_cited: parsed.data.evidence_cited,
-        request_id: parsed.data.request_id,
-      });
-      deps.repos.incrementLlmTurns(session.uid);
-      return c.json(
-        VerdictResponseSchema.parse({
-          ok: true,
-          correct: res.correct,
-          attempts_remaining: res.attempts_remaining,
-          case_solved: res.case_solved,
-          analysis: res.mentor_feedback.analysis,
-          critique: res.mentor_feedback.critique,
-          praise: res.mentor_feedback.praise,
-          hint: res.mentor_feedback.hint ?? null,
-          reveal: res.reveal ?? null,
-        }),
-      );
-    } catch (e) {
-      if (e instanceof EngineError && e.code === "conflict") {
-        return err(c, "conflict", 409);
-      }
-      return err(c, "engine_error", 502);
-    }
+    const chatId = deps.repos.getUser(session.uid)?.chat_id ?? session.uid;
+    const updateId = syntheticUpdateId();
+    const requestId = parsed.data.request_id;
+    const enq = deps.repos.tryEnqueueUpdate({
+      updateId,
+      telegramUserId: session.uid,
+      chatId,
+      requestId,
+      operation: "submit_verdict",
+      payload: {
+        chatId,
+        kind: "submit_verdict",
+        text: parsed.data.reasoning,
+        meta: {
+          accused_suspect_id: parsed.data.accused_suspect_id,
+          evidence_cited: JSON.stringify(parsed.data.evidence_cited),
+          reasoning: parsed.data.reasoning,
+        },
+      },
+    });
+    deps.kickWorker?.();
+
+    return c.json(
+      VerdictResponseSchema.parse({
+        ok: true,
+        queued: enq.created,
+        request_id: requestId,
+        close: true,
+      }),
+    );
   });
 
   root.route("/", authed);

@@ -1,9 +1,9 @@
 import type { JobPayload, JobRow, StoredReply } from "../domain/types";
-import { DAILY_LLM_LIMIT, LLM_OPERATIONS } from "../domain/types";
+import { LLM_OPERATIONS } from "../domain/types";
 import { t } from "../i18n/strings";
 import { funnel } from "../server/metrics";
 import type { OpContext } from "./op_context";
-import { invButtons, langOf, nextUtcMidnightLabel } from "./op_context";
+import { langOf } from "./op_context";
 import { handleLocal } from "./ops_local";
 import {
   handleBegin,
@@ -29,21 +29,8 @@ export async function executeJob(
   const userId = job.telegram_user_id;
   const lang = langOf(ctx.repos, userId);
 
-  if (LLM_OPERATIONS.has(job.operation)) {
-    if (!ctx.featureLlmTurns) {
-      return { reply_text: t(lang, "feature_disabled") };
-    }
-    if (!ctx.repos.canUseLlmTurn(userId, DAILY_LLM_LIMIT)) {
-      funnel("daily_cap", {
-        telegram_user_id: userId,
-        request_id: job.request_id,
-        operation: job.operation,
-      });
-      return {
-        reply_text: t(lang, "cap_reached") + `\n(${nextUtcMidnightLabel()})`,
-        buttons: invButtons(lang, ctx.publicUrl),
-      };
-    }
+  if (LLM_OPERATIONS.has(job.operation) && !ctx.featureLlmTurns) {
+    return { reply_text: t(lang, "feature_disabled") };
   }
 
   switch (job.operation) {
@@ -109,9 +96,7 @@ export async function executeJob(
         request_id: job.request_id,
         operation: "submit_verdict",
       });
-      if (reply.reply_text.toLowerCase().includes("correct") ||
-          reply.reply_text.includes("Case solved") ||
-          reply.reply_text.includes("Дело раскрыто")) {
+      if (reply.case_solved) {
         funnel("case_solved", {
           telegram_user_id: userId,
           request_id: job.request_id,

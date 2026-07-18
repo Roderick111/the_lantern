@@ -21,8 +21,9 @@ import {
 } from "../bot/keyboards";
 import type { TelegramSnapshot } from "../engine/schemas";
 import type { OpContext } from "./op_context";
-import { invButtons, witButtons, sleep } from "./op_context";
+import { invButtons, witButtons, nextUtcMidnightLabel, sleep } from "./op_context";
 import { presentPicker } from "./ops_local";
+import { funnel } from "../server/metrics";
 
 function evidenceNotice(lang: Language, ids: string[], names: Record<string, string>) {
   if (!ids.length) return undefined;
@@ -155,9 +156,11 @@ export async function handleBegin(
       request_id: job.request_id,
     });
   } catch (err) {
-    // Briefing may already be complete
-    if (!(err instanceof EngineError && err.code === "bad_request")) {
-      // still allow enter
+    // Briefing may already be complete — other errors must retry
+    if (err instanceof EngineError && err.code === "bad_request") {
+      /* ok */
+    } else {
+      throw err;
     }
   }
   ctx.repos.setOnboardingStep(userId, "active");
@@ -204,6 +207,17 @@ export async function handleInvestigate(
 ): Promise<StoredReply> {
   const text = payload.text ?? "";
   await ctx.engine.ensureSession(userId);
+  if (!ctx.repos.tryReserveLlmTurn(userId, DAILY_LLM_LIMIT)) {
+    funnel("daily_cap", {
+      telegram_user_id: userId,
+      request_id: job.request_id,
+      operation: "investigate",
+    });
+    return {
+      reply_text: t(lang, "cap_reached") + `\n(${nextUtcMidnightLabel()})`,
+      buttons: invButtons(lang, ctx.publicUrl),
+    };
+  }
   ctx.repos.markEngineDispatched(job.id);
 
   const res = await callWithConflictRetry(ctx, userId, () =>
@@ -215,7 +229,6 @@ export async function handleInvestigate(
     }),
   );
 
-  ctx.repos.incrementLlmTurns(userId);
   const notice = evidenceNotice(lang, res.new_evidence, res.evidence_names);
   return {
     reply_text: res.narrator_response,
@@ -242,6 +255,12 @@ export async function handleInterrogate(
   }
 
   await ctx.engine.ensureSession(userId);
+  if (!ctx.repos.tryReserveLlmTurn(userId, DAILY_LLM_LIMIT)) {
+    return {
+      reply_text: t(lang, "cap_reached") + `\n(${nextUtcMidnightLabel()})`,
+      buttons: witButtons(lang, ctx.publicUrl),
+    };
+  }
   ctx.repos.markEngineDispatched(job.id);
 
   const res = await callWithConflictRetry(ctx, userId, () =>
@@ -254,7 +273,6 @@ export async function handleInterrogate(
     }),
   );
 
-  ctx.repos.incrementLlmTurns(userId);
   return {
     reply_text: res.response,
     buttons: witButtons(lang, ctx.publicUrl),
@@ -276,6 +294,12 @@ export async function handlePresent(
   }
 
   await ctx.engine.ensureSession(userId);
+  if (!ctx.repos.tryReserveLlmTurn(userId, DAILY_LLM_LIMIT)) {
+    return {
+      reply_text: t(lang, "cap_reached") + `\n(${nextUtcMidnightLabel()})`,
+      buttons: witButtons(lang, ctx.publicUrl),
+    };
+  }
   ctx.repos.markEngineDispatched(job.id);
 
   const res = await callWithConflictRetry(ctx, userId, () =>
@@ -288,7 +312,6 @@ export async function handlePresent(
     }),
   );
 
-  ctx.repos.incrementLlmTurns(userId);
   return {
     reply_text: res.response,
     buttons: witButtons(lang, ctx.publicUrl),
@@ -476,29 +499,49 @@ export async function handleVerdict(
   lang: Language,
   payload: JobPayload,
 ): Promise<StoredReply> {
+  // Mini App passes full verdict in meta; bot flow uses pending_json + text.
+  let accused = payload.meta?.accused_suspect_id;
+  let evidenceCited: string[] = [];
+  if (payload.meta?.evidence_cited) {
+    try {
+      evidenceCited = JSON.parse(payload.meta.evidence_cited) as string[];
+    } catch {
+      evidenceCited = [];
+    }
+  }
   const pending = ctx.repos.getPendingVerdict(userId);
-  if (!pending) {
+  if (!accused && pending) {
+    accused = pending.accused_suspect_id;
+    evidenceCited = pending.evidence_cited;
+  }
+  if (!accused) {
     return {
       reply_text: t(lang, "verdict_suspect"),
       buttons: verdictSuspectKeyboard(lang),
     };
   }
-  const reasoning = payload.text ?? "Telegram verdict";
+  const reasoning =
+    payload.meta?.reasoning ?? payload.text ?? "Telegram verdict";
   await ctx.engine.ensureSession(userId);
+  if (!ctx.repos.tryReserveLlmTurn(userId, DAILY_LLM_LIMIT)) {
+    return {
+      reply_text: t(lang, "cap_reached") + `\n(${nextUtcMidnightLabel()})`,
+      buttons: invButtons(lang, ctx.publicUrl),
+    };
+  }
   ctx.repos.markEngineDispatched(job.id);
 
   const res = await callWithConflictRetry(ctx, userId, () =>
     ctx.engine.submitVerdict(userId, {
       case_id: FREE_CASE_ID,
       slot: "autosave",
-      accused_suspect_id: pending.accused_suspect_id,
+      accused_suspect_id: accused,
       reasoning,
-      evidence_cited: pending.evidence_cited,
+      evidence_cited: evidenceCited,
       request_id: job.request_id,
     }),
   );
 
-  ctx.repos.incrementLlmTurns(userId);
   ctx.repos.setPendingJson(userId, null);
 
   const mentor = res.mentor_feedback;
@@ -519,6 +562,8 @@ export async function handleVerdict(
   return {
     reply_text: parts.join("\n\n"),
     buttons: invButtons(lang, ctx.publicUrl),
+    case_solved: res.case_solved,
+    correct: res.correct,
   };
 }
 

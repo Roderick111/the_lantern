@@ -7,8 +7,6 @@ import type { WorkerDeps } from "../jobs/worker";
 import { processUser } from "../jobs/worker";
 import { t } from "../i18n/strings";
 import type { Language } from "../domain/types";
-import { existsSync } from "node:fs";
-
 export function createBot(
   token: string,
   repos: Repositories,
@@ -100,13 +98,19 @@ export function createGrammyDelivery(bot: Bot): WorkerDeps["delivery"] {
         const fileId = sizes?.[sizes.length - 1]?.file_id;
         return { fileId };
       }
-      if (photo.path && existsSync(photo.path)) {
-        const msg = await bot.api.sendPhoto(chatId, new InputFile(photo.path), {
-          caption,
-        });
-        const sizes = msg.photo;
-        const fileId = sizes?.[sizes.length - 1]?.file_id;
-        return { fileId };
+      if (photo.path) {
+        try {
+          const msg = await bot.api.sendPhoto(
+            chatId,
+            new InputFile(photo.path),
+            { caption },
+          );
+          const sizes = msg.photo;
+          const fileId = sizes?.[sizes.length - 1]?.file_id;
+          return { fileId };
+        } catch {
+          return {};
+        }
       }
       return {};
     },

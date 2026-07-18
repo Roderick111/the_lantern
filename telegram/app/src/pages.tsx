@@ -10,7 +10,6 @@ import {
   type Casebook,
   type EvidenceList,
   type VerdictOptions,
-  type VerdictResult,
   type WitnessList,
 } from "./api";
 import { Banner, ErrorState, Loading, useT } from "./ui";
@@ -211,7 +210,7 @@ export function VerdictPage({ lang }: { lang: Language }) {
   const [cited, setCited] = useState<Set<string>>(new Set());
   const [reasoning, setReasoning] = useState("");
   const [confirm, setConfirm] = useState(false);
-  const [result, setResult] = useState<VerdictResult | null>(null);
+  const [queued, setQueued] = useState(false);
   const [err, setErr] = useState<import("./api").ApiError | null>(null);
   const [busy, setBusy] = useState(false);
   const [requestId] = useState(() => newRequestId("ma-verdict"));
@@ -231,23 +230,11 @@ export function VerdictPage({ lang }: { lang: Language }) {
   if (err) return <ErrorState err={err} lang={lang} onRetry={load} />;
   if (!opts) return <Loading lang={lang} />;
 
-  if (result) {
+  if (queued) {
     return (
-      <div>
-        <h1>{t("verdict_result")}</h1>
-        <div className="card">
-          <p>
-            <strong>
-              {result.correct ? "✓" : "✗"} · {t("attempts")}:{" "}
-              {result.attempts_remaining}
-            </strong>
-          </p>
-          <p>{result.analysis}</p>
-          <p className="hint">{result.critique}</p>
-          <p>{result.praise}</p>
-          {result.hint ? <p className="hint">{result.hint}</p> : null}
-          {result.reveal ? <p>{result.reveal}</p> : null}
-        </div>
+      <div className="page">
+        <h1>{t("verdict_title")}</h1>
+        <Banner>{t("close_hint")}</Banner>
       </div>
     );
   }
@@ -342,7 +329,8 @@ export function VerdictPage({ lang }: { lang: Language }) {
               setConfirm(false);
               return;
             }
-            setResult(res);
+            setQueued(true);
+            closeMiniApp();
           }}
         >
           {t("verdict_confirm")}

@@ -29,6 +29,18 @@ describe("usage", () => {
     expect(repos.incrementLlmTurns(5)).toBe(2);
     expect(repos.getLlmTurns(5)).toBe(2);
   });
+
+  it("tryReserveLlmTurn respects cap", () => {
+    const repos = new Repositories(resetDbForTests());
+    repos.ensureUser(6, 6);
+    expect(repos.tryReserveLlmTurn(6, 2)).toBe(true);
+    expect(repos.tryReserveLlmTurn(6, 2)).toBe(true);
+    expect(repos.tryReserveLlmTurn(6, 2)).toBe(false);
+    expect(repos.getLlmTurns(6)).toBe(2);
+    repos.refundLlmTurn(6);
+    expect(repos.getLlmTurns(6)).toBe(1);
+    expect(repos.tryReserveLlmTurn(6, 2)).toBe(true);
+  });
 });
 
 describe("i18n", () => {

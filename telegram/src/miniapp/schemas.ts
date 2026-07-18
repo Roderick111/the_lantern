@@ -117,14 +117,9 @@ export const VerdictRequestSchema = z
 export const VerdictResponseSchema = z
   .object({
     ok: z.literal(true),
-    correct: z.boolean(),
-    attempts_remaining: z.number(),
-    case_solved: z.boolean(),
-    analysis: z.string(),
-    critique: z.string(),
-    praise: z.string(),
-    hint: z.string().nullable(),
-    reveal: z.string().nullable(),
+    queued: z.boolean(),
+    request_id: z.string(),
+    close: z.literal(true),
   })
   .strict();
 

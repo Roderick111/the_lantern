@@ -117,7 +117,7 @@ export const miniApi = {
     reasoning: string;
     request_id: string;
   }) =>
-    api<VerdictResult>("/verdict", {
+    api<VerdictQueued>("/verdict", {
       method: "POST",
       body: JSON.stringify(body),
     }),
@@ -165,16 +165,11 @@ export interface VerdictOptions {
   language: Language;
 }
 
-export interface VerdictResult {
+export interface VerdictQueued {
   ok: true;
-  correct: boolean;
-  attempts_remaining: number;
-  case_solved: boolean;
-  analysis: string;
-  critique: string;
-  praise: string;
-  hint: string | null;
-  reveal: string | null;
+  queued: boolean;
+  request_id: string;
+  close: true;
 }
 
 export function closeMiniApp(): void {

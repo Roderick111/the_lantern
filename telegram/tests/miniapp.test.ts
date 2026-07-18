@@ -181,6 +181,12 @@ describe("miniapp HTTP", () => {
     expect(cookie.startsWith(`${SESSION_COOKIE}=`)).toBe(true);
   });
 
+  it("redirects the gateway root to the Mini App", async () => {
+    const res = await app.request("/");
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/app/");
+  });
+
   it("rejects casebook without session", async () => {
     const res = await app.request("/miniapp/casebook");
     expect(res.status).toBe(401);
@@ -234,7 +240,9 @@ describe("miniapp HTTP", () => {
       },
     });
     expect(res.status).toBe(200);
-    expect(repos.getSession(42)?.witness_id).toBe("elena");
+    // Mode set only after worker runs select_witness (no optimistic split-brain).
+    expect(repos.getSession(42)?.mode).not.toBe("witness");
+    expect(repos.getSession(42)?.witness_id).toBeNull();
   });
 
   it("submits verdict with stable request_id", async () => {
@@ -254,8 +262,16 @@ describe("miniapp HTTP", () => {
       }),
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { correct: boolean };
-    expect(body.correct).toBe(true);
+    const body = (await res.json()) as {
+      ok: true;
+      queued: boolean;
+      request_id: string;
+      close: true;
+    };
+    expect(body.ok).toBe(true);
+    expect(body.queued).toBe(true);
+    expect(body.request_id).toBe("ma-verdict-stable-1");
+    expect(body.close).toBe(true);
   });
 
   it("rejects verdict extra fields", () => {

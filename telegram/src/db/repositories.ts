@@ -76,14 +76,17 @@ export class Repositories {
     return tx();
   }
 
-  /** True if user has pending/running/delivery work ahead of this job. */
+  /** True if user has pending/running/delivery/manual work ahead of this job. */
   hasActiveWorkAhead(telegramUserId: number, jobId: number): boolean {
     const row = this.db
       .query(
         `SELECT id FROM jobs
          WHERE telegram_user_id = ?
            AND id < ?
-           AND state IN ('pending', 'running', 'engine_complete', 'failed_delivery')
+           AND state IN (
+             'pending', 'running', 'engine_complete',
+             'failed_delivery', 'needs_manual_retry'
+           )
          LIMIT 1`,
       )
       .get(telegramUserId, jobId) as { id: number } | null;
@@ -251,6 +254,43 @@ export class Repositories {
     return tx();
   }
 
+  /**
+   * Atomic check-and-increment under daily cap.
+   * Returns false if already at/over limit (no increment).
+   */
+  tryReserveLlmTurn(telegramUserId: number, limit: number): boolean {
+    const date = utcDate();
+    return this.db.transaction(() => {
+      this.db.run(
+        `INSERT INTO usage (telegram_user_id, utc_date, llm_turns) VALUES (?, ?, 0)
+         ON CONFLICT(telegram_user_id, utc_date) DO NOTHING`,
+        [telegramUserId, date],
+      );
+      const row = this.db
+        .query(
+          "SELECT llm_turns FROM usage WHERE telegram_user_id = ? AND utc_date = ?",
+        )
+        .get(telegramUserId, date) as { llm_turns: number };
+      if (row.llm_turns >= limit) return false;
+      this.db.run(
+        `UPDATE usage SET llm_turns = llm_turns + 1
+         WHERE telegram_user_id = ? AND utc_date = ?`,
+        [telegramUserId, date],
+      );
+      return true;
+    })();
+  }
+
+  /** Undo a reserve (pre-dispatch failure only). */
+  refundLlmTurn(telegramUserId: number): void {
+    const date = utcDate();
+    this.db.run(
+      `UPDATE usage SET llm_turns = MAX(0, llm_turns - 1)
+       WHERE telegram_user_id = ? AND utc_date = ?`,
+      [telegramUserId, date],
+    );
+  }
+
   getLlmTurns(telegramUserId: number): number {
     const row = this.db
       .query(
@@ -260,7 +300,7 @@ export class Repositories {
     return row?.llm_turns ?? 0;
   }
 
-  /** Reserve: false if at/over daily cap. Does not increment. */
+  /** Soft read: false if at/over daily cap. Prefer tryReserveLlmTurn for mutations. */
   canUseLlmTurn(telegramUserId: number, limit: number): boolean {
     return this.getLlmTurns(telegramUserId) < limit;
   }
@@ -331,13 +371,14 @@ export class Repositories {
     const tx = this.db.transaction(() => {
       const active = this.db
         .query(
-          `SELECT id FROM jobs
+          `SELECT id, state FROM jobs
            WHERE telegram_user_id = ?
-             AND state IN ('running', 'engine_complete', 'failed_delivery')
-           LIMIT 1`,
+             AND state IN (
+               'running', 'engine_complete', 'failed_delivery', 'needs_manual_retry'
+             )
+           ORDER BY id ASC LIMIT 1`,
         )
-        .get(telegramUserId) as { id: number } | null;
-      if (active) return null;
+        .get(telegramUserId) as { id: number; state: string } | null;
 
       const next = this.db
         .query(
@@ -347,6 +388,18 @@ export class Repositories {
         )
         .get(telegramUserId) as JobRow | null;
       if (!next) return null;
+
+      if (active) {
+        // Only retry_hint may pass a stuck needs_manual_retry (ack "cannot retry").
+        if (active.state !== "needs_manual_retry") return null;
+        let kind = "";
+        try {
+          kind = (JSON.parse(next.payload) as JobPayload).kind ?? "";
+        } catch {
+          return null;
+        }
+        if (kind !== "retry_hint") return null;
+      }
 
       const ts = nowIso();
       this.db.run(
@@ -415,6 +468,50 @@ export class Repositories {
       `UPDATE jobs SET state = 'pending', engine_dispatched = 0, updated_at = ?
        WHERE id = ? AND engine_dispatched = 0`,
       [nowIso(), jobId],
+    );
+  }
+
+  /**
+   * Requeue oldest needs_manual_retry job for user.
+   * - engine_response set → engine_complete (re-deliver only)
+   * - engine_dispatched = 0 → pending (safe re-run)
+   * - else → null (ambiguous post-dispatch; user must re-issue action)
+   */
+  requeueOldestManualJob(telegramUserId: number): number | null {
+    const job = this.db
+      .query(
+        `SELECT * FROM jobs
+         WHERE telegram_user_id = ? AND state = 'needs_manual_retry'
+         ORDER BY id ASC LIMIT 1`,
+      )
+      .get(telegramUserId) as JobRow | null;
+    if (!job) return null;
+
+    const ts = nowIso();
+    if (job.engine_response) {
+      this.db.run(
+        `UPDATE jobs SET state = 'engine_complete', delivery_error = NULL, updated_at = ?
+         WHERE id = ?`,
+        [ts, job.id],
+      );
+      return job.id;
+    }
+    if (job.engine_dispatched === 0) {
+      this.db.run(
+        `UPDATE jobs SET state = 'pending', delivery_error = NULL, updated_at = ?
+         WHERE id = ?`,
+        [ts, job.id],
+      );
+      return job.id;
+    }
+    return null;
+  }
+
+  /** Persist updated engine_response (delivery progress trimming). */
+  updateEngineResponse(jobId: number, engineResponse: unknown): void {
+    this.db.run(
+      `UPDATE jobs SET engine_response = ?, updated_at = ? WHERE id = ?`,
+      [JSON.stringify(engineResponse), nowIso(), jobId],
     );
   }
 

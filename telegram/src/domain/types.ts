@@ -90,6 +90,9 @@ export interface StoredReply {
     caption?: string;
   };
   parse_mode?: "HTML";
+  /** Structured flags for telemetry (not localized copy). */
+  case_solved?: boolean;
+  correct?: boolean;
 }
 
 export interface JobPayload {
