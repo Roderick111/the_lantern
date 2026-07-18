@@ -4,7 +4,9 @@
 
 > An AI-powered Victorian occult detective game teaching rationality and deductive reasoning through immersive investigations.
 
-**Version:** 1.7.0 | **Type Safety:** Grade A | **Status:** Production Ready
+The web game is the primary product and full-featured experience. Telegram is a secondary client for a simpler, chat-first Case 001 beta; it shares the backend engine and player state but does not replace the web version.
+
+**Version:** 2.3.0 | **Type Safety:** Grade A | **Status:** Primary web production + secondary Telegram beta
 
 ---
 
@@ -17,6 +19,8 @@
 - 🔮 **Rite System** - Perform 7 investigation rites (Unveil, Mnemonic Delving, etc.)
 - 🧠 **Critical Thinking** - Detect fallacies, avoid bias, submit verdicts
 - 👻 **Spirit Companion (Matthew Croft)** - Unreliable ghost advisor; 50% helpful, 50% misleading
+- 📱 **Telegram Gateway (secondary client)** - Play Case 001 in private Telegram chats with freeform investigation, inline buttons, witnesses, evidence, verdicts, and a Mini App casebook
+- 🌍 **English + Russian** - Authored case localization with natural prose, localized evidence/witness/location text, and paragraph-safe rendering
 
 **Perfect for:** Educators teaching critical thinking, Victorian occult detective fans, detective game enthusiasts
 
@@ -96,6 +100,21 @@ cd frontend
 
 Open **http://localhost:5173** in your browser. In dev, the Vite proxy forwards `/api` to `http://127.0.0.1:8000`.
 
+### Telegram gateway (optional secondary client)
+
+Run the backend first, then start the gateway in a separate terminal:
+
+```bash
+cd telegram
+~/.bun/bin/bun install
+cp .env.example .env
+# Fill TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, MINIAPP_SESSION_SECRET,
+# LANTERN_ENGINE_URL, and TELEGRAM_PUBLIC_URL in .env.
+~/.bun/bin/bun run dev:poll
+```
+
+Use polling only for local development. The bot is an optional secondary client: it supports English/Russian onboarding, freeform investigation and witness messages, Casebook/Evidence/Witnesses/Verdict buttons, autosave, and a 40 LLM-turn daily cap. The full web game remains the primary surface. See [telegram/CLAUDE.md](telegram/CLAUDE.md) and the [Telegram deployment plan](docs/plans/2026-07-17-telegram-phase5-deploy.md).
+
 **Troubleshooting:** If you see the wrong app or stale content, another process may be bound to `:8000` or `:5173`. Stop it and restart both servers. If Matthew returns empty replies or the backend uses the wrong Python, check `head -1 backend/.venv/bin/uvicorn` — it must point at `the_lantern/backend/.venv`, not another project. Rebuild: `cd backend && rm -rf .venv && uv venv && uv sync`.
 
 ### Optional: music
@@ -156,6 +175,7 @@ Add MP3 files to `frontend/public/music/` — naming: `case_{id}_default.mp3` (e
 | **Styling** | Tailwind CSS | 3.4 |
 | **Testing** | pytest / Vitest | - |
 | **Package Mgmt** | uv / Bun | - |
+| **Telegram** | Bun + Hono + grammY + Vite/React Mini App | - |
 
 ---
 
@@ -174,6 +194,8 @@ Add MP3 files to `frontend/public/music/` — naming: `case_{id}_default.mp3` (e
 ### Technical Details
 - [Type System Audit](docs/TYPE_SYSTEM_AUDIT.md) - TypeScript architecture
 - [Validation Report](VALIDATION-GATES-ZOD-REPORT.md) - Zod implementation
+- [Telegram Public Beta Plan](docs/plans/2026-07-17-telegram-public-beta-implementation-plan.md) - Gateway, Mini App, deployment, and acceptance gates
+- [Telegram Deployment Plan](docs/plans/2026-07-17-telegram-phase5-deploy.md) - Production env, migrations, webhook, and smoke checks
 
 ---
 
@@ -181,11 +203,14 @@ Add MP3 files to `frontend/public/music/` — naming: `case_{id}_default.mp3` (e
 
 ### Run Tests
 ```bash
-# Backend (154 tests, 100% coverage)
+# Backend
 cd backend && uv run pytest
 
-# Frontend (377/565 tests)
+# Frontend
 cd frontend && bun test
+
+# Telegram gateway
+cd telegram && ~/.bun/bin/bun test ./tests
 ```
 
 ### Type Checking
@@ -229,7 +254,7 @@ From the repo root (requires SSH access to the server):
 
 The script rsyncs backend/frontend + Docker configs to `/opt/the-lantern`, copies `backend/.env` → `.env.production` on the server, then runs `docker compose build --no-cache && docker compose up -d`.
 
-**Stack:** `nginx-proxy` (TLS) → `lantern-frontend` (nginx, SPA + `/api` proxy) → `lantern-backend` (FastAPI). Game saves live in the `lantern-saves` Docker volume (`/app/saves/lantern.db`).
+**Stack:** `nginx-proxy` (TLS) → `lantern-frontend` (primary web SPA + `/api` proxy) → `lantern-backend` (FastAPI), plus optional `telegram` (secondary Hono/grammY webhook + Mini App) at `bot.thelantern.institute`. Game saves live in the `lantern-saves` Docker volume; Telegram gateway state lives in `lantern-telegram`.
 
 **SSE streaming:** `deploy.sh` copies `nginx-proxy/thelantern.institute_location` into the shared `crowd_due_dill_nginx_vhost` volume and restarts `crowd-due-dill-proxy`. Without `proxy_buffering off` at this layer, token streaming arrives as one chunk (inner nginx already disables buffering for `/api/`).
 
@@ -243,6 +268,8 @@ Copy `.env.production.example` → `backend/.env` and fill in API keys before de
 | `PLAYER_TOKEN_SECRET` | HMAC signing for `X-Player-Token` (32+ chars) |
 | `CORS_ORIGINS` | e.g. `https://thelantern.institute` |
 | `TRUSTED_PROXY` | **Set to `1` when behind nginx/Cloudflare** (see below) |
+
+Telegram deployment also requires `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `MINIAPP_SESSION_SECRET`, and `TELEGRAM_PUBLIC_URL`. Apply the SQL files in `backend/migrations/` and `telegram/migrations/` before enabling the production worker; do not run them from the application container.
 
 ### `TRUSTED_PROXY=1` (rate limiting)
 
@@ -279,14 +306,15 @@ ssh root@188.34.196.228 'cd /opt/the-lantern && docker compose logs -f backend'
 
 ## 📊 Project Metrics
 
-**Current Version:** 1.7.0 (Multi-LLM Provider Support)
+**Current Version:** 2.3.0 (Primary web game + secondary Telegram beta + EN/RU localization)
 
 | Metric | Status |
 |--------|--------|
 | Type Safety | ✅ Grade A (compile-time + runtime) |
 | Security | ✅ 0 vulnerabilities (audited 2026-01-18) |
-| Backend Tests | ✅ 154/154 (100%) |
-| Frontend Tests | ⚠️ 377/565 (66.7% - pre-existing) |
+| Backend Tests | ✅ 898 passed / 4 skipped |
+| Frontend Tests | ✅ 332 passed / 2 skipped / 134 todo |
+| Telegram Tests | ✅ 55 passed |
 | Bundle Size | ✅ 104.83 KB gzipped |
 | Cases Complete | ✅ 2 playable cases |
 | Production Ready | ✅ Yes |
@@ -307,7 +335,7 @@ lantern_game/
 │   │   └── state/          # Player state + persistence
 │   ├── tests/              # pytest tests (154, 100% coverage)
 │   └── pyproject.toml
-├── frontend/               # React + Vite + TypeScript
+├── frontend/               # React + Vite + TypeScript web client
 │   ├── src/
 │   │   ├── components/     # UI components
 │   │   │   └── layout/     # Layout orchestration (InvestigationLayout)
@@ -316,7 +344,12 @@ lantern_game/
 │   │   └── types/          # TypeScript types
 │   ├── tests/              # Vitest tests
 │   └── package.json
-├── docs/                   # Documentation
+├── telegram/               # Bun + Hono + grammY bot and Mini App
+│   ├── src/bot/             # Webhook, handlers, keyboards, formatting
+│   ├── src/jobs/            # Durable SQLite worker and operations
+│   ├── src/miniapp/         # Telegram initData/session/CSRF API
+│   └── app/                 # Vite/React Mini App
+├── docs/                   # Documentation and implementation plans
 │   ├── game-design/        # Game design documents
 │   ├── case-files/         # Case specifications
 │   └── research/           # Research & analysis

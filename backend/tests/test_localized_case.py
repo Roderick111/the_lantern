@@ -17,8 +17,8 @@ def test_russian_case_overlay_localizes_player_text() -> None:
     base = load_case("case_001")["case"]
     localized = load_localized_case("case_001", "ru")["case"]
 
-    assert localized["title"] == "Запечатанный архив"
-    assert localized["locations"]["library"]["name"] == "Запечатанный архив"
+    assert localized["title"] == "Опечатанная библиотека"
+    assert localized["locations"]["library"]["name"] == "Опечатанная библиотека"
     assert localized["locations"]["library"]["description"] != base["locations"]["library"]["description"]
     for case_data in (base, localized):
         description = case_data["locations"]["library"]["description"]

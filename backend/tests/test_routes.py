@@ -536,7 +536,7 @@ class TestWitnessesEndpoint:
         assert response.status_code == 200
         data = response.json()
         elena = next(w for w in data if w["id"] == "elena")
-        assert elena["name"] == "Елена Марш"
+        assert elena["name"] == "Елена Лозовская"
 
 
 class TestWitnessInfoEndpoint:

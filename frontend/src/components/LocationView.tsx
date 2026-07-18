@@ -16,6 +16,7 @@ import { LanternCompendium } from "./LanternCompendium";
 import { renderInlineMarkdown } from "../utils/renderInlineMarkdown";
 import {
   MATTHEW_QUICK_PROMPT,
+  MATVEY_QUICK_PROMPT,
   isMatthewMessage,
   stripMatthewPrefix,
 } from "../utils/matthewInput";
@@ -103,7 +104,7 @@ interface LocationViewProps {
   _onWitnessClick?: (witnessId: string) => void;
   /** Inline messages (player, narrator, matthew_ghost) for conversation feed */
   inlineMessages?: Message[];
-  /** Callback when player sends message to Matthew (detected by "Matthew," prefix) */
+  /** Callback when player sends message to the companion (Matthew/Матвей prefix). */
   onMatthewMessage?: (message: string) => void;
   /** Whether Matthew is currently processing a response */
   matthewLoading?: boolean;
@@ -123,6 +124,8 @@ interface LocationViewProps {
   onLocationChanged?: (locationId: string) => void;
   /** Save slot (defaults to "autosave") */
   slot?: SaveSlotName;
+  /** Content language, used for localized quick actions. */
+  language?: string;
 
 }
 
@@ -154,6 +157,7 @@ export function LocationView({
   onEvidenceClick,
   onLocationChanged,
   slot = 'autosave',
+  language = 'en',
 
 }: LocationViewProps) {
   // Theme hook for dynamic styling
@@ -729,14 +733,16 @@ export function LocationView({
               CHECK WINDOW
             </button>
             <button
-              onClick={() => handleQuickAction(MATTHEW_QUICK_PROMPT)}
+              onClick={() =>
+                handleQuickAction(language === 'ru' ? MATVEY_QUICK_PROMPT : MATTHEW_QUICK_PROMPT)
+              }
               className={`${theme.components.button.terminalAction} !py-1.5 !px-2.5 !gap-1.5 !text-[10px] md:!py-2.5 md:!px-4 md:!gap-3 md:!text-xs`}
               type="button"
             >
               <span className={`${theme.colors.character.matthew.prefix} ${theme.colors.interactive.hover} transition-colors font-bold`}>
                 {theme.symbols.bullet}
               </span>
-              ASK MATTHEW
+              {language === 'ru' ? 'СПРОСИТЬ МАТВЕЯ' : 'ASK MATTHEW'}
             </button>
           </div>
         )}

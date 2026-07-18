@@ -1,9 +1,9 @@
 # Project Status
 
-**Version:** 2.2.0 (Matthew rename + lore compliance)
-**Last Updated:** 2026-06-20
+**Version:** 2.3.0 (Primary web game + secondary Telegram beta + EN/RU localization)
+**Last Updated:** 2026-07-17
 **Current Branch:** `feat/evidence-detection-natural-language`
-**Current Phase:** Phase 7 (Production Readiness)
+**Current Phase:** Web primary; Telegram secondary-client beta deployment
 **Type Safety Grade:** A
 
 ---
@@ -12,26 +12,29 @@
 
 | Category | Status | Notes |
 |----------|--------|-------|
-| Backend | 🔄 Near ready | Python 3.13, FastAPI, SQLite (`/app/saves`), **858 pass / 11 fail / 4 skip** on branch |
+| Backend | ✅ Ready | Python 3.13, FastAPI, SQLite (`/app/saves`), **898 pass / 4 skip** |
 | Frontend | ✅ Production Ready | React 18, TypeScript 5.6, Zod validation, 0 TS errors |
+| Telegram | ✅ Secondary beta implemented | Bun + Hono + grammY gateway, durable jobs, Mini App, EN/RU, Case 001; web remains primary |
 | Type Safety | ✅ Grade A | Compile-time (0 TS errors) + runtime (Zod) validation |
 | LLM | ✅ BYOK + Streaming | Multi-provider via LiteLLM, SSE streaming |
 | Saves | ✅ Stable | Server-authoritative SQLite, autosave + 3 manual slots, HMAC player tokens |
-| Cases | 🔄 Lore pass in progress | Case 001 Wisp redesign live; critical HP leaks fixed; medium echoes remain |
-| Docs | 🔄 Consolidated | Legacy PRPs/archive purged; case design docs under `docs/case-files/` |
+| Cases | ✅ Case 001 playable | Wisp redesign live; English/Russian authored localization; paragraph-safe prose rendering |
+| Docs | ✅ Updated | Telegram implementation/deployment plans and current status documented |
 
 ---
 
 ## 🔄 In Progress
 
-### Natural-language evidence detection
+### Telegram secondary-client beta deployment
 - Branch: `feat/evidence-detection-natural-language`
-- Extend `LocationCommandParser`-style matching to evidence discovery triggers
-- **11 backend test failures** on branch (routes, save corruption, mnemonic delving) — fix before merge
+- Code is implemented and validated locally. This is an optional secondary client, not a replacement for the web game.
+- Remaining owner steps: apply migration SQL, configure production secrets, build/deploy the Telegram service, set webhook, and run the production smoke test.
+- Production host: `bot.thelantern.institute`
 
-### Witness evidence reaction system
-- `witness_reactions` data in `case_001.yaml` for every evidence piece
-- **No UX/mechanic yet** — show-evidence button vs automatic vs conversational TBD
+### Future Telegram product work
+- Add additional authored localized cases.
+- Implement paid-case entitlement purchases with Telegram Stars when a paid case exists.
+- Expand Mini App polish after beta feedback.
 
 ### Lore compliance (Case 001)
 - ✅ Fixed: pear kitchen gag → service bell + warded pantry hatch; `healing potion winky` → `pippa`; Graves `Restricted Section` → `Sealed Stacks`
@@ -47,6 +50,14 @@
 - **Location assets:** `iron_lodge_common_room.*`, `librarian_office.*` copied from legacy portrait names
 - **Lore pass:** bound familiars (not elves), case 002 `M.S.` initials, CASE_DESIGN_GUIDE / case-file doc fixes
 - **Case 001 HP leaks (critical):** kitchen access, Whitmore keyword, Graves wrong-suspect text
+
+### 2026-07-17 — Telegram gateway, Mini App, and localization
+- **Telegram gateway:** Bun/Hono/grammY webhook and local polling modes, durable SQLite update/job queue, idempotent engine mutations, serial per-player processing, retry-safe Telegram delivery, health/metrics, and secret-safe structured logs.
+- **Telegram play loop:** English/Russian onboarding, freeform investigation and witness messages, inline Casebook/Evidence/Witnesses/Move/Verdict buttons, autosave, 40 LLM turns per UTC day, and Case 001 verdict flow.
+- **Mini App:** authenticated Casebook, Evidence, Witnesses, and Verdict routes with Telegram `initData` validation, signed sessions, CSRF, origin checks, and feature flags.
+- **Localization:** dedicated Russian Case 001 overlay with stable mechanics IDs; English and Russian names/descriptions for locations, witnesses, evidence, briefing, verdict, and Telegram UI.
+- **Prose rendering:** case loader folds authored line wraps into spaces while preserving blank lines as paragraphs across web, Telegram, and case discovery.
+- **Deployment:** `Dockerfile.telegram`, Compose service on `bot.thelantern.institute`, shared proxy network, Telegram data volume, and phase-specific deployment/runbook docs.
 
 ### 2026-06-19 — Medium review + deploy verification
 - Model catalog lock, spell detection unified, CORS tighten, telemetry safety
@@ -76,6 +87,11 @@
 - **Secrets:** LLM decides whether to reveal (trust/pressure prompt); server detects revelation via `score_secret_revelation` — YAML `trigger` fields parsed but **not enforced** in witness routes
 - Start: `cd backend && uv run uvicorn src.main:app --reload`
 
+**Telegram secondary client:** Bun + Hono + grammY + Vite/React
+- Gateway owns Telegram identity, modes, durable jobs, daily usage, localization presentation, and Mini App sessions.
+- FastAPI remains source of truth for both clients. The web client is the primary full-featured player experience; Telegram is a constrained chat-first surface.
+- Start locally: `cd telegram && ~/.bun/bin/bun run dev:poll`
+
 **Frontend:** React 18 + TypeScript + Vite + Tailwind
 - Thin client state; full progress on server
 - Zod `.strict()` schemas mirror Pydantic responses
@@ -92,25 +108,30 @@
 - Matthew spirit companion (auto-comments + chat)
 - Save/load (autosave + 3 slots, export/import JSON)
 - Music, BYOK, SSE streaming, case landing page
+- Primary web game: full investigation, rites, witnesses, verdict, saves, music, Matthew, and multi-provider LLM support
+- Secondary Telegram bot and Mini App beta path (Case 001, English/Russian)
 
 **Known issues:**
-- 11 failing backend tests on current branch
-- Frontend tests: ~377/565 (pre-existing infrastructure gaps)
-- Case 001 medium lore echoes not yet scrubbed
-- `check_secret_triggers()` exists but unused in live witness flow
+- Web remains the primary product; Telegram intentionally supports a smaller Case 001 surface and omits several web features.
+- Telegram production deployment still requires owner-run SQL migrations, production secrets, webhook registration, and smoke testing.
+- Telegram currently exposes Case 001; additional cases need authored locale overlays before Russian release.
+- Frontend suite still contains 134 todo tests; no current type errors.
+- `check_secret_triggers()` exists but remains unused in live witness flow.
 
 ---
 
 ## What's Next
 
-**Before merge:**
-1. Fix 11 backend test failures on branch
-2. Run full validation (`validate.md` gates)
+**Before public Telegram secondary-client beta:**
+1. Apply `backend/migrations/2026-07-17-idempotency-records.sql` and Telegram gateway migrations.
+2. Configure production env values and deploy with `./deploy.sh`.
+3. Register Telegram webhook and verify `/health`, onboarding, first clue, first interview, first verdict, and solved-case funnel.
+4. Run full validation (`backend`, `frontend`, and `telegram` suites) after deployment.
 
 **Immediate:**
-1. Design witness evidence reaction UX
-2. Natural-language evidence trigger matching (branch goal)
-3. Case 001 lore pass (medium HP echoes) + optional grammar cleanup (`bind in stillness`, `the the undercroft`)
+1. Collect Telegram beta feedback and fix onboarding/play-loop friction.
+2. Add authored locale overlays for future cases.
+3. Decide witness evidence reaction UX for richer Telegram interactions.
 
 **Phase 7 — Production:**
 1. Key manager (Infisical or similar)
@@ -140,7 +161,8 @@
 
 | Metric | Value |
 |--------|-------|
-| Backend Tests | 858 pass / 11 fail / 4 skip (branch, 2026-06-20) |
-| Frontend Tests | ~377/565 (~67%) |
+| Backend Tests | 898 pass / 4 skip (2026-07-17) |
+| Frontend Tests | 332 pass / 2 skip / 134 todo |
+| Telegram Tests | 55 pass (2026-07-17) |
 | TypeScript Errors | 0 |
 | License | MIT |

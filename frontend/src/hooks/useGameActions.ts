@@ -146,9 +146,10 @@ export function useGameActions({
 
   const handleMatthewMessage = useCallback(
     async (message: string) => {
+      const companionName = investigation.state?.language === "ru" ? "Матвей" : "Matthew";
       const userMessage: Message = {
         type: "player",
-        text: `Matthew, ${message}`,
+        text: `${companionName}, ${message}`,
         timestamp: Date.now(),
       };
       setInlineMessages((prev) => [...prev, userMessage]);
@@ -159,13 +160,16 @@ export function useGameActions({
         console.error("Matthew chat error:", error);
         const errorMessage: Message = {
           type: "matthew_ghost",
-          text: "Matthew's whisper fades — too faint to hear right now.",
+          text:
+            investigation.state?.language === "ru"
+              ? "Шёпот Матвея тает — сейчас его не разобрать."
+              : "Matthew's whisper fades — too faint to hear right now.",
           timestamp: Date.now(),
         };
         setInlineMessages((prev) => [...prev, errorMessage]);
       }
     },
-    [matthew],
+    [investigation.state?.language, matthew],
   );
 
   // ---- Witness ----

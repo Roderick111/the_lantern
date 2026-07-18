@@ -509,6 +509,7 @@ function InvestigationView({
               onEvidenceClick={(id) => void actions.handleEvidenceClick(id)}
               onLocationChanged={(id) => void handleLocationChange(id)}
               slot={currentSlot}
+              language={contentLanguage}
             />
           }
           sidebar={

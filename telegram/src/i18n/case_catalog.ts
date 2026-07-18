@@ -35,18 +35,18 @@ export interface RiteCatalogEntry {
 
 export const CASE_META = {
   id: "case_001",
-  title: { en: "The Sealed Archive", ru: "Запечатанный архив" },
+  title: { en: "The Sealed Archive", ru: "Опечатанная библиотека" },
   synopsis: {
     en:
       "Professor Aldric Vane lies frozen in Blackwood's sealed archive. " +
       "Three suspects, two thefts, and a spell no one will claim. The first answer looks obvious. That is why it cannot be trusted.",
     ru:
-      "Профессор Олдрик Вейн застыл в библиотечном архиве Блэквуда. " +
-      "Трое подозреваемых, две кражи и заклинание, которое никто не признаёт своим. Первый ответ кажется очевидным. Поэтому доверять ему нельзя.",
+      "Профессор Аркадий Вежин застыл в опечатанной библиотеке Чернолесской коллегии. " +
+      "Трое подозреваемых, две кражи, два следа чар, и ни одного признания. Самый простой ответ слишком хорошо ложится на руку.",
   },
 } as const;
 
-/** Discovered-evidence display only — no points_to / solution fields. */
+/** Discovered-evidence display only, no points_to / solution fields. */
 export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
   hidden_note: {
     name: { en: "Crumpled Apology Note", ru: "Смятая извинительная записка" },
@@ -58,10 +58,10 @@ export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
     location_id: "library",
   },
   focus_signature: {
-    name: { en: "Professor Vane's Focus Signature", ru: "Сигнатура фокуса профессора Вейна" },
+    name: { en: "Professor Vane's Focus Signature", ru: "Сигнатура фокуса профессора Вежина" },
     description: {
       en: "Last acts: Raise the Lamp, then an attempted Dispel. No offensive cast.",
-      ru: "Последние акты: Поднять Лампу, затем попытка Развеять. Без нападения.",
+      ru: "Последние действия: поднять лампу, затем попытаться снять чары. Следов нападения нет.",
     },
     type: "magical",
     location_id: "library",
@@ -70,16 +70,16 @@ export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
     name: { en: "Unusual Frost Pattern", ru: "Необычный узор инея" },
     description: {
       en: "Frost that does not match the weather, concentrated near the ritual space.",
-      ru: "Иней не по погоде, сгущается у ритуального места.",
+      ru: "Иней не по погоде: он сгущается вокруг места обряда.",
     },
     type: "physical",
     location_id: "library",
   },
   dual_shimmer: {
-    name: { en: "Dual-Tone Shimmer on Professor Vane", ru: "Двойной отблеск на профессоре Вейне" },
+    name: { en: "Dual-Tone Shimmer on Professor Vane", ru: "Двойной отблеск на профессоре Вежине" },
     description: {
-      en: "Two overlapping sheens on the skin — pale blue-white and a faint yellowish-green.",
-      ru: "Два наложенных отблеска на коже — бледно-голубой и слабый желто-зелёный.",
+      en: "Two overlapping sheens on the skin, pale blue-white and a faint yellowish-green.",
+      ru: "Два наложенных отблеска на коже, бледно-голубой и слабый желто-зелёный.",
     },
     type: "magical",
     location_id: "library",
@@ -115,7 +115,7 @@ export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
     name: { en: "Open Book on Reading Desk", ru: "Открытая книга на пюпитре" },
     description: {
       en: "Open text on a dark ritual procedure, candle wax nearby.",
-      ru: "Открытый текст о тёмном ритуале, рядом воск свечи.",
+      ru: "Открытый текст о тёмном обряде, рядом воск свечи.",
     },
     type: "documentary",
     location_id: "library",
@@ -130,7 +130,7 @@ export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
     location_id: "library",
   },
   hawthorne_confiscation_log: {
-    name: { en: "Miss Hawthorne's Confiscation Notes", ru: "Заметки мисс Хоторн о конфискациях" },
+    name: { en: "Miss Hawthorne's Confiscation Notes", ru: "Заметки мисс Боярышниковой о конфискациях" },
     description: {
       en: "Staff notes on recent confiscations and restricted materials.",
       ru: "Заметки персонала о недавних конфискациях и ограниченных материалах.",
@@ -141,17 +141,17 @@ export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
   damaged_ward_stone: {
     name: { en: "Stressed Ward Stone", ru: "Надломленный камень защиты" },
     description: {
-      en: "Ward stone under stress — breach residue at the eastern alcove approach.",
-      ru: "Камень защиты под нагрузкой — следы взлома у восточной ниши.",
+      en: "Ward stone under stress, breach residue at the eastern alcove approach.",
+      ru: "Камень защиты под нагрузкой, следы взлома у восточной ниши.",
     },
     type: "magical",
     location_id: "library",
   },
   torn_letter: {
-    name: { en: "Letter from Lord Magnus Thorne", ru: "Письмо лорда Магнуса Торна" },
+    name: { en: "Letter from Lord Magnus Thorne", ru: "Письмо старшего господина Мстислава Тернского" },
     description: {
       en: "Torn correspondence mentioning a Thief's Candle and family expectation.",
-      ru: "Рваная переписка о Свече Вора и семейных ожиданиях.",
+      ru: "Оборванное письмо о Свече Вора и долге перед семьёй.",
     },
     type: "documentary",
     location_id: "iron_lodge_common_room",
@@ -175,7 +175,7 @@ export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
     location_id: "iron_lodge_common_room",
   },
   student_testimony: {
-    name: { en: "Iron Lodge Student Accounts", ru: "Показания учеников Железного дома" },
+    name: { en: "Iron Lodge Student Accounts", ru: "Показания учеников Железного двора" },
     description: {
       en: "Students describe someone leaving and returning terrified that night.",
       ru: "Студенты описывают, как кто-то ушёл и вернулся в ужасе той ночью.",
@@ -184,10 +184,10 @@ export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
     location_id: "iron_lodge_common_room",
   },
   cassian_unsent_letter: {
-    name: { en: "Cassian's Unsent Letter", ru: "Неотправленное письмо Кассиана" },
+    name: { en: "Cassian's Unsent Letter", ru: "Неотправленное письмо Касьяна" },
     description: {
-      en: "Draft letter never sent — private tone, unfinished.",
-      ru: "Черновик письма, так и не отправленный — личный тон, незакончен.",
+      en: "Draft letter never sent, private tone, unfinished.",
+      ru: "Черновик письма, так и не отправленный, личный тон, незакончен.",
     },
     type: "documentary",
     location_id: "iron_lodge_common_room",
@@ -204,8 +204,8 @@ export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
   magnus_order: {
     name: { en: "Torn Parchment Fragment", ru: "Рваный фрагмент пергамента" },
     description: {
-      en: "Fragment of an order in a powerful hand — protection language.",
-      ru: "Фрагмент приказа твёрдой рукой — формулировки о защите.",
+      en: "Fragment of an order in a powerful hand, protection language.",
+      ru: "Фрагмент приказа твёрдой рукой, формулировки о защите.",
     },
     type: "documentary",
     location_id: "third_floor_corridor",
@@ -220,10 +220,10 @@ export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
     location_id: "third_floor_corridor",
   },
   healing_supplies: {
-    name: { en: "Wisp's Healing Supplies", ru: "Целебные припасы Виспе" },
+    name: { en: "Wisp's Healing Supplies", ru: "Целебные припасы Жихаря Тихона" },
     description: {
       en: "Carefully kept remedies and bandages in the kitchen stores.",
-      ru: "Аккуратно хранимые средства и бинты на кухне.",
+      ru: "Аккуратно сложенные травы и бинты, спрятанные среди кухонных припасов.",
     },
     type: "physical",
     location_id: "kitchens",
@@ -238,19 +238,19 @@ export const EVIDENCE_CATALOG: Record<string, EvidenceCatalogEntry> = {
     location_id: "kitchens",
   },
   wisp_frostbite: {
-    name: { en: "Wisp's Frostbitten Hands", ru: "Обмороженные руки Виспе" },
+    name: { en: "Wisp's Frostbitten Hands", ru: "Обмороженные руки Жихаря Тихона" },
     description: {
       en: "Physical frost injury on a bound familiar's hands.",
-      ru: "Физические обморожения на руках подневольного фамильяра.",
+      ru: "Обморожения на руках приписного жихаря; след холода ещё не сошёл.",
     },
     type: "physical",
     location_id: "kitchens",
   },
   familiar_duty_roster: {
-    name: { en: "Bound-Familiar Duty Roster", ru: "Расписание смен фамильяров" },
+    name: { en: "Bound-Familiar Duty Roster", ru: "Расписание смен приписных домовых" },
     description: {
       en: "Roster of kitchen and hall duties for bound familiars.",
-      ru: "Расписание кухонных и зальных смен подневольных фамильяров.",
+      ru: "Расписание кухонных и зальных смен домовых, прикреплённых к Чернолесью.",
     },
     type: "documentary",
     location_id: "kitchens",
@@ -262,28 +262,28 @@ export const WITNESS_CATALOG: Record<WitnessId, WitnessCatalogEntry> = {
     name: WITNESS_NAMES.elena,
     bio: {
       en: "Brilliant Scarlet Court student. Speaks quickly when nervous. Present in the sealed archive that night.",
-      ru: "Блестящая студентка Алого двора. Говорит быстро, когда нервничает. Была в стеллажах той ночью.",
+      ru: "Блестящая ученица Алого двора. Говорит быстро, когда нервничает. В ту ночь была в опечатанной библиотеке.",
     },
   },
   cassian: {
     name: WITNESS_NAMES.cassian,
     bio: {
       en: "Iron Lodge heir under heavy family pressure. Proud, brittle, and terrified of failure.",
-      ru: "Наследник Железного дома под давлением семьи. Гордый, напуганный, боится провала.",
+      ru: "Наследник Железного двора под давлением семьи. Гордый, напуганный, боится провала.",
     },
   },
   whitmore: {
     name: WITNESS_NAMES.whitmore,
     bio: {
-      en: "Professor Minerva Whitmore — senior staff, sharp observer of college politics.",
-      ru: "Профессор Минерва Уитмор — старший состав, острый наблюдатель политики колледжа.",
+      en: "Professor Minerva Whitmore, senior staff, sharp observer of college politics.",
+      ru: "Профессор Мирослава Витязева, старший состав, острый наблюдатель политики коллегии.",
     },
   },
   wisp: {
     name: WITNESS_NAMES.wisp,
     bio: {
       en: "Bound familiar of the Thorne household. Works the kitchens. Speaks of himself in the third person.",
-      ru: "Подневольный фамильяр дома Торнов. Работает на кухне. Говорит о себе в третьем лице.",
+      ru: "Приписной домовой семьи Тернских. Работает на кухне, называет себя в третьем лице и прячет руки в рукавах.",
     },
   },
 };
@@ -306,7 +306,7 @@ export const RITES: RiteCatalogEntry[] = [
     id: "sense_presence",
     name: { en: "Sense Presence", ru: "Ощутить присутствие" },
     help: {
-      en: "Feel if someone is near — even through walls. Chat: “sense presence” / “detect people nearby”.",
+      en: "Feel if someone is near, even through walls. Chat: “sense presence” / “detect people nearby”.",
       ru: "Помогает понять, есть ли кто-то рядом, даже за стеной. Например: «почувствуй присутствие» или «кто-нибудь есть поблизости?».",
     },
   },
@@ -322,7 +322,7 @@ export const RITES: RiteCatalogEntry[] = [
     id: "raise_the_lamp",
     name: { en: "Raise the Lamp", ru: "Поднять лампу" },
     help: {
-      en: "Investigative light — blood, scorch, what hides in shadow. Chat: “raise the lamp” / “illuminate the alcove”.",
+      en: "Investigative light, blood, scorch, what hides in shadow. Chat: “raise the lamp” / “illuminate the alcove”.",
       ru: "Выявляет кровь, ожоги и то, что прячется в тени. Например: «подними лампу» или «освети нишу».",
     },
   },
@@ -346,7 +346,7 @@ export const RITES: RiteCatalogEntry[] = [
     id: "mnemonic_delving",
     name: { en: "Mnemonic Delving", ru: "Погружение в память" },
     help: {
-      en: "Restricted. Probe a mind for memory — costly, detected if clumsy. Chat: “read her mind about the archive” / “mnemonic delving on Elena”.",
+      en: "Restricted. Probe a mind for memory, costly, detected if clumsy. Chat: “read her mind about the archive” / “mnemonic delving on Elena”.",
       ru: "Запретный обряд. Позволяет заглянуть в чужие воспоминания, но неосторожность заметят. Например: «взгляни в память Елены о происшествии».",
     },
   },

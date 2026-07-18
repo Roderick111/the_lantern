@@ -6,7 +6,7 @@
 # - Tragic twist: Wisp is still a slave. Magnus ordered him to protect Cassian.
 #   He used bound familiar binding magic on Professor Vane when Professor Vane tried to stop Cassian's
 #   ritual. The Thief's Candle discharge + bound familiar binding = full paralytic binding.
-# - Evidence is RAW DATA — no self-interpreting descriptions
+# - Evidence is RAW DATA, no self-interpreting descriptions
 # - Each witness interprets evidence differently
 # - Cassian genuinely believes he did it (doesn't know Wisp was there)
 #
@@ -18,8 +18,8 @@
 #   - elena_book_slip (she was ALREADY there before the attack)
 #   - elena_focus_check (paralytic binding magic that day)
 #
-# MID (Cassian looks guilty — evidence avalanche):
-#   - frost_pattern (forbidden craft discharge — but raw, no conclusion)
+# MID (Cassian looks guilty, evidence avalanche):
+#   - frost_pattern (forbidden craft discharge, but raw, no conclusion)
 #   - ritual_book (someone was performing dark ritual)
 #   - singed_cloak_fiber (expensive green fabric)
 #   - torn_letter (Magnus → Cassian about Thief's Candle)
@@ -28,7 +28,7 @@
 #
 # LATE (something doesn't fit):
 #   - focus_signature (Professor Vane was helping, not attacking)
-#   - dual_shimmer (TWO magic types on Professor Vane — the crack)
+#   - dual_shimmer (TWO magic types on Professor Vane, the crack)
 #   - cassian_confession (Professor Vane was still moving when he fled)
 #   - kitchen_log (Wisp absent 11 minutes during attack)
 #   - magnus_order (parchment ordering Wisp to protect Cassian)
@@ -45,31 +45,31 @@ case:
   id: "case_001"
   title: "The Sealed Archive"
   difficulty: beginner
-  description: "Professor Aldric Vane lies frozen in Blackwood's sealed archive. Three suspects, two thefts, and a spell no one will claim. The first answer looks obvious. That is why it cannot be trusted."
+  description: "Professor Aldric Vane lies frozen in Blackwood's sealed archive. The scene ties three suspects to two thefts. An unclaimed spell left its mark on the professor. The simplest answer points straight at one of them. The evidence has more to say."
 
   crime_type: "assault"
   setting: "Blackwood Collegiate, autumn 1890"
   crime_scene: "the Sealed Archive"
-  hook: "A professor frozen with one hand outstretched. A student with a motive. Another with a dangerous relic. And a bound familiar who only meant to help. Everyone is guilty of something; only one act became this crime."
-  twist: "Cassian's ritual stunned Professor Vane but didn't finish the job. Wisp — still enslaved, following Magnus's orders — used bound familiar binding magic to freeze Professor Vane completely. The two magics layered together. Everyone assumes it was the Thief's Candle alone."
+  hook: "Professor Vane is frozen with one hand outstretched. Elena had a reason to hate him. Cassian brought a dangerous relic into the school. Wisp only meant to help. Each of them has something to hide. Their secrets lead to different acts."
+  twist: "Cassian's ritual stunned Professor Vane and left him conscious. Wisp was still enslaved and obeying Magnus's orders when he used bound familiar binding magic on the professor. The second spell fixed the first spell's damage in place. The Thief's Candle explains the first spell."
 
   # ---------------------------------------------------------------------------
   # WORLD CONTEXT (injected into narrator prompt for atmospheric grounding)
   # ---------------------------------------------------------------------------
   world_context: |
-    The Crown Bureau of Supernatural Investigations has sent an investigator from the Lantern Order — its field order for cases ordinary constables cannot touch — to Blackwood Collegiate. Witnesses are being held, the archive is under guard, and the college authorities want the matter buried before breakfast.
+    The Crown Bureau of Supernatural Investigations has sent an investigator from the Lantern Order to Blackwood Collegiate. The Order handles cases ordinary constables cannot touch. Witnesses are being held. Guards surround the archive. College authorities want the matter buried before breakfast.
 
-    London in 1890 is mad for spiritualism: slate-writing, phosphor ghosts, hidden wires — parlour fraud everywhere. What happened here involved genuine warded craft, not stage tricks. Bureau men speak in cautions and forms; collegians and bound familiars live under sharper class lines than either side admits.
+    London in 1890 is mad for spiritualism. Parlours fill with slate-writing, phosphor ghosts, hidden wires, and cheap fraud. The work at Blackwood used genuine warded craft. Bureau men speak in cautions and forms. Collegians and bound familiars live under class rules that neither side names aloud.
 
-    It is autumn term at Blackwood Collegiate. Three nights ago someone damaged the ward on the archive's eastern alcove. Last month the custodian's raven was found stiff on the parapet. Someone has painted threats about the Iron Lodge succession on the walls. Iron Lodge is one of the college's old student houses, and its heirs guard the name like property. Students born without the old families' gift keep their heads down. The college is tense, divided, and waiting for the next door to lock.
+    It is autumn term at Blackwood Collegiate. Three nights ago someone damaged the ward on the archive's eastern alcove. Last month the custodian's raven was found stiff on the parapet. Someone has painted threats about the Iron Lodge succession on the walls. Iron Lodge is one of the college's old student houses, and its heirs guard the name like property. Students born without the old families' gift keep their heads down. The college is tense and divided. Everyone is waiting for the next door to lock.
 
-    Cassian, Elena, and the other students are sixteen or seventeen — young initiates dealing with forces beyond their understanding.
+    Cassian and Elena are sixteen or seventeen, young initiates dealing with forces beyond their understanding.
 
-    Wisp is still enslaved by the Thorne family and has no legal rights. Bound familiars at Blackwood Collegiate work without pay, sleep beside the kitchens, and disappear from notice whenever that is convenient. Wisp's conscience keeps colliding with the magic that compels obedience.
+    Wisp is still enslaved by the Thorne family and has no legal rights. Bound familiars at Blackwood Collegiate work without pay and sleep beside the kitchens. Their owners stop noticing them whenever that is convenient. Wisp's conscience keeps colliding with the magic that compels obedience.
 
     Lord Magnus Thorne sits on the Blackwood Collegiate Board of Governors. His influence reaches every corridor. His letters to Cassian mix affection with pressure to uphold the family legacy. Cassian is desperate to prove he deserves the name.
 
-    The school atmosphere is one of whispered rumors, sidelong glances, and locked doors. Paralytic binding is on everyone's mind. Anyone researching it — for any reason — looks suspicious.
+    After dark, rumors move through the school and doors stay locked. Questions about paralytic binding now sound like admissions.
 
   # ---------------------------------------------------------------------------
   # VICTIM
@@ -78,12 +78,12 @@ case:
     name: "Professor Aldric Vane"
     age: "Alchemy Master, head of the Iron Lodge house"
     humanization: |
-      The most feared professor at Blackwood Collegiate — harsh, unforgiving, brilliant.
+      The most feared professor at Blackwood Collegiate, harsh and brilliant.
       Three days ago, he found ingredients missing from his private stores. Yesterday,
-      more vanished. He was hunting a thief when he found something worse.
-      His arm is outstretched, reaching toward a student he was trying to protect.
-      Even Professor Vane didn't deserve this. Especially not for trying to help.
-    memorable_trait: "Knew cursed artifacts better than anyone — which is why he recognized the danger"
+      more vanished. He was hunting a thief when he found a dangerous ritual. His arm
+      is outstretched, reaching toward a student he was trying to protect when the
+      spell caught him.
+    memorable_trait: "He knew cursed artifacts better than anyone in the college and recognized the danger before it was too late."
     time_of_death: "10:00 PM"
     cause_of_death: "Layered paralytic binding: Thief's Candle discharge + bound familiar binding magic"
 
@@ -100,35 +100,26 @@ case:
       type: "micro"
 
       description: |
-        Frost on the windows. Unnatural cold.
+        Frost has formed on the windows from the inside. The cold has settled deep into the room.
 
-        The archive is divided into three alcoves by towering shelves. Ancient
-        tomes swallow every sound. You stand in the western alcove. The eastern
-        alcove, where a reading chair sits beside a burned-down candle, is forty
-        feet away and hidden around a corner.
+        The archive is divided into three alcoves by towering shelves. Ancient tomes swallow every sound. You stand in the western alcove. The eastern alcove, where a reading chair sits beside a burned-down candle, is forty feet away and hidden around a corner.
 
-        Professor Aldric Vane lies motionless beside the reading desk. Black robes
-        pool around him. His right arm reaches towards a circle of melted candles.
-        His face holds no anger, only concern. His focus is half-drawn from his robes,
-        as if he began to answer a danger and never finished.
+        Professor Aldric Vane lies motionless beside the reading desk. Black robes pool around him. His right arm reaches towards a circle of melted candles. His face is tight with concern. His focus is half-drawn from his robes. He reached for it when the danger began and never finished the motion.
 
-        The smell of nightshade. Scattered herbs. The air feels wrong — heavy,
-        charged, cold in a way that has nothing to do with the season.
+        Nightshade and scattered herbs scent the air. The room feels charged, and the cold has nothing to do with the season.
 
-        Under lamplight, Professor Vane's skin has an odd shimmer — a pale blue-white
-        sheen overlaid with something else, a faint yellowish-green tinge that
-        catches the light at certain angles.
+        Under lamplight, Professor Vane's skin has an odd shimmer, a pale blue-white sheen overlaid with a faint yellowish-green tinge that catches the light at certain angles.
 
       surface_elements:
         - "Reading desk with scattered parchments and an ancient tome open to cramped handwriting"
         - "Circle of melted candles on the floor, ritual space cleared"
-        - "Scattered dried herbs near the candle circle — pungent, unfamiliar smell"
+        - "Scattered dried herbs near the candle circle, pungent, unfamiliar smell"
         - "Frost-covered window with unnatural patterns radiating from floor"
-        - "Professor Vane's body — arm reaching toward the ritual circle, focus partially drawn, expression of concern"
+        - "Professor Vane's body, arm reaching toward the ritual circle, focus partially drawn, expression of concern"
         - "Odd dual-tone shimmer on Professor Vane's skin: blue-white and yellowish-green"
         - "Faint scuff marks leading toward the exit"
         - "A dark green fiber caught on the doorframe"
-        - "Eastern alcove visible in the distance — reading chair, burned-down candle"
+        - "Eastern alcove visible in the distance, reading chair, burned-down candle"
 
       witnesses_present: ["elena"]
 
@@ -194,19 +185,19 @@ case:
             A small, crumpled note written in shaky, childlike handwriting:
 
             "Master Professor, D. is sorry. D. needed nightshade for sick friend.
-            D. will return it. Please don't tell. — D."
+            D. will return it. Please don't tell. Signed, D."
 
             The date is from three days ago. The handwriting is crude, almost
             desperate. The letter "D." could refer to several people.
           tag: "[EVIDENCE: hidden_note]"
-          significance: "Connects to an ingredient theft but not necessarily the attack. The 'D.' is ambiguous."
+          significance: "Connects to the first ingredient theft. The initial is too little to identify the thief."
           strength: 40
           points_to: ["wisp", "cassian"]
           witness_reactions:
-            elena: "That handwriting is too crude for a student. Bound familiars write like that — I've seen their kitchen logs."
-            cassian: "Probably that bound familiar. They steal constantly. Nothing to do with me."
-            whitmore: "This matches the first theft report. But there was a second theft yesterday — this note doesn't explain that one."
-            wisp: "*ears flatten* Wisp... Wisp wrote that note. Wisp is sorry! But Wisp only took the nightshade ONCE!"
+            elena: "That handwriting is too crude for a student. It looks like the kitchen logs I've seen from bound familiars."
+            cassian: "That sounds like the familiar. Wisp steals from the stores. I had nothing to do with this note."
+            whitmore: "This matches the first theft report. A second theft happened yesterday, so the note leaves part of the story open."
+            wisp: "*ears flatten* Wisp wrote that note. Wisp is sorry. Wisp took the nightshade once."
 
         # Professor Vane's focus - proves he was trying to help
         - id: "focus_signature"
@@ -223,12 +214,12 @@ case:
             No offensive spells. No defensive spells. His last act was an
             attempted cancellation of something.
           tag: "[EVIDENCE: focus_signature]"
-          significance: "Professor Vane was trying to cancel something, not attack or defend. Why?"
+          significance: "Professor Vane was trying to stop an active spell. He was working to contain the danger."
           strength: 85
           points_to: []
           witness_reactions:
-            elena: "Dispel? That's a cancellation spell. He was trying to STOP something, not fight someone."
-            cassian: "*goes very still* He... he was trying to stop it? Not... not punish me?"
+            elena: "Dispel? He was trying to stop an active spell. He wasn't attacking anyone."
+            cassian: "*goes very still* He was trying to stop it? He wasn't trying to punish me?"
             whitmore: "Dispel. Aldric was attempting to safely shut down an active magical process. He walked into danger willingly."
             wisp: "*very quietly* The professor was trying to help... Wisp knows this."
 
@@ -244,18 +235,18 @@ case:
             The temperature in this area is noticeably colder than the rest
             of the room.
 
-            Identify Substance confirms magical origin — but the signature is
-            complex. The frost radiates outward in a starburst pattern from
-            the center. Something powerful discharged here.
+            Identify Substance confirms a magical origin. The signature is complex.
+            Frost radiates outward in a starburst from the center, where something
+            powerful discharged.
           tag: "[EVIDENCE: frost_pattern]"
           significance: "Magical discharge at the ritual site. The source and nature are unclear."
           strength: 70
           points_to: []
           witness_reactions:
-            elena: "The center scorch is unusual. Freezing cantrips don't leave burns. This looks like combustion followed by rapid cold expansion — I've read about that in cursed artifact theory."
+            elena: "The scorch at the center is unusual. Freezing cantrips don't leave burns. The heat came first, then the cold spread outward. I've read about that in cursed artifact theory."
             cassian: "*changes subject quickly* Probably a malfunctioning ward. Old library, old magic."
-            whitmore: "Cursed artifact discharge. Several cursed objects produce frost like this — Thief's Candle, Cursed Opal, Winter's Grip amulet. I can't identify which from the pattern alone."
-            wisp: "Wisp does not know about frost. Wisp was not there. *does not look at the evidence*"
+            whitmore: "This looks like a cursed artifact discharge. A Thief's Candle could leave this pattern, though the frost alone cannot identify the object."
+            wisp: "Wisp knows nothing about frost. *looks away from the evidence*"
 
         # THE KEY NEW EVIDENCE: dual shimmer on Professor Vane
         - id: "dual_shimmer"
@@ -273,17 +264,17 @@ case:
             entire body more evenly. This second layer sits ON TOP of the first,
             as if applied moments after.
 
-            Two separate magical effects. Two different signatures. Applied in
-            sequence, not simultaneously.
+            The body carries two magical effects with different signatures. One was
+            applied after the other.
           tag: "[EVIDENCE: dual_shimmer]"
-          significance: "Two layers of magic on Professor Vane. This is the key evidence that breaks the single-culprit theory."
+          significance: "Two layers of magic cover Professor Vane. One spell cannot account for both."
           strength: 95
           points_to: []
           witness_reactions:
-            elena: "Two layers? That's... the blue-white is consistent with cursed artifact discharge. But the yellowish-green — I've read about that color. *hesitates* I need to check something. It might be... no. It can't be."
-            cassian: "*genuinely confused* Two colors? I don't... I only used the one artifact. What's the second one?"
-            whitmore: "The blue-white is artifact residue, certainly. The other color... *long pause* I've seen that tinge once before. In bound familiar containment magic. But that would mean... no. That's impossible."
-            wisp: "*tries to leave the conversation* Wisp does not understand initiate magic. The professors would know better than Wisp."
+            elena: "The blue-white matches a cursed artifact discharge. The yellow-green layer is familiar too. I've seen it in books about bound familiar magic."
+            cassian: "*genuinely confused* Two colors? I used one artifact. Where did the second spell come from?"
+            whitmore: "The blue-white is artifact residue. The other layer resembles bound familiar containment magic. That would place a familiar near the attack."
+            wisp: "*tries to leave the conversation* Wisp does not understand initiate magic. The professors would know more."
 
         # Elena's badge - places her at scene
         - id: "dropped_badge"
@@ -296,14 +287,14 @@ case:
             engraved: "Elena Marsh." Students need these badges for
             after-hours Sealed Archive access.
           tag: "[EVIDENCE: dropped_badge]"
-          significance: "Places Elena at the scene. Dropped during discovery or during the attack?"
+          significance: "Places Elena at the scene. It does not show when she dropped it."
           strength: 55
           points_to: ["elena"]
           witness_reactions:
-            elena: "I dropped it when I found him! I was in the eastern alcove — I heard a sound, came to investigate, and found him like this. I panicked."
-            cassian: "Marsh was there? Of course she was. She had that fight with Professor Vane — everyone saw it. Seems obvious to me."
-            whitmore: "Miss Marsh had legitimate after-hours access. The badge proves she was there, not that she did anything."
-            wisp: "Miss Marsh is a kind scholar. Wisp does not think she would hurt anyone."
+            elena: "I dropped it when I found him! I was in the eastern alcove, I heard a sound, came to investigate, and found him like this. I panicked."
+            cassian: "Marsh was there? She had that fight with Professor Vane. Everyone saw it."
+            whitmore: "Miss Marsh had legitimate after-hours access. The badge places her there, but it says nothing about the attack."
+            wisp: "Miss Marsh is kind. Wisp does not think she would hurt anyone."
 
         # Scuff marks - no size detail, just direction
         - id: "scuff_marks"
@@ -316,16 +307,16 @@ case:
             circle toward the exit. Under Raise the Lamp, they continue down the corridor
             in the direction of the dungeons.
 
-            The stride suggests someone running. The marks are fresh — tonight's.
+            The stride suggests someone running. The marks are fresh, tonight's.
           tag: "[EVIDENCE: scuff_marks]"
-          significance: "Someone fled the scene toward the dungeons. But multiple houses and areas are accessed through lower corridors."
+          significance: "Someone fled toward the dungeons. Lower corridors lead to several parts of the school."
           strength: 45
           points_to: []
           witness_reactions:
             elena: "I didn't go that way. I went toward the main corridor to find help."
-            cassian: "Lots of students use that route. Half the castle is accessed through lower corridors. Doesn't mean anything."
-            whitmore: "Several houses are reached through lower corridors, not just Iron Lodge. This narrows it but doesn't identify anyone."
-            wisp: "Wisp does not leave marks on floors. Bound familiars are very quiet. *says this with odd emphasis*"
+            cassian: "Lots of students use that route. It tells you very little."
+            whitmore: "The lower corridors lead to several houses. The direction narrows the search, but it cannot identify the person."
+            wisp: "Wisp walks quietly. *looks down at the floor*"
 
         # Singed cloak fiber
         - id: "singed_cloak_fiber"
@@ -335,7 +326,7 @@ case:
           discovery_guidance: "Revealed when player examines the doorframe, investigates the exit, or looks for trace evidence."
           description: |
             A single fiber from a cloak, caught on the doorframe near the exit.
-            The fiber is singed — as if exposed to etheric discharge. The color
+            The fiber is singed, as if exposed to etheric discharge. The color
             is dark green. The weave suggests expensive fabric, not standard
             student robes.
           tag: "[EVIDENCE: singed_cloak_fiber]"
@@ -358,10 +349,10 @@ case:
             The book on the reading desk is open to a chapter titled:
             "Activation Rites for Bound Artifacts"
 
-            The instructions describe a ritual requiring: a circle of seven
-            candles, fresh nightshade, and a spoken incantation. A note in the
+            The instructions describe a ritual requiring a circle of seven candles.
+            Fresh nightshade and a spoken incantation complete the working. A note in the
             margin (elegant handwriting, expensive ink): "Use the nightshade
-            from Father's package. Don't let Professor Vane catch you — he'll recognize it."
+            from Father's package. Don't let Professor Vane catch you, he'll recognize it."
 
             Someone was following these instructions. Someone who received a
             package from their father. Someone worried about Professor Vane specifically.
@@ -370,7 +361,7 @@ case:
           strength: 75
           points_to: ["cassian"]
           witness_reactions:
-            elena: "That handwriting isn't mine. It's elegant — aristocratic. And 'Father's package'? Only certain families send packages like that."
+            elena: "That handwriting isn't mine. It's elegant, aristocratic. And 'Father's package'? Only certain families send packages like that."
             cassian: "*jaw tightens* Anyone could have written that. People write in library books all the time."
             whitmore: "That handwriting is distinctive. I've seen it on essays. *does not name the student yet*"
             wisp: "Wisp has seen young master's handwriting many times. *catches himself* Wisp means... Wisp does not know who wrote that."
@@ -382,22 +373,22 @@ case:
           type: "documentary"
           discovery_guidance: "Revealed when player investigates the eastern alcove, examines the reading chair area, or searches for other occupants."
           description: |
-            In the eastern alcove, forty feet from the crime scene, a library slip sits inside a book: "Restricted Access — E. Marsh."
+            In the eastern alcove, forty feet from the crime scene, a library slip sits inside a book: "Restricted Access, E. Marsh."
 
-            The book is "Paralytic binding: Causes, Cures, and Controversies." Several pages are bookmarked — chapters on binding magic, deep-binding stare paralysis, and counter-curses.
+            The book is "Paralytic binding: Causes, Cures, and Controversies." Several pages are bookmarked, including chapters on binding magic and related counter-curses.
 
-            The alcove shows signs of recent use — a reading chair slightly displaced, a candle stub that has burned down roughly twenty minutes' worth. The alcove is around a corner from the main scene, separated by towering shelves that muffle sound.
+            The alcove shows signs of recent use, a reading chair slightly displaced, a candle stub that has burned down roughly twenty minutes' worth. The alcove is around a corner from the main scene, separated by towering shelves that muffle sound.
           tag: "[EVIDENCE: elena_book_slip]"
-          significance: "Elena was already in the Sealed Archive BEFORE the attack — reading a book about paralytic binding. Innocent research or preparation?"
+          significance: "Elena was already in the Sealed Archive BEFORE the attack, reading a book about paralytic binding. Innocent research or preparation?"
           strength: 70
           points_to: ["elena"]
           witness_reactions:
-            elena: "I was researching paralytic binding because of the UNDERCROFT BREACH attacks! the custodian's raven was found stiff! uninitiated-borns are being targeted! Someone has to understand what's happening — and that book covers counter-curses too!"
+            elena: "I was researching paralytic binding because of the UNDERCROFT BREACH attacks! the custodian's raven was found stiff! uninitiated-borns are being targeted! Someone has to understand what's happening, and that book covers counter-curses too!"
             cassian: "She was reading a book about paralytic binding? The same night a professor was frozen? And she was ALREADY there? How much more obvious can it get?"
-            whitmore: "The candle burn time is consistent — she was reading for roughly twenty minutes before the incident. The book itself... many students have been researching paralytic binding since the undercroft breach attacks. It's concerning but not conclusive."
+            whitmore: "The candle burn time places her reading for roughly twenty minutes before the incident. Students have researched paralytic binding since the undercroft breach attacks. The book raises a question. It does not answer it."
             wisp: "Wisp knows Miss Marsh reads a lot. She is always in the library."
 
-        # ATMOSPHERIC: Hawthorne's confiscation log — world-building, the undercroft breach fear
+        # ATMOSPHERIC: Hawthorne's confiscation log, world-building, the undercroft breach fear
         - id: "hawthorne_confiscation_log"
           name: "Miss Hawthorne's Confiscation Notes"
           location_found: "library"
@@ -406,15 +397,15 @@ case:
           description: |
             A clipboard near the library entrance, Miss Hawthorne's neat handwriting:
 
-            "CONFISCATED MATERIALS — This Term:
-            - 'Moste Potente Alchemy' — returned to shelf after student inspection (Third-year Scarlet Court, authorized note from Langley)
+            "CONFISCATED MATERIALS, This Term:
+            - 'Moste Potente Alchemy', returned to shelf after student inspection (Third-year Scarlet Court, authorized note from Langley)
             - Dark Arts pamphlet circulating in Iron Lodge common room
             - Three students caught trying to access the undercroft breach lore section after hours
             - Graffiti cleaned from shelf: 'SUCCESSION TO THE LODGE WILL PREVAIL'
 
             NOTE: Increased traffic to paralytic binding-related texts since the attack on the custodian's raven. Half the school seems to be researching it. Sealed Archive requests up 300%."
           tag: "[EVIDENCE: hawthorne_confiscation_log]"
-          significance: "Shows the school atmosphere — paralytic binding research is widespread, not unique to any suspect. World context."
+          significance: "Shows the school atmosphere, paralytic binding research is widespread, not unique to any suspect. World context."
           strength: 10
           points_to: []
           witness_reactions:
@@ -423,20 +414,20 @@ case:
             whitmore: "the undercroft breach attacks have the entire school on edge. This is... context, not evidence."
             wisp: "Wisp has heard the students whispering about the undercroft breach. Everyone is frightened."
 
-        # ATMOSPHERIC: Damaged ward stone — shows magical stress from multiple events
+        # ATMOSPHERIC: Damaged ward stone, shows magical stress from multiple events
         - id: "damaged_ward_stone"
           name: "Stressed Ward Stone"
           location_found: "library"
           type: "magical"
           discovery_guidance: "Revealed when player examines the library entrance carefully, casts Identify Substance on the doorway, or investigates the magical protections."
           description: |
-            A small ward stone embedded in the doorframe of the Sealed Archive shows hairline fractures. Identify Substance reveals it has been stressed by multiple magical events — not just tonight's.
+            A small ward stone embedded in the doorframe of the Sealed Archive shows hairline fractures. Identify Substance reveals it has been stressed by multiple magical events, not just tonight's.
 
             The stone's protective enchantments are weakened. Whatever protections the Sealed Archive once had against unauthorized magic have been failing for weeks. The undercroft breach attacks have strained Blackwood Collegiate's wards throughout the castle.
 
             Tonight's etheric discharge was the final blow to this stone.
           tag: "[EVIDENCE: damaged_ward_stone]"
-          significance: "The castle's wards are weakening from the undercroft breach attacks. The Sealed Archive had degraded protections — anyone could have performed magic here undetected."
+          significance: "The castle's wards are weakening from the undercroft breach attacks. The Sealed Archive had degraded protections, anyone could have performed magic here undetected."
           strength: 15
           points_to: []
           witness_reactions:
@@ -450,7 +441,7 @@ case:
             - "secret passage"
             - "hidden door"
             - "escape route"
-          response: "The walls are solid stone. No hidden passages here — just shelves and books."
+          response: "The walls are solid stone. No hidden passages here, just shelves and books."
         - triggers:
             - "hand of glory"
             - "the artifact"
@@ -466,15 +457,16 @@ case:
       type: "micro"
 
       description: |
-        Professor Whitmore's authorization spell tingles at your wrist —
-        temporary access for the investigation. The stone wall slides open.
-        You're not welcome here. Every surface reminds you.
+        Professor Whitmore's authorization spell tingles at your wrist and grants
+        temporary access. The stone wall slides open. The students inside watch you
+        with open dislike.
 
         The common room of Blackwood's old Iron Lodge house stretches beneath the
         Greymere. Green light filters through windows looking into murky water.
-        Leather armchairs surround a dying fireplace. Most students are in bed.
+        Leather armchairs surround a dying fireplace. Most students are in bed, though
+        a few remain awake.
 
-        Cassian Thorne's corner is unmistakable — the most expensive armchair, worn
+        Cassian Thorne's corner is unmistakable, the most expensive armchair, worn
         from habitual use. His trunk sits nearby, closed, silver "CT" monogram
         catching the green light. A writing desk holds mundane correspondence.
 
@@ -484,7 +476,7 @@ case:
         - "Green-tinted lake windows casting eerie light"
         - "Leather armchairs near dying fireplace, one worn more than others"
         - "Writing desk with mundane correspondence"
-        - "Cassian Thorne's trunk — closed, silver 'DM' monogram"
+        - "Cassian Thorne's trunk, closed, silver 'DM' monogram"
         - "Faint herbal smell near the trunk area"
         - "A few students still awake, watching you with cold curiosity"
 
@@ -522,22 +514,22 @@ case:
           type: "documentary"
           discovery_guidance: "Revealed when player searches Cassian's trunk, uses Unveil on it, or investigates Cassian's belongings."
           description: |
-            Hidden beneath Cassian's robes in his trunk — a letter on expensive
+            Hidden beneath Cassian's robes in his trunk, a letter on expensive
             parchment, partially burned at the edges. The Thorne family crest
             is visible:
 
             "Cassian,
 
-            The package has arrived. A genuine Thief's Candle — one of three
-            known to exist. Your grandfather used it during the first war.
+            The package has arrived. A genuine Thief's Candle, one of three recorded
+            candles. Your grandfather used it during the first war.
 
-            The activation ritual is in the Sealed Archive. You'll need
-            fresh nightshade. I've included some, but if you need more, Professor Vane
-            keeps stores in his office. Be careful — Aldric will recognize
+            The activation ritual is in the Sealed Archive. You'll need fresh
+            nightshade. I've included some. Professor Vane keeps more in his office.
+            Be careful, Aldric will recognize
             the artifact.
 
             Make our family proud.
-            — Father"
+            Signed, Father"
 
             The letter is dated four days ago.
           tag: "[EVIDENCE: torn_letter]"
@@ -545,10 +537,10 @@ case:
           strength: 90
           points_to: ["cassian"]
           witness_reactions:
-            elena: "Lord Magnus Thorne sent his son an illegal cursed artifact? That's... that's criminal. But it proves Cassian was doing a ritual, not necessarily that he attacked Professor Vane."
+            elena: "Lord Magnus Thorne sent his son an illegal cursed artifact? That is criminal. The letter proves Cassian was preparing a ritual. It does not show who cast the second spell."
             cassian: "*defeated* Fine. Father sent me the Thief's Candle. It's a family heirloom. I was trying to activate it. That's all."
-            whitmore: "Lord Magnus Thorne. Of course. The apple doesn't fall far from the tree. But this letter also warns Cassian about Professor Vane — he knew Professor Vane would try to stop it."
-            wisp: "*trembling* Old Lord Magnus... he sent many things to young master. Wisp... Wisp was not the only thing he sent."
+            whitmore: "Lord Magnus Thorne. The letter warns Cassian that Aldric would recognize the artifact. Magnus expected Professor Vane to intervene."
+            wisp: "*trembling* Old Lord Magnus sent more than the candle. Wisp cannot say what else came with it."
 
         # Stolen nightshade in Cassian's trunk
         - id: "stolen_nightshade"
@@ -561,17 +553,17 @@ case:
             nightshade with "Professor Vane's Private Stores" stamped on the fabric.
             The same type of nightshade scattered at the crime scene.
 
-            This is from a SECOND theft — the one that happened yesterday,
-            after the apology note. The note only explains the first theft.
+            This came from the second theft, which happened yesterday after the apology
+            note. The note explains the first theft.
           tag: "[EVIDENCE: stolen_nightshade]"
           significance: "Cassian committed the second theft. Connects him to ritual ingredients."
           strength: 80
           points_to: ["cassian"]
           witness_reactions:
-            elena: "Two separate thefts. The note was from three days ago — this is from yesterday. Different thieves, different purposes."
+            elena: "The note is three days old. This theft happened yesterday. The dates point to separate thieves and separate reasons."
             cassian: "I... Father's supply wasn't enough. I needed more for the ritual. I was going to replace it."
-            whitmore: "Two thefts. The first was Wisp's — he confessed. The second was someone else entirely. Now we know who."
-            wisp: "Wisp only stole ONCE! This is not Wisp's! Someone else took more nightshade!"
+            whitmore: "Wisp confessed to the first theft. The second theft belongs to someone else, and the trunk identifies him."
+            wisp: "Wisp stole once. This is not Wisp's doing. Someone else took more nightshade."
 
         # Forbidden craft residue on Cassian's things
         - id: "residual_dark_magic"
@@ -592,11 +584,11 @@ case:
           points_to: ["cassian"]
           witness_reactions:
             elena: "The cold signature matches the crime scene frost. Whatever caused that frost was kept here."
-            cassian: "Yes, the Thief's Candle was in my trunk. I already admitted that. What more do you want?"
+            cassian: "Yes, the Thief's Candle was in my trunk. I already admitted that."
             whitmore: "The magical residue is consistent with the library frost. This confirms Cassian brought the artifact."
             wisp: "Forbidden craft... Wisp has felt that cold before. In the old manor. Bad things lived in that house."
 
-        # Student witness testimony — more divided
+        # Student witness testimony, more divided
         - id: "student_testimony"
           name: "Iron Lodge Student Accounts"
           location_found: "iron_lodge_common_room"
@@ -610,26 +602,26 @@ case:
 
             "He came back not long after. White as a ghost, hands shaking."
 
-            But Pansy Parkinson insists: "He was just carrying books. His father
-            sends him rare books all the time. And he came back much later — I was
-            almost asleep. You're all exaggerating."
+            Mira Bell insists that he was carrying books. His father sends him rare
+            books, she says, and Cassian returned much later, when she was almost asleep.
+            Her account puts the timing in doubt.
 
-            Another student: "Pansy wasn't even in the common room when he left.
-            She's covering for him."
+            Another student says Mira was not in the common room when he left. She may
+            be covering for him.
 
-            "When Pansy asked if he was okay, he snapped at her. Said something
+            "When Mira asked if he was okay, he snapped at her. He said something
             like 'It wasn't supposed to happen like that.' Then locked himself in."
           tag: "[EVIDENCE: student_testimony]"
-          significance: "Students place Cassian leaving and returning, but accounts conflict on timing and details."
+          significance: "Students place Cassian outside the common room, though their timing and details conflict."
           strength: 65
           points_to: ["cassian"]
           witness_reactions:
-            elena: "Conflicting witness accounts are normal. But they all agree on one thing — he came back terrified. Something happened to him."
-            cassian: "They don't know what they saw. Pansy's right — I was carrying books. *less convincing each time*"
-            whitmore: "Student testimony is unreliable on specifics but reliable on emotional states. They all agree Cassian was terrified when he returned."
+            elena: "The accounts disagree on timing. They agree that Cassian came back terrified. Something happened to him."
+            cassian: "They don't know what they saw. Mira is right, I was carrying books. *his voice weakens*"
+            whitmore: "The students disagree on details, but their descriptions of Cassian's fear line up."
             wisp: "Wisp... Wisp also saw young master leaving that night. *whispered*"
 
-        # ATMOSPHERIC: Cassian's unsent letter — character depth, family pressure
+        # ATMOSPHERIC: Cassian's unsent letter, character depth, family pressure
         - id: "cassian_unsent_letter"
           name: "Cassian's Unsent Letter"
           location_found: "iron_lodge_common_room"
@@ -642,7 +634,7 @@ case:
 
             I have the package. I understand what is expected of me. I will not disappoint you.
 
-            But I wanted to ask — did Grandfather really use this during the war? Did he ever"
+            But I wanted to ask, did Grandfather really use this during the war? Did he ever"
 
             The letter stops mid-sentence. Several words are crossed out below: "hurt anyone" is scratched through twice. The parchment is wrinkled as if gripped tightly.
 
@@ -653,7 +645,7 @@ case:
           points_to: ["cassian"]
           witness_reactions:
             elena: "He was scared. He was asking if his grandfather hurt anyone with it and he couldn't even finish the question. *quietly* He's twelve years old."
-            cassian: "*snatches at the letter* That's PRIVATE. You have no right— *voice breaks* Give it back."
+            cassian: "*snatches at the letter* That's PRIVATE. You have no right,  *voice breaks* Give it back."
             whitmore: "*reads it slowly, expression softening* He was frightened. A child asking his father a question he couldn't bear to hear answered."
             wisp: "Young master... young master was always trying to make old master proud. Even when it scared him."
 
@@ -673,13 +665,9 @@ case:
       type: "micro"
 
       description: |
-        The third-floor corridor outside the archive. Torches flicker in wall
-        sconces, casting long shadows across worn flagstones. A window at the
-        far end offers a clear view of the grounds.
+        The third-floor corridor outside the archive. Torches flicker in wall sconces, casting long shadows across worn flagstones. A window at the far end offers a clear view of the grounds.
 
-        This is Professor Whitmore's patrol route. From here, she can see the library
-        doors, the stairway to the dungeons, and the main corridor. A portrait
-        of a dozing initiate hangs near the library entrance.
+        This is Professor Whitmore's patrol route. From here, she can see the library doors, the stairway to the dungeons, and the main corridor. A portrait of a dozing initiate hangs near the library entrance.
 
       surface_elements:
         - "Flickering torches in wall sconces"
@@ -707,7 +695,7 @@ case:
           description: |
             Multiple students witnessed an incident around 4 PM:
 
-            "Professor Vane cornered Marsh right here. He was furious — said something
+            "Professor Vane cornered Marsh right here. He was furious, said something
             about 'unauthorized combat instruction' and 'immediate expulsion.'
             Marsh looked terrified, then angry. She said 'You can't do this!'
             and ran off."
@@ -717,13 +705,13 @@ case:
 
             "Marsh was crying in the library afterward. She was there for hours."
           tag: "[EVIDENCE: hallway_confrontation]"
-          significance: "Establishes Elena had strong motive. But motive isn't proof."
+          significance: "Establishes Elena had a strong motive. Motive alone does not establish the attack."
           strength: 60
           points_to: ["elena"]
           witness_reactions:
-            elena: "Yes, it happened. Everyone saw it. I know how it looks. But I was researching my DEFENSE, not planning an attack!"
+            elena: "Yes, it happened. Everyone saw it. I was researching my defense, not planning an attack."
             cassian: "Marsh's been sneaking around tutoring Ashford combat cantrips. Professor Vane caught her. She had every reason to want him silenced."
-            whitmore: "The confrontation was... harsh, even by Aldric's standards. I was planning to mediate the next morning. Miss Marsh was upset, but I know her. She fights with words and precedents, not curses."
+            whitmore: "The confrontation was harsh, even by Aldric's standards. I planned to mediate the next morning. Miss Marsh fights with words and precedents."
             wisp: "Professor Aldric Vane was very angry that day. Wisp heard shouting from the corridor."
 
         # NEW: Magnus's order to Wisp
@@ -733,7 +721,7 @@ case:
           type: "documentary"
           discovery_guidance: "Revealed when player searches the corridor floor near the library entrance, examines the area thoroughly, or uses Unveil on the corridor."
           description: |
-            A torn piece of parchment found under a bench near the library entrance. Written in a cramped, formal hand — older than a student's:
+            A torn piece of parchment found under a bench near the library entrance. Written in a cramped, formal hand, older than a student's:
 
             "...the boy is undertaking important family business. You are to ensure he is not harmed, caught, or interfered with. Protect him at all costs. Do not..."
 
@@ -745,10 +733,10 @@ case:
           witness_reactions:
             elena: "'Important family business'? 'Protect him at all costs'? Someone knew this was going to happen and sent a... protector. *pauses* Who would Lord Magnus Thorne give such orders to?"
             cassian: "*goes pale, long silence* Father sent someone to watch me? I didn't... I didn't know about this."
-            whitmore: "This is Lord Magnus Thorne's handwriting. I recognize it from his board correspondence. He was giving instructions to someone — but to whom?"
+            whitmore: "This is Lord Magnus Thorne's handwriting. I recognize it from his board correspondence. He was giving instructions to someone, but to whom?"
             wisp: "*silence, then tries to bite his own hand before stopping* Wisp... Wisp cannot say. Please. *shaking violently*"
 
-        # ATMOSPHERIC: Prefect patrol notes — explains security gaps
+        # ATMOSPHERIC: Prefect patrol notes, explains security gaps
         - id: "prefect_patrol_notes"
           name: "Prefect Patrol Schedule"
           location_found: "third_floor_corridor"
@@ -757,10 +745,10 @@ case:
           description: |
             A patrol schedule pinned to a small notice board near the stairs:
 
-            "PREFECT PATROLS — Modified Schedule (undercroft breach emergency):
+            "PREFECT PATROLS, Modified Schedule (undercroft breach emergency):
             Third Floor Corridor: Reduced to hourly checks.
             Lower vaults: DOUBLED patrols (breach point suspected nearby).
-            Library Wing: Coverage SUSPENDED after 9 PM — insufficient prefects. Professor staff patrol only.
+            Library Wing: Coverage SUSPENDED after 9 PM, insufficient prefects. Professor staff patrol only.
 
             NOTE FROM HEAD BOY: With half the prefects refusing night patrol after the undercroft breach attacks, we cannot guarantee full corridor coverage. Report any suspicious activity to Professor Whitmore or Professor Langley."
 
@@ -772,7 +760,7 @@ case:
           witness_reactions:
             elena: "Half the prefects refusing patrol? I didn't know it was that bad. No wonder the corridor was empty."
             cassian: "If there were proper patrols, none of this would have... *stops himself*"
-            whitmore: "I've been stretching the staff thin trying to cover the gaps. the undercroft breach situation has consumed our resources. This corridor only had my patrol — and I can't be everywhere."
+            whitmore: "The undercroft breach has consumed our staff. This corridor had only my patrol, and I cannot be everywhere."
             wisp: "Bound familiars see the empty corridors at night. The castle feels... abandoned after dark now."
 
       not_present:
@@ -790,23 +778,15 @@ case:
       type: "micro"
 
       description: |
-        You ring the brass service bell beside the warded pantry hatch. It chimes
-        twice, low and resonant, and the hatch unlatches — service access to the
-        kitchens below the refectory.
+        You ring the brass service bell beside the warded pantry hatch. It chimes twice, low and resonant, and the hatch unlatches to the kitchens below the refectory.
 
-        The vast Blackwood Collegiate kitchens stretch before you, directly below the Great
-        Hall. Brass pots and pans hang from the ceiling, gleaming in the firelight
-        of a dozen hearths. Bound familiars bustle about even at this hour.
+        The Blackwood Collegiate kitchens spread below the Great Hall. Brass pots hang above a row of hearths. Bound familiars move between the ovens and tables despite the late hour.
 
-        In the corner near the hospital wing corridor, you spot a small bound familiar with
-        tennis-ball-sized green eyes. Wisp. He sits beside a makeshift cot where
-        another bound familiar — Pippa — rests under a patchwork blanket. His corner is
-        neater than the others. Mismatched socks displayed proudly on a small shelf.
+        Near the hospital wing corridor, a small bound familiar sits beside a makeshift cot. Wisp's green eyes catch the firelight. Pippa rests under a patchwork blanket. Wisp has kept this corner neat, with mismatched socks lined up on a shelf.
 
-        He looks up as you approach. His ears droop. He knows why you're here.
+        He looks up as you approach, ears drooping. He knows why you are here.
 
-        You notice his hands are wrapped in cloth bandages. Unusual for a
-        bound familiar who uses magic, not manual labor.
+        Cloth bandages cover his hands. The injuries look like magic backlash.
 
       surface_elements:
         - "Brass cookware hanging from ceiling"
@@ -852,23 +832,24 @@ case:
           type: "physical"
           discovery_guidance: "Revealed when player examines Wisp's area, searches near Pippa's cot, or uses Unveil on the corner."
           description: |
-            Near Pippa's cot: a small cauldron with the remnants of a healing
-            potion, a mortar and pestle, and an empty pouch labeled "Nightshade —
-            Professor Vane's Private Stores."
+            Near Pippa's cot sits a small cauldron with the remains of a healing potion.
+            A mortar and pestle lie beside an empty pouch labeled "Nightshade, Professor
+            Vane's Private Stores."
 
-            The potion residue is clearly medicinal — a standard restorative
-            brew. The nightshade was used for healing, exactly as Wisp claimed.
+            The residue is medicinal, a standard restorative brew. The nightshade was
+            used for healing, as Wisp claimed.
 
-            This is the ONLY stolen nightshade here. No second theft supplies.
+            This pouch accounts for the nightshade from the first theft. Nothing here
+            connects Wisp to the later theft.
           tag: "[EVIDENCE: healing_supplies]"
-          significance: "Confirms Wisp used the nightshade for healing. Only accounts for the first theft."
+          significance: "Confirms that Wisp used the first stolen batch for medicine."
           strength: 60
           points_to: []
           witness_reactions:
-            elena: "This proves Wisp's theft was for medicine. But it also proves the second theft wasn't him — someone else needed nightshade for something else."
-            cassian: "So the familiar stole for medicine. That doesn't clear him of anything else."
+            elena: "Wisp used the first batch for medicine. The second theft must have had another owner."
+            cassian: "He stole for medicine. That still leaves the later theft unexplained."
             whitmore: "This confirms what Wisp told me. His theft was innocent. The second theft is the one connected to the attack."
-            wisp: "See! Wisp used it for Pippa! Wisp is not a bad familiar! *relief, but still anxious about something else*"
+            wisp: "See? Wisp used it for Pippa. Wisp told the truth about the first theft. *relieved, still anxious*"
 
         # NEW: Kitchen log showing Wisp's absence
         - id: "kitchen_log"
@@ -880,21 +861,21 @@ case:
             The kitchen duty log tracks bound familiar movements for accountability.
             Tonight's entries for Wisp:
 
-            "Wisp — kitchen duty: 8:00 PM - 9:58 PM"
-            "Wisp — departed: 9:58 PM (personal errand)"
-            "Wisp — returned: 10:09 PM"
+            "Wisp, kitchen duty: 8:00 PM - 9:58 PM"
+            "Wisp, departed: 9:58 PM (personal errand)"
+            "Wisp, returned: 10:09 PM"
 
-            An eleven-minute absence. The attack on Professor Vane happened at 10:02 PM.
-            Wisp left two minutes before and returned seven minutes after.
+            Wisp was away for eleven minutes. The attack on Professor Vane happened at
+            10:02 PM, between his departure and return.
           tag: "[EVIDENCE: kitchen_log]"
           significance: "Wisp was absent from the kitchens during the exact window of the attack. Where was he?"
           strength: 90
           points_to: ["wisp"]
           witness_reactions:
-            elena: "He left at 9:58 and came back at 10:09? The attack was at 10:02. That's... *looks at Wisp with dawning horror*"
-            cassian: "So the familiar wasn't in the kitchens? Where was he then? *doesn't connect the dots yet*"
-            whitmore: "Eleven minutes. The timeline is... concerning. Wisp, where exactly did you go during that time?"
-            wisp: "*ears flatten completely* Wisp was... Wisp was checking on young master Cassian's rooms. Making sure everything was clean. *the Iron Lodge dormitory is in the wrong direction from the library*"
+            elena: "He left at 9:58 and returned at 10:09. The attack happened at 10:02. *looks at Wisp*"
+            cassian: "Wisp was away then. Where did he go?"
+            whitmore: "The timing puts Wisp away from the kitchens during the attack. Where did you go?"
+            wisp: "*ears flatten completely* Wisp checked young master Cassian's rooms. The rooms are in the other direction."
 
         # NEW: Wisp's frostbitten hands
         - id: "wisp_frostbite"
@@ -904,26 +885,25 @@ case:
           discovery_guidance: "Revealed when player examines Wisp's bandaged hands, casts Identify Substance on them, or asks about the bandages."
           description: |
             Beneath the cloth bandages, Wisp's knuckles and fingertips show
-            frostbite damage — blistered, discolored skin consistent with
+            frostbite damage, blistered, discolored skin consistent with
             extreme cold exposure.
 
-            Identify Substance on the frostbite reveals traces of two magical
-            signatures: the same blue-white cold from the crime scene frost,
-            and a yellowish-green shimmer — bound familiar magic.
+            Identify Substance reveals two signatures in the damaged skin. The blue-white
+            trace matches the frost at the crime scene. The yellow-green trace belongs to
+            bound familiar magic.
 
-            Wisp's hands were exposed to both the artifact's cold discharge
-            AND his own magic at very close range.
+            Wisp's hands were close to the artifact discharge when he used his own magic.
           tag: "[EVIDENCE: wisp_frostbite]"
-          significance: "Physical proof that Wisp was in close proximity to both the artifact discharge and bound familiar magic — simultaneously."
+          significance: "Physical proof that Wisp was in close proximity to both the artifact discharge and bound familiar magic, simultaneously."
           strength: 95
           points_to: ["wisp"]
           witness_reactions:
-            elena: "Frostbite with BOTH signatures? He was right there when it happened. Right there. And he used his own magic at the same time. *voice shaking* Oh no."
-            cassian: "The familiar has frostbite? From the cold? But that means he was... *slowly understanding* He was THERE?"
-            whitmore: "*very quietly* The dual signature on his hands matches the dual signature on Aldric. Wisp... what did you do?"
-            wisp: "*covers hands, begins rocking* Wisp is a bad familiar. Wisp is a very bad familiar. But Wisp had to... Master said... *breaks down*"
+            elena: "Both signatures are on his hands. He was there when the spells met. *voice shaking*"
+            cassian: "The frostbite carries both traces. Wisp was there?"
+            whitmore: "The marks on his hands match the traces on Aldric. Wisp, what did you do?"
+            wisp: "*covers hands, begins rocking* Wisp is bad. Wisp had to... Master said... *breaks down*"
 
-        # ATMOSPHERIC: Bound familiar working conditions — world-building for bound familiar subplot
+        # ATMOSPHERIC: Bound familiar working conditions, world-building for bound familiar subplot
         - id: "familiar_duty_roster"
           name: "Bound-Familiar Duty Roster"
           location_found: "kitchens"
@@ -933,73 +913,80 @@ case:
             A duty roster pinned near the kitchen entrance, written in a
             large, careful hand (likely a senior bound familiar):
 
-            "KITCHEN DUTIES — This Week:
-            Breakfast prep: 4:00 AM — Pippa, Tibby, Nob
+            "KITCHEN DUTIES, This Week:
+            Breakfast prep: 4:00 AM, Pippa, Tibby, Nob
             Lunch service: All hands
             Dinner service: All hands
             Night cleaning: Wisp (volunteered), Grimble (assigned)
-            Laundry: Rotating — see Headcount
+            Laundry: Rotating, see Headcount
 
             HEADCOUNT NOTE: Pippa still recovering. Wisp covering her shifts plus his own. Management reminds: bound familiars do not require rest periods. Bound familiars do not require days off. Bound familiars serve.
 
             WISP'S ANNOTATION (in shaky handwriting at the bottom):
             'Pippa DOES need rest. Wisp will work extra.'"
 
-            The annotation is touching — and telling. Wisp cares about his fellow familiars in a way the system doesn't allow for.
+            The note shows Wisp covering Pippa's work while she recovers. The roster leaves no room for rest.
           tag: "[EVIDENCE: familiar_duty_roster]"
-          significance: "Shows bound familiar working conditions and Wisp's compassion. He's overworked, caring for Pippa, AND following Magnus's orders. World-building for the bound familiar subplot."
+          significance: "Shows the working conditions in the kitchens and Wisp's care for Pippa. It also explains why he was exhausted."
           strength: 10
           points_to: []
           witness_reactions:
-            elena: "They don't require REST PERIODS? They don't require DAYS OFF? This is... this is slavery. That's exactly what it is. *genuinely angry*"
-            cassian: "Bound familiars don't need rest. They like working. Father says they're happiest when they're useful."
-            whitmore: "The bound familiar system is... complex. I'm not comfortable with it, but it's deeply embedded in initiate tradition. Wisp's note, though — that shows something unusual. Compassion between bound familiars."
-            wisp: "Wisp just wants Pippa to feel better. The other bound familiars say Wisp is strange for caring. But Wisp cannot help it."
+            elena: "The roster gives them no rest days. That is slavery. *anger rising*"
+            cassian: "Bound familiars work. Father says they are happiest when they are useful."
+            whitmore: "The roster treats them as property. Wisp's note shows how the familiars care for one another despite it."
+            wisp: "Wisp wants Pippa to feel better. Wisp cannot leave her to work while she is ill."
 
       not_present:
         - triggers:
             - "cursed artifact"
             - "hand of glory"
             - "ritual materials"
-          response: "The kitchens are full of cooking supplies, not cursed artifacts. Bound familiars have no use for such things."
+          response: "The kitchens contain cooking supplies. No cursed artifact is stored here."
 
   # ---------------------------------------------------------------------------
   # WITNESSES
   # ---------------------------------------------------------------------------
   witnesses:
     # =========================================================================
-    # Witness 1: Elena Marsh (Red Herring — looks guilty early)
+    # Witness 1: Elena Marsh (Red Herring, looks guilty early)
     # =========================================================================
     - id: "elena"
       name: "Elena Marsh"
       description: |
-        Brilliant third-year Scarlet Court, top of her class. Speaks quickly when
-        nervous, becomes defensive when accused. Was in the Sealed Archive the
-        night of the attack. Professor Vane had publicly confronted her earlier that day.
+        A brilliant third-year Scarlet Court student. She speaks quickly when nervous
+        and becomes defensive under accusation. Professor Vane confronted her in
+        public that afternoon. She was in the Sealed Archive during the attack.
       personality: |
-        Brilliant, rule-conscious, but fiercely loyal to friends. Speaks quickly
-        when nervous, becomes defensive when accused. Currently terrified — not just
-        of being blamed, but of losing everything she's worked for. She knows how
-        guilty she looks. Her only defense is the truth, but the truth incriminates
-        her friend Rowan.
+        Elena follows rules until a friend needs help. She speaks quickly when nervous
+        and knows how guilty she appears. She fears expulsion and refuses to give up
+        Rowan, even though protecting him makes her story harder to believe.
 
       background: |
-        Third-year Scarlet Court, top of her class. With the the undercroft breach attacks terrorizing uninitiated-borns, Elena has been secretly researching paralytic binding — both to understand the threat and to teach defensive spells to vulnerable students. She's been teaching Rowan Ashford Binding Cantrip and Ward Cantrip after Iron Lodges repeatedly hexed him.
+        Elena is a third-year Scarlet Court student. The undercroft breach attacks have
+        targeted uninitiated-borns, so she has been studying paralytic binding and teaching
+        defensive spells to vulnerable students. Rowan Ashford has been taking her lessons
+        after Iron Lodge students repeatedly hexed him.
 
         Professor Vane caught Rowan practicing, forced him to confess, and confronted Elena that afternoon. He threatened to have them both expelled.
 
-        That evening, she went to the Sealed Archive to research both her disciplinary defense AND paralytic binding countermeasures. She was reading "Paralytic binding: Causes, Cures, and Controversies" — a book that covers everything from deep-binding stares to binding magic. She entered the eastern alcove — forty feet from the crime scene, around a corner — and was deep in research when the attack happened. She heard a muffled sound but assumed it was students. Minutes later, she investigated and found Professor Vane frozen.
+        That evening, she went to the Sealed Archive to prepare for the disciplinary hearing
+        and study countermeasures. She read "Paralytic Binding: Causes, Cures, and Controversies"
+        in the eastern alcove, forty feet from the crime scene. A muffled sound reached her,
+        but she assumed students were making trouble. Minutes later, she found Professor Vane frozen.
 
         She saw a cloaked figure disappearing toward the exit but couldn't identify them.
 
       wants: "Prove her innocence without getting Rowan expelled for the lessons she taught him"
       fears: "Being expelled, being blamed for Professor Vane's attack, Rowan being punished, the undercroft breach attacks"
       moral_complexity: |
-        Elena looks genuinely guilty. She had motive (expulsion threat), opportunity (present in the Sealed Archive), and was actively researching paralytic binding magic — the exact type of attack used on Professor Vane. Her focus shows Binding Cantrip cast that same day.
+        Elena looks guilty. Professor Vane threatened expulsion, she was present in the
+        Sealed Archive, and her focus shows Binding Cantrip from that day.
 
-        But she's innocent. Her paralytic binding research was driven by fear of the undercroft breach attacks, and her spells were for Rowan's lessons. She arrived in the alcove before the attack and was reading when it happened.
+        Elena is innocent. Fear of the undercroft attacks drove her research, and her spells
+        were part of Rowan's lessons. She reached the alcove before the attack and stayed there.
 
-        Her real dilemma: tell the whole truth and condemn Rowan, or withhold details and look even more suspicious. The paralytic binding book makes things worse — it looks like she was studying how to do exactly what happened to Professor Vane.
+        Telling the full story would expose Rowan. Hiding it makes the book and her
+        presence look like preparation for the attack.
 
       base_trust: 55
       mind_shield_skill: 0
@@ -1007,7 +994,7 @@ case:
       knowledge:
         - "I was in the Sealed Archive that evening, in the eastern alcove"
         - "I found Professor Aldric Vane already frozen near the ritual circle"
-        - "I saw someone leaving — a cloaked figure heading toward the exit. I couldn't see their face."
+        - "I saw someone leaving, a cloaked figure heading toward the exit. I couldn't see their face."
         - "My library badge must have fallen when I discovered the body and panicked"
         - "Yes, Professor Vane confronted me that afternoon. Everyone saw it. I know how it looks."
         - "I was reading about paralytic binding. With the undercroft breach attacks, someone has to understand what's happening to uninitiated-borns."
@@ -1019,7 +1006,8 @@ case:
           risk_level: "high"
           why_hiding: "Confirms motive for Professor Vane confrontation"
           text: |
-            Taught Rowan defensive spells (Binding Cantrip, Ward Cantrip) because Iron Lodges kept hexing him. Professor Vane caught Rowan practicing, forced him to name his teacher. That's why Professor Vane confronted me.
+            I taught Rowan defensive spells because Iron Lodge students kept hexing him. Professor
+            Vane caught him practicing and forced him to name his teacher. That is why he confronted me.
           keywords:
             - "tutoring rowan"
             - "defensive magic lessons"
@@ -1031,7 +1019,8 @@ case:
           risk_level: "high"
           why_hiding: "Establishes clear motive"
           text: |
-            Professor Vane threatened to go to Headmaster Ashford next morning, said I'd be expelled by noon. I was furious, said I'd "stop him somehow" — meant legally, building a case. Sounds incriminating.
+            Professor Vane threatened to go to Headmaster Ashford the next morning. He said I would
+            be expelled by noon. I was furious and said I would "stop him somehow". I meant a legal case.
           keywords:
             - "expelled by noon"
             - "stop him somehow"
@@ -1042,7 +1031,8 @@ case:
           risk_level: "medium"
           why_hiding: "Focus shows paralytic binding magic"
           text: |
-            Cast Binding Cantrip multiple times that day teaching Rowan in an empty classroom. But Binding Cantrip signature is completely different from whatever froze Professor Vane — simple body-bind vs. unknown magic.
+            I cast Binding Cantrip while teaching Rowan in an empty classroom. Its signature is clean
+            and controlled. The spell that froze Professor Vane left a different trace.
           keywords:
             - "binding cantrip teaching"
             - "different signature"
@@ -1053,7 +1043,8 @@ case:
           risk_level: "medium"
           why_hiding: "Won't accuse without proof"
           text: |
-            Glimpsed a figure leaving — hooded cloak, expensive fabric, moving toward the dungeons. Couldn't see face. Won't accuse based on a glimpse.
+            I glimpsed a figure in a hooded cloak moving toward the dungeons. The fabric
+            looked expensive. I could not see the face, so I will not name the person.
           keywords:
             - "hooded cloak"
             - "toward dungeons"
@@ -1064,7 +1055,10 @@ case:
           risk_level: "low"
           why_hiding: "Disturbing conclusion she's unsure of"
           text: |
-            The yellowish-green shimmer on Professor Vane matches bound familiar binding magic per 'Magical Beings and Their Powers.' Bound familiars use it to restrain threats to masters — stronger than most initiate spells. Implies someone with bound familiar magic was present and acted after the artifact discharge.
+            The yellowish-green shimmer on Professor Vane matches bound familiar binding
+            magic described in 'Magical Beings and Their Powers.' The spell restrains
+            threats to a master. Someone with that magic acted after the artifact
+            discharge.
           keywords:
             - "bound familiar binding"
             - "yellowish-green"
@@ -1079,23 +1073,21 @@ case:
           response: "I was researching. Advanced Transmutation theory. Nothing unusual."
 
     # =========================================================================
-    # Witness 2: Cassian Thorne (Believes he's guilty — but isn't fully)
+    # Witness 2: Cassian Thorne (Believes he's guilty, but isn't fully)
     # =========================================================================
     - id: "cassian"
       name: "Cassian Thorne"
       description: |
-        Third-year Iron Lodge with an arrogant exterior. Son of Lord Magnus Thorne.
-        Becomes hostile under pressure. Connected to a cursed artifact found near
-        the crime scene.
+        Third-year Iron Lodge student and son of Lord Magnus Thorne. Cassian meets
+        pressure with hostility. A cursed artifact found near the crime scene leads
+        back to him.
       personality: |
-        Arrogant exterior hiding genuine terror. Crushed by pressure to uphold
-        family legacy. Currently experiencing the worst night of his life — he
-        believes he froze Professor Vane. He's not evil. He's a scared teenager who
-        thinks he made a catastrophic mistake.
+        Cassian hides terror behind arrogance. His father expects him to carry the
+        family name, and Cassian believes he has ruined it. He thinks the ritual
+        froze Professor Vane and cannot see how another spell changed the result.
 
-        His deflection toward Elena is learned behavior from Magnus, not
-        calculated conspiracy. He genuinely believes pointing at her protects
-        himself.
+        He learned to deflect blame from Magnus. Pointing at Elena feels like a way
+        to protect himself, even though he knows little about what happened.
 
       background: |
         Third-year Iron Lodge. His father sent him a Thief's Candle with instructions
@@ -1104,22 +1096,21 @@ case:
 
         Professor Vane caught him mid-ritual and tried to safely cancel it with Dispel.
         The interruption destabilized the magic. The Thief's Candle
-        discharged — cold, frost, a wave of energy. Professor Vane staggered but was still
-        moving, still reaching for Cassian. Cassian fled in panic.
+        discharged in a wave of cold. Frost spread across the floor. Professor Vane
+        staggered and kept reaching for Cassian. Cassian fled in panic.
 
-        He does NOT know Wisp was there. He does NOT know that Professor Vane was still
-        conscious when he ran — or that something else finished the job.
+        He does not know Wisp was there. He does not know that Professor Vane was
+        still conscious when he ran, or that another spell finished the binding.
 
       wants: "Avoid expulsion and his father's disappointment"
       fears: "His father finding out he failed, Dreadmoor Penitentiary, destroying the Thorne name"
       moral_complexity: |
-        Cassian is guilty of reckless forbidden craft. But he didn't fully bind in stillness Professor Vane.
-        The Thief's Candle discharge stunned Professor Vane, but Professor Vane was still moving.
-        Wisp's binding magic — applied seconds later — is what completed the
-        paralytic binding.
+        Cassian is guilty of reckless forbidden craft. The Thief's Candle discharge
+        stunned Professor Vane and left him moving. Wisp's binding magic arrived
+        seconds later and completed the paralytic binding.
 
-        Cassian doesn't know this. He carries full guilt for something he only
-        partially caused. His confession is heartfelt but factually incomplete.
+        Cassian does not know this. He carries full guilt for an injury he caused in
+        part. His confession is heartfelt and incomplete.
 
       base_trust: 30
       mind_shield_skill: 45
@@ -1128,8 +1119,8 @@ case:
         - "I was in the Iron Lodge common room all evening, studying"
         - "My father sends me letters sometimes. Family correspondence. Private."
         - "I don't know anything about Professor Aldric Vane's... situation"
-        - "Marsh probably did it. She had that fight with Professor Vane — everyone saw it"
-        - "Marsh's been sneaking around tutoring Ashford cantrips. That's probably why Professor Vane was angry at her."
+        - "Marsh had that fight with Professor Vane. Everyone saw it."
+        - "Marsh was tutoring Ashford in secret. That is why Professor Vane was angry with her."
 
       secrets:
         - id: "received_thief_candle"
@@ -1138,7 +1129,8 @@ case:
           risk_level: "medium"
           why_hiding: "Possessing cursed artifact means expulsion"
           text: |
-            Father sent a Thief's Candle — family heirloom, regulated but not illegal. Father wanted me to learn to use it to prove myself worthy.
+            Father sent a Thief's Candle, a regulated family heirloom. He wanted me
+            to learn it and prove I deserved the Thorne name.
           keywords:
             - "hand of glory father"
             - "family heirloom"
@@ -1149,7 +1141,9 @@ case:
           risk_level: "high"
           why_hiding: "Connects to crime scene"
           text: |
-            Father's nightshade insufficient for the ritual. Stole more from Professor Vane's stores, planned to replace it. Professor Vane blamed the bound familiar; let him believe that.
+            Father's nightshade was not enough for the ritual. I stole more from
+            Professor Vane's stores and meant to replace it. He blamed the bound
+            familiar, and I let him.
           keywords:
             - "took nightshade"
             - "stole ingredients"
@@ -1160,7 +1154,9 @@ case:
           risk_level: "high"
           why_hiding: "Places him at scene performing the causal act"
           text: |
-            Was in the Sealed Archive performing the Thief's Candle activation ritual — candles, nightshade, incantation. Supposed to be simple. Didn't expect Professor Vane to find him or try to stop it.
+            I was in the Sealed Archive with the candles and nightshade, trying to
+            activate the Thief's Candle. The ritual was meant to be simple. I did not
+            expect Professor Vane to find me.
           keywords:
             - "performing ritual"
             - "sealed archive candles"
@@ -1171,7 +1167,10 @@ case:
           risk_level: "high"
           why_hiding: "Believes this is a full confession"
           text: |
-            Professor Vane wasn't punishing — looked scared for me. Cast Dispel to safely shut down the ritual. I panicked, pulled Thief's Candle away, magic discharged. Professor Vane staggered but was still moving, still reaching for me. I ran. When I looked back from the door, he was falling but still conscious.
+            Professor Vane looked frightened for me. He cast Dispel to shut down the
+            ritual safely. I panicked and pulled the Thief's Candle away. The magic
+            discharged. Professor Vane staggered, still reaching for me. I ran. When
+            I looked back from the door, he was falling and still conscious.
           keywords:
             - "still moving"
             - "still reaching"
@@ -1183,7 +1182,7 @@ case:
             - "where were you"
             - "that night"
             - "sealed archive"
-          response: "I was in the common room. Ask anyone. Marsh did it — she had the fight with Professor Vane."
+          response: "I was in the common room. Ask anyone. Marsh did it, she had the fight with Professor Vane."
 
         - condition: "trust<55"
           topics:
@@ -1204,30 +1203,27 @@ case:
     - id: "whitmore"
       name: "Professor Minerva Whitmore"
       description: |
-        Deputy Headmistress. Stern, fair, deeply principled. Speaks precisely and
-        weighs every word. Was on patrol the night of the attack and may have seen
-        something.
+        Deputy Headmistress. She speaks precisely and weighs every word. She was on
+        patrol the night of the attack and may have seen something.
       personality: |
-        Stern, fair, deeply principled. Deputy Headmistress. Speaks precisely,
-        weighs every word. Currently troubled — she sees this case as a tragedy
-        of multiple failures. No one is wholly innocent; no one is purely evil.
+        Whitmore is fair and deeply principled. She sees a chain of bad decisions
+        behind the attack and refuses to condemn a student without proof.
 
       background: |
         Professor Whitmore was on patrol the night of the attack. She saw a student
         returning to the castle around 10:15 PM but couldn't clearly identify
-        them — just caught a glimpse of someone hurrying toward the dungeons.
+        them, just caught a glimpse of someone hurrying toward the dungeons.
 
         She knows about the Professor Vane-Elena confrontation and was planning to
-        mediate. She knows Wisp confessed to the first theft. She suspects
-        more is going on than anyone admits.
+        mediate. She knows Wisp confessed to the first theft. The second theft points
+        to a different plan.
 
       wants: "See justice done while understanding how multiple failures led to tragedy"
       fears: "An innocent student ruined, a guilty party escaping, the truth being more complicated than anyone wants"
       moral_complexity: |
-        Professor Whitmore suspects Cassian but won't accuse without proof. She defends
-        Elena instinctively but knows how guilty Elena looks. She
-        doesn't suspect Wisp at all — which is her blind spot. She assumes
-        bound familiars are incapable of this kind of magic, which isn't true.
+        Professor Whitmore suspects Cassian and refuses to accuse him without proof.
+        She defends Elena instinctively while seeing how guilty Elena looks. Wisp
+        escapes her suspicion because she assumes bound familiars cannot cast this magic.
 
       base_trust: 70
       mind_shield_skill: 75
@@ -1246,7 +1242,9 @@ case:
           risk_level: "medium"
           why_hiding: "Can't accuse a student without certainty"
           text: |
-            Student was hurrying toward dungeons, almost running, looked terrified. Called out but they disappeared. Platinum-colored hair caught moonlight briefly. Can't be certain of identification.
+            I saw a student hurrying toward the dungeons, almost running. They looked
+            terrified and disappeared when I called out. Moonlight caught platinum
+            hair for a moment. I cannot identify the student with certainty.
           keywords:
             - "student returning"
             - "platinum hair moonlight"
@@ -1258,7 +1256,9 @@ case:
           risk_level: "medium"
           why_hiding: "Bound familiars have no legal protection"
           text: |
-            After the attack, Wisp confessed to stealing the first batch of nightshade — healing potion for Pippa. That's what his note referenced. But the second theft yesterday wasn't Wisp. Someone else stole nightshade for something darker.
+            After the attack, Wisp confessed to stealing the first batch of nightshade
+            for a healing potion for Pippa. His note referred to that theft. The
+            second theft happened yesterday and points to someone else.
           keywords:
             - "wisp confessed"
             - "healing potion pippa"
@@ -1270,7 +1270,11 @@ case:
           risk_level: "medium"
           why_hiding: "Implication is deeply disturbing"
           text: |
-            The yellowish-green shimmer on Aldric is bound familiar containment magic — used to restrain threats to masters. Bound familiars can slip through wards inside Blackwood Collegiate and override wards; their binding magic is formidable. This means a bound familiar was involved in the attack. The only bound familiar connected to this case is Wisp.
+            The yellowish-green shimmer on Aldric is bound familiar containment magic,
+            used to restrain threats to masters. Bound familiars can pass through
+            wards inside Blackwood Collegiate, and their binding magic is formidable.
+            A bound familiar was involved in the attack. Wisp is the only one tied to
+            this case.
           keywords:
             - "bound familiar containment"
             - "binding magic"
@@ -1282,7 +1286,11 @@ case:
           risk_level: "medium"
           why_hiding: "Reveals Professor Vane's past and genuine care"
           text: |
-            Aldric recognized cursed artifact signs from his past. Ingredient theft made him suspect a ritual. Told me he was worried about Cassian specifically — Magnus had been "posturing about family heirlooms." Aldric went to the Sealed Archive to stop Cassian from hurting himself. His Dispel focus signature proves he was casting a cancellation spell — trying to protect the student.
+            Aldric recognized signs of a cursed artifact from his past. The ingredient
+            theft made him suspect a ritual. He told me Magnus had been "posturing
+            about family heirlooms" and that he feared Cassian would hurt himself.
+            Aldric went to the Sealed Archive to stop him. His Dispel focus signature
+            shows that he was casting a cancellation spell to protect the student.
           keywords:
             - "aldric worried cassian"
             - "protect student"
@@ -1290,45 +1298,41 @@ case:
       lies: []
 
     # =========================================================================
-    # Witness 4: Wisp (The True Culprit — Still a Slave)
+    # Witness 4: Wisp (The True Culprit, Still a Slave)
     # =========================================================================
     - id: "wisp"
       name: "Wisp"
       description: |
-        A bound familiar who serves the Thorne family. Speaks in third person, wrings
-        his hands constantly. Admitted to stealing nightshade from Professor Vane's stores
-        days before the attack. Appears unusually distressed.
+        A bound familiar who serves the Thorne family. Wisp speaks in third person
+        and keeps wringing his hands. He admitted stealing nightshade from Professor
+        Vane's stores days before the attack. Tonight he looks frightened.
       personality: |
-        Speaks in third person, wringing hands constantly. Still enslaved to the
-        Thorne family — not free yet. Torn between his compulsion to obey Magnus's
-        orders and his growing moral conscience. Prone to self-punishment when he
-        feels he's done wrong.
+        Wisp is still bound to the Thorne family. He obeys Magnus's orders and feels
+        the pain of every command that harms someone. When he believes he has done
+        wrong, he punishes himself.
 
-        His guilt about Professor Vane is overwhelming but he cannot confess — the binding
-        of slavery prevents him from speaking against his master's interests.
-        His self-punishment is not fear of being caught. It's genuine remorse.
+        Wisp cannot confess freely. The binding hurts him whenever he speaks against
+        his master's interests. His self-punishment comes from remorse.
 
-        When nervous: speaks faster, eyes dart, ears droop.
-        When lying: physically pained, may hit himself.
-        When confronted with evidence: silence, then self-harm attempt.
+        When nervous, he speaks faster and his ears droop. Lies make him flinch and
+        may drive him to hit himself. Evidence leaves him silent.
 
       background: |
         Wisp is a bound familiar enslaved to the Thorne family. Three days ago, he
         stole nightshade from Professor Vane's stores to heal Pippa, a fellow bound familiar
         who was ill from overwork.
 
-        But Wisp had a second mission that night. Magnus ordered him to follow
-        Cassian and "protect the young master at all costs." When Professor Vane tried to
-        stop Cassian's ritual, the Thief's Candle discharged — stunning Professor Vane but
-        not fully bind in stillnessing him. Professor Vane was staggering, still reaching for Cassian.
+        That night Magnus also ordered Wisp to follow Cassian and "protect the young
+        master at all costs." When Professor Vane tried to stop Cassian's ritual, the
+        Thief's Candle discharged. Professor Vane staggered and kept reaching for
+        Cassian.
 
-        Wisp panicked. His master's order was absolute: protect the boy. He used
-        bound familiar binding magic — a powerful freezing charm — on Professor Vane. The two
-        magics layered together: artifact discharge + bound familiar binding = full
-        paralytic binding.
+        Wisp panicked. His master's order was absolute. He used bound familiar
+        binding magic on Professor Vane, a freezing charm meant to hold him in place.
+        The artifact discharge and Wisp's spell layered into a full paralytic binding.
 
-        Cassian fled without seeing Wisp. Wisp cleaned up and returned to the
-        kitchens. He never told anyone. But the guilt is destroying him.
+        Cassian fled without seeing Wisp. Wisp returned to the kitchens and told no
+        one. Guilt has been eating at him ever since.
 
         His frostbitten hands are from being in close proximity to both the
         artifact's cold discharge and his own magic simultaneously.
@@ -1336,17 +1340,16 @@ case:
       wants: "Follow Lord Magnus's orders and protect young master Cassian"
       fears: "Disobeying his master, being discovered, what he did to the kind professor"
       moral_complexity: |
-        Wisp is not a villain. He is a slave who did the only thing he could
-        when his master's son was in danger. He used the only magic he had.
-        He didn't intend permanent paralytic binding — just temporary binding to
-        let Cassian escape. The two magics layering caused something worse.
+        Wisp is enslaved and obeyed a command when his master's son was in danger. He
+        used the binding magic available to him. He meant to hold Professor Vane for
+        a moment, long enough for Cassian to escape. The layered spells caused the
+        permanent paralysis.
 
-        He knows what he did was wrong. He punishes himself constantly. But
-        the binding of slavery means he cannot freely confess — speaking
-        against his master's interests causes him physical pain.
+        Wisp knows what he did was wrong and punishes himself for it. The binding
+        causes physical pain whenever he tries to speak against Magnus's interests.
 
-        The tragedy: Professor Vane was trying to HELP Cassian. Wisp froze the one
-        person trying to save the boy Wisp was ordered to protect.
+        Professor Vane was trying to protect Cassian. Wisp froze the person who was
+        trying to save the boy he had been ordered to protect.
 
       base_trust: 40
       mind_shield_skill: 0
@@ -1355,7 +1358,7 @@ case:
         - "Wisp works in the Blackwood Collegiate kitchens. Wisp serves the Thorne family."
         - "Wisp... Wisp did take the nightshade. Three days ago. Wisp is very sorry!"
         - "Wisp needed it for Pippa. Pippa was sick. Wisp was only trying to help!"
-        - "Wisp did NOT hurt Professor Aldric Vane! *hits himself* Bound familiar magic is different from initiate magic!"
+        - "Wisp did not hurt Professor Aldric Vane! *hits himself* Bound familiar magic is different from initiate magic!"
         - "Wisp was in the kitchens all night. Wisp did not go anywhere."
 
       secrets:
@@ -1365,7 +1368,7 @@ case:
           risk_level: "medium"
           why_hiding: "Pippa could get in trouble"
           text: |
-            Pippa was secretly helping Rowan — fixing his robes at night after Iron Lodges kept hexing and tearing them. The extra work made her sick. Wisp stole nightshade to brew a healing potion for her.
+            Pippa was secretly helping Rowan, fixing his robes at night after Iron Lodges kept hexing and tearing them. The extra work made her sick. Wisp stole nightshade to brew a healing potion for her.
           keywords:
             - "pippa helping rowan"
             - "healing potion"
@@ -1376,7 +1379,9 @@ case:
           risk_level: "high"
           why_hiding: "Places him near the scene"
           text: |
-            Was not in kitchens all night. Left to check on young master Cassian's rooms. Claims tidying duties. Note: Iron Lodge dormitory is in the opposite direction from the library.
+            Wisp was not in the kitchens all night. He left to check on young master
+            Cassian's rooms and claimed it was part of his tidying duties. The Iron
+            Lodge dormitory is in the opposite direction from the library.
           keywords:
             - "left kitchens"
             - "checking rooms"
@@ -1387,7 +1392,10 @@ case:
           risk_level: "high"
           why_hiding: "Speaking against Magnus causes physical pain"
           text: |
-            Magnus ordered Wisp to watch over Cassian and ensure nothing happened to him. Followed Cassian to the library, hid nearby. Witnessed the professor enter, saw the bright light and cold from the ritual discharge. Slavery binding prevents saying more — speaking against master's interests causes physical pain.
+            Magnus ordered Wisp to watch over Cassian. Wisp followed him to the
+            library and hid nearby. He saw the professor enter, then saw the bright
+            light and cold from the ritual discharge. The slavery binding hurts him
+            when he speaks against his master's interests.
           keywords:
             - "master's orders"
             - "followed cassian"
@@ -1397,32 +1405,26 @@ case:
           trigger: "trust>80 OR (evidence:dual_shimmer AND evidence:kitchen_log AND evidence:wisp_frostbite)"
           risk_type: "self_incriminating"
           risk_level: "high"
-          why_hiding: "Full confession — causes extreme pain to admit"
+          why_hiding: "Full confession, causes extreme pain to admit"
           text: |
             *covering face, sobbing*
 
-            The professor... he was still moving. After the bright light and
-            the cold. He was still reaching for young master Cassian. Still
-            trying to grab him.
+            The professor was still moving after the bright light and the cold. He
+            kept reaching for young master Cassian.
 
-            Wisp... Wisp used binding magic. Bound familiar binding. To stop
-            the professor from catching young master. Master said PROTECT
-            him. Master said at ALL COSTS.
+            Wisp used binding magic. Master said protect him at all costs. Wisp tried
+            to hold the professor still so young master could run.
 
             *hitting head against wall*
 
-            Wisp didn't mean for the professor to stay frozen! Wisp only
-            wanted to hold him still for a moment! But Wisp's magic and
-            the cold magic... they... they mixed together. And the professor
-            stopped moving entirely.
+            Wisp meant to hold him for a moment. The binding magic met the cold spell,
+            and the professor stopped moving.
 
-            Wisp is a bad familiar. Wisp is the worst familiar. The professor was
-            trying to HELP young master and Wisp... Wisp stopped him.
+            The professor was trying to protect young master. Wisp stopped him.
 
             *very quietly*
 
-            Wisp is sorry. Wisp is so sorry. But Master said protect him.
-            And Wisp must obey. Wisp MUST.
+            Wisp is sorry. Master said protect him. Wisp must obey.
           keywords:
             - "binding magic"
             - "still moving"
@@ -1476,16 +1478,16 @@ case:
         - Raise the Lamp (cast 2 hours ago)
 
         Combat and paralytic binding magic. Cast the same day Professor Vane was frozen.
-        The cantrips are all standard defensive work — textbook form,
+        The cantrips are all standard defensive work, textbook form,
         controlled power. Nothing resembling cursed artifact discharge.
       tag: "[EVIDENCE: elena_focus_check]"
-      significance: "Elena practiced paralytic binding magic that day. The signatures don't match the crime scene — but requires expertise to distinguish."
+      significance: "Elena practiced paralytic binding magic that day. The signatures do not match the crime scene, and Echo Reading makes the difference clear."
       strength: 50
       points_to: ["elena"]
       witness_reactions:
-        elena: "I was teaching Rowan! Binding Cantrip is completely different from whatever happened to Professor Vane — compare the signatures!"
+        elena: "I was teaching Rowan! Binding Cantrip is completely different from whatever happened to Professor Vane, compare the signatures!"
         cassian: "She was practicing paralytic binding spells the same day Professor Vane was frozen? How convenient."
-        whitmore: "Binding Cantrip is a clean, controlled spell. What happened to Aldric was chaotic, layered, involving at least two magical sources. These are not the same thing."
+        whitmore: "Binding Cantrip is clean and controlled. Aldric was hit by layered magic from at least two sources. The signatures differ."
         wisp: "Wisp does not understand focus magic very well. Bound familiar magic is different."
 
   # ---------------------------------------------------------------------------
@@ -1498,7 +1500,7 @@ case:
       evidence: ["hidden_note"]
 
     - time: "Two days before the attack"
-      event: "Lord Magnus Thorne's package (Thief's Candle) arrives for Cassian. Magnus also sends orders to Wisp: protect Cassian at all costs."
+      event: "Lord Magnus Thorne's package, containing a Thief's Candle, arrives for Cassian. Magnus also orders Wisp to protect him at all costs."
       witnesses: []
       evidence: ["torn_letter", "magnus_order"]
 
@@ -1508,7 +1510,7 @@ case:
       evidence: ["stolen_nightshade"]
 
     - time: "Late afternoon (day of attack)"
-      event: "Professor Vane catches Rowan practicing combat cantrips, forces confession. Shortly after, confronts Elena in the third floor corridor and threatens expulsion."
+      event: "Professor Vane catches Rowan practicing combat cantrips and forces a confession. Later he confronts Elena in the third-floor corridor and threatens expulsion."
       witnesses: ["whitmore"]
       evidence: ["hallway_confrontation"]
 
@@ -1523,12 +1525,12 @@ case:
       evidence: ["ritual_book", "frost_pattern", "kitchen_log"]
 
     - time: "Around ten o'clock"
-      event: "Professor Vane arrives and attempts Dispel to safely cancel the ritual. The interruption destabilizes the Thief's Candle — it discharges. Professor Vane staggers but is still conscious, still moving."
+      event: "Professor Vane arrives and casts Dispel to cancel the ritual. The interruption destabilizes the Thief's Candle. It discharges, and Professor Vane staggers while remaining conscious and mobile."
       witnesses: []
       evidence: ["focus_signature"]
 
     - time: "Moments after the discharge"
-      event: "Cassian flees in panic. Wisp, hidden nearby, sees Professor Vane still reaching toward Cassian. Following his master's orders, Wisp uses bound familiar binding magic. The two magics layer together — full paralytic binding."
+      event: "Cassian flees in panic. Wisp sees Professor Vane reaching toward him and follows Magnus's order. He casts bound familiar binding magic. The two spells layer into full paralysis."
       witnesses: []
       evidence:
         [
@@ -1554,50 +1556,50 @@ case:
   # ---------------------------------------------------------------------------
   solution:
     culprit: "wisp"
-    method: "Bound familiar binding magic applied on top of Thief's Candle discharge. Cassian's ritual stunned Professor Vane; Wisp's magic completed the paralytic binding. Two spells layered together."
-    motive: "Slavery. Lord Magnus Thorne ordered Wisp to protect Cassian at all costs. When Professor Vane tried to stop Cassian's ritual, Wisp followed his master's orders. He didn't intend permanent paralytic binding — the two magics combining was unintended."
+    method: "Wisp applied bound familiar binding magic after the Thief's Candle discharge. Cassian's ritual stunned Professor Vane. Wisp's spell completed the paralytic binding."
+    motive: "Lord Magnus Thorne ordered Wisp to protect Cassian at all costs. Wisp obeyed when Professor Vane tried to stop the ritual. He meant to hold the professor briefly. The two spells combined into permanent paralysis."
 
     key_evidence:
-      - "dual_shimmer" # Two magic types on Professor Vane — proves two attackers
+      - "dual_shimmer" # Two magic types on Professor Vane, proves two attackers
       - "kitchen_log" # Wisp absent during exact attack window
       - "wisp_frostbite" # Physical proof Wisp was at the scene
       - "magnus_order" # Proves Wisp was acting under orders
-      - "focus_signature" # Proves Professor Vane was trying to help, not attack
+      - "focus_signature" # Shows Professor Vane was casting a protective Dispel
       - "frost_pattern" # Thief's Candle discharge (Cassian's contribution)
       - "torn_letter" # Connects Thief's Candle to Cassian
       - "elena_book_slip" # Clears Elena (she was reading in the alcove)
 
     deductions_required:
-      - "Two magic types on Professor Vane prove two separate magical events, not one"
-      - "Cassian's confession: Professor Vane was still moving when he fled — something finished the job"
+      - "Two magic types on Professor Vane point to separate magical events"
+      - "Cassian's confession: Professor Vane was still moving when he fled, something finished the job"
       - "Kitchen log: Wisp was absent during the exact attack window"
       - "Wisp's frostbite: physical proof he was at the scene during both magical events"
-      - "Magnus's parchment: orders to protect Cassian — Wisp was following master's commands"
+      - "Magnus's parchment: orders to protect Cassian, Wisp was following master's commands"
       - "Bound familiar binding magic matches the second shimmer on Professor Vane"
       - "Elena's timeline and alcove position clear her"
-      - "Cassian committed reckless forbidden craft but didn't complete the paralytic binding"
-      - "Wisp is a slave — the moral question of responsibility"
+      - "Cassian committed reckless forbidden craft. Wisp completed the paralytic binding"
+      - "Wisp is enslaved, raising the question of responsibility"
 
     correct_reasoning_requires:
-      - "Question the assumption that one magical event caused the paralytic binding"
-      - "Recognize the dual signature as evidence of two separate actors"
+      - "Question the assumption that one magical event caused the paralysis"
+      - "Read the dual signature as evidence of separate magical acts"
       - "Use the timeline gap (10:02-10:05) to identify the second actor"
       - "Connect Wisp's physical evidence (frostbite, absence) to the crime"
-      - "Understand that bound familiar magic IS powerful enough to bind a initiate"
-      - "Recognize that slavery, not malice, motivated Wisp"
+      - "Recognize that bound familiar magic can bind an initiate"
+      - "Recognize that slavery drove Wisp's decision"
 
     common_mistakes:
       - error: "Accuse Elena"
         reason: "Strong motive, present at scene before attack, practiced paralytic binding magic that day"
-        why_wrong: "Was in eastern alcove 40 feet away. Candle burn time proves she didn't move. Her spell signatures don't match. She found Professor Vane AFTER he was already frozen."
+        why_wrong: "She was in the eastern alcove, forty feet away. The candle burn time places her there during the attack. Her spell signatures do not match either effect on Professor Vane."
 
       - error: "Accuse Cassian"
         reason: "Performed the ritual, fled the scene, has the artifact, overwhelming physical evidence"
-        why_wrong: "Cassian's own confession: Professor Vane was still moving when he fled. The Thief's Candle stunned Professor Vane but didn't fully bind in stillness him. The dual shimmer proves a second magical event completed the job. Cassian is guilty of reckless forbidden craft but not the complete paralytic binding."
+        why_wrong: "Cassian's own confession says Professor Vane was still moving when he fled. The Thief's Candle stunned him. The dual shimmer points to a second spell, and that spell completed the paralysis. Cassian is guilty of reckless forbidden craft, while the full binding belongs to Wisp."
 
       - error: "Rule it an accident"
         reason: "Cassian didn't intend harm, artifact malfunctioned"
-        why_wrong: "Two separate magical acts. The Thief's Candle discharge may have been accidental, but the binding magic was deliberate — someone chose to freeze Professor Vane."
+        why_wrong: "Two separate magical acts occurred. The Thief's Candle discharge may have been accidental. The binding magic was deliberate, and someone chose to freeze Professor Vane."
 
     fallacies_to_catch:
       - fallacy: "confirmation_bias"
@@ -1610,7 +1612,7 @@ case:
         example: "The evidence avalanche against Cassian makes it hard to consider alternatives even when his confession contradicts his guilt"
 
       - fallacy: "capability_dismissal"
-        example: "Dismissing Wisp because 'bound familiar magic can't do this' — it can, and it did"
+        example: "Dismissing Wisp because bound familiar magic seems incapable of this spell"
 
   # ---------------------------------------------------------------------------
   # WRONG SUSPECTS
@@ -1618,46 +1620,30 @@ case:
   wrong_suspects:
     elena:
       graves_response: |
-        GRAVES: "Marsh? You fell for the oldest trick in the book — motive
-        blindness. Let me show you where you went wrong.
+        GRAVES: "Marsh? You followed her motive and missed the timeline.
 
-        Yes, Professor Vane threatened to expel her. Yes, she was in the Sealed
-        Stacks. Yes, her focus shows paralytic binding spells.
+        Professor Vane threatened to expel her. She was in the Sealed Archive, and
+        her focus shows paralytic binding spells. The candle burn places her in the
+        eastern alcove, forty feet away, during the attack. She found Professor Vane
+        after he was frozen.
 
-        But the TIMELINE. She entered at 9:47, sat in the eastern alcove,
-        forty feet away. The candle burned twenty minutes before she moved.
-        She found Professor Vane AFTER he was already frozen.
-
-        And the MAGIC. Her spells are clean, controlled Binding Cantrip.
-        What hit Professor Vane was two different magical effects — an artifact
-        discharge AND something else entirely. Marsh couldn't produce
-        either one.
-
-        You let a compelling story override the facts. Sloppy."
-      why_innocent: "Timeline proves she was reading in the alcove during the attack. Her spell signatures don't match either magical effect on Professor Vane."
+        Her spells are clean Binding Cantrips. Professor Vane carries an artifact
+        discharge and a second magical effect. Neither signature matches Marsh's
+        focus. The story looked tidy. The evidence is better."
+      why_innocent: "The timeline places her in the alcove during the attack. Her spell signatures do not match either magical effect on Professor Vane."
 
     cassian:
       graves_response: |
-        GRAVES: "Cassian Thorne. Close, recruit. Very close. But not quite right.
+        GRAVES: "Cassian Thorne. You found the first spell and stopped there.
 
-        Yes, Thorne performed the ritual. Yes, his artifact discharged. Yes,
-        he fled the scene. He's guilty of reckless forbidden craft — no question.
+        Cassian performed the ritual, his artifact discharged, and he fled. He is
+        guilty of reckless forbidden craft. Professor Vane carries two magical
+        signatures. The blue-white frost belongs to the Thief's Candle. The
+        yellowish-green shimmer is bound familiar binding magic.
 
-        But look at the EVIDENCE on Professor Vane. Two magical signatures. Two
-        DIFFERENT types of magic. The blue-white frost is the Thief's Candle.
-        But that yellowish-green shimmer? That's bound familiar binding magic.
-
-        And Thorne's own confession — he says Professor Vane was STILL MOVING when
-        he ran. If his artifact fully froze Professor Vane, why was the victim
-        still conscious?
-
-        Someone else was there. Someone finished what the artifact started.
-        Someone who was following orders to protect the boy.
-
-        You found the right crime but the wrong criminal. The artifact
-        stunned Professor Vane. Something else froze him. Think about who else was
-        there that night."
-      why_innocent: "Cassian's artifact stunned Professor Vane but didn't fully bind in stillness him. His own confession confirms Professor Vane was still moving. The dual shimmer proves a second magical event — bound familiar magic — completed the paralytic binding."
+        Cassian also says Professor Vane was still moving when he ran. Someone else
+        was there, following orders to protect the boy. Find that person."
+      why_innocent: "Cassian's artifact stunned Professor Vane. His confession confirms that Professor Vane was still moving. The dual shimmer points to a second magical event, and bound familiar magic completed the paralysis."
 
   # ---------------------------------------------------------------------------
   # POST-VERDICT CONTENT
@@ -1673,9 +1659,9 @@ case:
 
         - speaker: "wisp"
           text: |
-            *Wisp steps forward, trembling. He does not resist. He does not deny.*
+            *Wisp steps forward, trembling. He does not resist.*
 
-            Wisp knew this day would come. Wisp has been waiting.
+            Wisp knew this day would come. He had been waiting.
           tone: "resigned"
 
         - speaker: "graves"
@@ -1690,28 +1676,25 @@ case:
           text: |
             *quietly*
 
-            Yes, sir. Wisp did this. Lord Magnus said protect young master
-            Cassian. The professor was reaching for him. Wisp... Wisp only
-            wanted to hold the professor still for a moment. Just long enough
-            for young master to run.
+            Yes, sir. Wisp did this. Lord Magnus said protect young master Cassian.
+            The professor was reaching for him. Wisp wanted to hold the professor
+            still long enough for young master to run.
 
-            But Wisp's magic and the cold magic... they mixed. And the
-            professor stopped. Completely.
+            Wisp's magic met the cold spell. The professor stopped moving.
 
             *tears running down face*
 
-            The professor was trying to HELP young master Cassian. Wisp knows
-            that now. The professor's last spell was to SAVE him. And Wisp
-            stopped the one person trying to protect his master's son.
+            The professor was trying to protect young master Cassian. Wisp knows that
+            now. He stopped the person who came to save his master's son.
 
-            Wisp is the worst familiar who ever lived.
+            Wisp cannot forgive himself.
           tone: "broken"
 
         - speaker: "graves"
           text: |
             *long pause*
 
-            "And Cassian Thorne? He doesn't even know you were there?"
+            "And Cassian Thorne? He did not know you were there?"
 
         - speaker: "wisp"
           text: |
@@ -1727,85 +1710,68 @@ case:
           text: |
             *Graves turns to you*
 
-            "Here's the question that doesn't have a clean answer,
-            recruit. Wisp is a slave. He was following his master's orders.
-            The magic that enslaves him makes disobedience physically painful.
+            "Wisp is enslaved and was following his master's orders. The binding makes
+            disobedience physically painful. Can the law hold him responsible for
+            obeying?
 
-            Can you hold a slave responsible for obeying?
-
-            Lord Magnus Thorne wrote those orders. Magnus sent the artifact. Magnus
-            set every piece in motion. And Magnus will face no consequences
-            unless someone forces the issue.
-
-            Wisp didn't choose this. But Professor Vane is still frozen in St. Cuthbert's Ward.
+            Lord Magnus Thorne wrote those orders and sent the artifact. His name
+            must be in the report. Professor Vane is still frozen in St. Cuthbert's
+            Ward, and the Occult Bench will have to face both parts of this case.
 
             *magical eye spinning*
 
-            There's no clean answer here. Sometimes justice is a question
-            without a satisfying response. Write it up, recruit. All of it.
-            Let the Occult Bench sort out what we can't."
+            Write everything down, recruit. Let the Bench decide what justice means
+            here."
 
       aftermath: |
-        Wisp was placed under Ministry custody while the Occult Bench debated
-        a question it had never seriously considered: can a bound familiar be held
-        criminally responsible for actions taken under magical compulsion?
+        Wisp was placed under Ministry custody while the Occult Bench considered
+        whether a bound familiar can be held responsible for an act forced by magic.
 
-        The trial became a landmark case. Elena Marsh — the student
-        Wisp had helped frame by his silence — became his most vocal
-        defender, arguing that the real criminals were the institution of
-        bound familiar slavery and Lord Magnus Thorne specifically.
+        The trial became a test of bound familiar law. Elena Marsh, whom Wisp had
+        allowed investigators to suspect, defended him in court. She named the
+        institution that kept familiars enslaved and Lord Magnus Thorne as the people
+        who should answer for the attack.
 
-        Cassian Thorne was expelled for possession and reckless use of a
-        cursed artifact. When he learned that Wisp — not his ritual — had
-        actually froze Professor Vane, he sat in silence for a very long time.
-        Then he said: "Father sent him to protect me. And I let Professor Vane
-        take the blame." It was the first time anyone had seen a Thorne
-        express something like shame.
+        Cassian Thorne was expelled for possessing and recklessly using a cursed
+        artifact. When he learned that Wisp's spell had completed the binding, he
+        sat in silence. Then he said: "Father sent him to protect me. I let Professor
+        Vane take the blame." It was the first time anyone had seen a Thorne show shame.
 
-        Lord Magnus Thorne faced an inquiry for providing a dangerous artifact
-        to a minor AND for ordering a bound familiar to assault a Blackwood Collegiate
-        professor. His political connections reduced consequences, as
-        always. But the parchment was entered into public record.
+        Lord Magnus Thorne faced an inquiry for giving a dangerous artifact to a minor
+        and ordering a bound familiar to assault a Blackwood Collegiate professor.
+        His political connections reduced the penalty. The parchment entered the
+        public record.
 
         Professor Aldric Vane was revived after five days in St. Cuthbert's Ward. His
-        first words: "Is the Thorne boy safe?" When told the full truth,
-        he was quiet for a long time. Then: "The familiar did what any of us
-        would have done for someone we're bound to protect. The crime
-        isn't his. It's the chain."
+        first words were, "Is the Thorne boy safe?" After hearing the full truth, he
+        said, "The familiar did what any of us would have done for someone in our
+        care. The crime belongs to the chain."
 
-        Wisp was eventually freed — not by the Thornes, but by a legal
-        precedent established during his trial. He returned to Blackwood Collegiate
-        kitchens a free familiar. He never stopped punishing himself for what
-        he did to Professor Vane. But now, at least, he could choose.
+        Wisp was freed through a legal precedent established during the trial. He
+        returned to the Blackwood Collegiate kitchens as a free familiar. He kept
+        punishing himself for what he did to Professor Vane, though he could finally
+        choose his own work.
 
     incorrect:
       - suspect_accused: "elena"
         reveal: |
           *Inspector Graves shakes his head*
 
-          GRAVES: "Wrong, recruit. You fell for motive blindness.
+          GRAVES: "Wrong, recruit. You followed motive and ignored the timeline.
 
-          Yes, Elena had reason to want Professor Vane stopped. But the TIMELINE
-          clears her — she was reading in the eastern alcove when the attack
-          happened. The candle burn proves she didn't move.
+          Elena was reading in the eastern alcove during the attack. The candle burn
+          places her there. Professor Vane carries an artifact discharge and bound
+          familiar binding magic, and neither signature matches her focus.
 
-          And look at Professor Vane's condition. TWO magical signatures. An artifact
-          discharge AND bound familiar binding magic. Elena couldn't produce
-          either one.
-
-          The real story: Cassian Thorne performed a dark ritual that stunned
-          Professor Vane. Then Wisp — following Magnus's orders to protect Cassian —
-          used binding magic to finish the job. Two crimes, two perpetrators,
-          and a slave who had no choice."
+          Cassian's ritual stunned Professor Vane. Wisp followed Magnus's order and
+          cast the spell that completed the binding."
 
         teaching_moment: |
-          You prioritized MOTIVE over EVIDENCE. Elena's story looked
-          guilty. But the physical evidence told a different story:
-          TIMELINE — She was in the alcove before and during the attack.
-          MAGIC — Two signatures on Professor Vane, neither matches her spells.
-          POSITION — 40 feet away, around a corner, acoustically separated.
+          You put MOTIVE ahead of EVIDENCE. The timeline places Elena in the alcove
+          before and during the attack. Two signatures mark Professor Vane, and
+          neither matches her spells. She was forty feet away around a corner.
 
-          Lesson: Motive makes someone a suspect. Evidence makes them guilty.
+          Motive creates a suspect. Evidence establishes what happened.
 
         confrontation_anyway: true
 
@@ -1813,36 +1779,23 @@ case:
         reveal: |
           *Inspector Graves's eye spins slowly*
 
-          GRAVES: "Close, recruit. Very close. But incomplete.
+          GRAVES: "Close, recruit. Cassian performed the ritual and his artifact
+          discharged. He is guilty of reckless forbidden craft. His own confession
+          says Professor Vane was still moving when he fled.
 
-          Yes, Cassian performed the ritual. Yes, his artifact discharged.
-          He's guilty of reckless forbidden craft. But he didn't FINISH the job.
-
-          His own confession: Professor Vane was still MOVING when he fled. The
-          Thief's Candle stunned Professor Vane but didn't fully bind in stillness him.
-
-          Look at Professor Vane's skin. TWO magical signatures. The blue-white is
-          the artifact. The yellowish-green is bound familiar binding magic.
-
-          Wisp was there. Magnus ordered him to protect Cassian. When Professor Vane
-          was still reaching for the boy after the discharge, Wisp used
-          binding magic. The two spells layered and caused full paralytic binding.
-
-          You found half the truth. The harder half was hiding in plain sight."
+          Professor Vane carries two signatures. The blue-white frost belongs to the
+          artifact. The yellow-green shimmer belongs to bound familiar binding magic.
+          Wisp followed Magnus's order and completed the paralysis."
 
         teaching_moment: |
-          You fell for ANCHORING BIAS. The evidence against Cassian was so
-          overwhelming that you stopped looking for alternatives — even when
-          his own testimony contradicted his guilt.
+          You fell for ANCHORING BIAS. Cassian's evidence looked complete, so you
+          stopped searching. His confession leaves Professor Vane moving after the
+          discharge.
 
-          Key missed evidence:
-          DUAL SHIMMER — Two magic types, not one.
-          CASSIAN'S CONFESSION — Professor Vane was still moving when he fled.
-          KITCHEN LOG — Wisp absent during the attack window.
-          FROSTBITE — Wisp's hands show both magical signatures.
+          The dual shimmer shows a second spell. The kitchen log places Wisp away
+          from his post. Frostbite connects him to the magical discharge.
 
-          Lesson: When a suspect's own confession doesn't fully explain the
-          evidence, something else happened. Keep looking.
+          When a confession leaves evidence unexplained, keep searching.
 
         confrontation_anyway: true
 
@@ -1864,7 +1817,7 @@ case:
         with the sharp scent of nightshade.
 
         Three people were near the stacks that night. Their stories agree on little.
-        Somewhere between them is what happened to Vane — and why the room was sealed.
+        The evidence must show what happened to Vane and why the room was sealed.
 
     teaching_question:
       prompt: "A student with strong motive is found at a crime scene. What should you investigate FIRST?"
@@ -1875,51 +1828,40 @@ case:
           response: |
             *Inspector Graves frowns*
 
-            "Motive and opportunity make them a SUSPECT, not a CULPRIT.
-            Half the people in any crime have motive. Physical evidence
-            and timeline are what separate the guilty from the unlucky."
+            "Motive and opportunity make someone a suspect. Physical evidence and the
+            timeline tell you whether that person caused the injury."
 
         - id: "choice_b"
           text: "The physical evidence and timeline"
           response: |
             *Inspector Graves nods*
 
-            "Correct. Physical evidence doesn't lie — though it can be
-            misread. Timelines eliminate suspects. A compelling story means
-            nothing if the facts contradict it.
-
-            But remember: evidence can have layers. Don't stop at the first
-            explanation that fits."
+            "Correct. Physical evidence can be misread, so check it against the
+            timeline. A neat story fails when the facts contradict it. Evidence can
+            also have layers. Check what the first explanation leaves out."
 
         - id: "choice_c"
           text: "Whether they're acting suspicious"
           response: |
             *Inspector Graves's eye spins*
 
-            "Behavior is the WORST indicator of guilt. Innocent people
-            act guilty when accused. Guilty people act innocent when
-            confident. I've seen killers cry and victims look cold.
-
-            Facts. Evidence. Timeline. Not behavior. FACTS."
+            "Behavior tells you how frightened someone is. It does not establish who
+            cast the spell. Start with the physical record and the timeline."
 
     rationality_concept: "physical_evidence_primacy"
-    concept_description: "Physical evidence and timeline trump motive and behavior. But evidence can have layers — don't stop at the first explanation."
+    concept_description: "Physical evidence and the timeline outrank motive and behavior. Evidence can have layers, so check what the first explanation leaves out."
 
     transition: |
       *Inspector Graves's magical eye spins, locking onto you*
 
-      Three suspects. Two thefts. More than one spell at work.
+      Three suspects are tied to the case. Two thefts happened before the attack,
+      and more than one spell left a mark.
 
-      A student who had a screaming match with the victim. Another student
-      seen fleeing the scene. A bound familiar who was already stealing from
-      the victim.
+      Elena argued with the victim. Evidence also links Cassian and Wisp to events
+      before the attack.
 
-      Everyone has secrets. Everyone looks guilty of something. Your job
-      is to figure out who's guilty of THIS.
-
-      Examine the crime scene carefully. Question the witnesses. And
-      recruit — look at the EVIDENCE on Professor Vane himself. Look closely.
-      Things aren't always what they seem at first glance.
+      Examine the scene and question the witnesses. Inspect the evidence on Professor
+      Vane himself. The first explanation may leave part of the attack unexplained.
 
       **Trust nothing unseen.**
 
@@ -1929,7 +1871,7 @@ case:
   briefing_context:
     witnesses:
       - name: "Elena Marsh"
-        personality: "Brilliant Scarlet Court, terrified. Had public confrontation with victim hours before attack."
+        personality: "Brilliant Scarlet Court student, terrified after a public confrontation with the victim."
         background: "Was in Sealed Archive researching defense for disciplinary hearing. Present before and during the attack."
         general_knowledge:
           - "Entered Sealed Archive at 9:47 PM, eastern alcove"
@@ -1938,7 +1880,7 @@ case:
           - "Professor Vane confronted her that afternoon about unauthorized teaching"
 
       - name: "Cassian Thorne"
-        personality: "Arrogant exterior, terrified underneath. Son of Lord Magnus Thorne."
+        personality: "Arrogant on the surface, terrified underneath. Son of Lord Magnus Thorne."
         background: "Father sent him a cursed artifact. Evidence suggests he was in the Sealed Archive that night."
         general_knowledge:
           - "Claims he was in common room all night"
@@ -1947,7 +1889,7 @@ case:
           - "Returns to common room looking terrified"
 
       - name: "Professor Whitmore"
-        personality: "Stern, fair, troubled by complexity of this case."
+        personality: "Fair and strict, troubled by the choices that led to the attack."
         background: "On patrol. Saw a student returning. Knows about ingredient thefts."
         general_knowledge:
           - "Witnessed Professor Vane-Elena confrontation"
@@ -1956,13 +1898,13 @@ case:
           - "Was planning to mediate between Professor Vane and Elena"
 
       - name: "Wisp"
-        personality: "Speaks in third person. Wringing hands. Serves the Thorne family."
+        personality: "Speaks in third person and keeps wringing his hands. Serves the Thorne family."
         background: "Bound familiar in Blackwood Collegiate kitchens. Stole nightshade days ago for a sick friend. Seems unusually distressed."
         general_knowledge:
           - "Confesses to first ingredient theft (healing potion)"
           - "Claims he was in the kitchens all night"
           - "Wears unusual bandages on his hands"
-          - "Extremely anxious — more than the situation seems to warrant"
+          - "Extremely anxious, more than the situation seems to warrant"
 
     suspects:
       - "Elena Marsh (motive: expulsion threat, present at scene)"
@@ -1971,12 +1913,10 @@ case:
 
     location:
       name: "Blackwood Collegiate Library - Sealed Archive"
-      description: "Crime scene with ritual materials, unusual frost patterns, and evidence of etheric discharge. The victim shows an odd dual-tone shimmer on his skin."
+      description: "Crime scene with ritual materials and unusual frost. The victim shows two magical signatures on his skin."
 
     case_overview: |
-      Professor Vane was found frozen in the Sealed Archive around 10:00 PM. Evidence of ritual
-      materials (candles, nightshade) and etheric discharge (frost patterns).
-      Elena was in the Sealed Archive before the attack. Cassian seen
-      leaving with a wrapped object. Wisp stole ingredients days earlier.
-      Two separate ingredient thefts from different perpetrators.
-      The victim shows two distinct magical signatures — unusual for a single attack.
+      Professor Vane was found frozen in the Sealed Archive around 10:00 PM. Candles
+      and nightshade mark the scene, along with a frost pattern. Elena was in the archive before the attack.
+      Cassian left the common room with a wrapped object. Wisp stole ingredients days
+      earlier. Two separate thefts and two magical signatures point to separate events.

@@ -1,13 +1,20 @@
 /**
  * Detect and strip spirit-companion chat prefixes from player input.
- * Accepts "Matthew,", "Voice,", and "Inner voice," prefixes.
+ * Accepts Russian and English companion names plus generic voice prefixes.
  */
 
-const MATTHEW_PREFIX =
-  /^(?:matthew|inner\s+voice|voice)\s*[,:]?\s+/i;
+const MATTHEW_NAME =
+  "(?:matthew|матвей|матвея|матвею|матвеем|матвее|matvey|matvei|inner\\s+voice|voice)";
 
-const MATTHEW_INTENT =
-  /^(?:hey\s+)?(?:ask|tell|talk\s+to)\s+(?:matthew|inner\s+voice|voice)\b/i;
+const MATTHEW_PREFIX = new RegExp(
+  `^${MATTHEW_NAME}\\s*[,:]?\\s+`,
+  "iu",
+);
+
+const MATTHEW_INTENT = new RegExp(
+  `^(?:(?:hey\\s+)?(?:ask|tell|talk\\s+to)|спроси|скажи|поговори\\s+с)\\s+${MATTHEW_NAME}(?=\\s|[,:!?]|$)`,
+  "iu",
+);
 
 /** True when the player is addressing Matthew (spirit companion). */
 export function isMatthewMessage(input: string): boolean {
@@ -24,7 +31,10 @@ export function stripMatthewPrefix(input: string): string {
   if (MATTHEW_INTENT.test(trimmed)) {
     return trimmed
       .replace(
-        /^(?:hey\s+)?(?:ask|tell|talk\s+to)\s+(?:matthew|inner\s+voice|voice)\s*[,:]?\s*/i,
+        new RegExp(
+          `^(?:(?:hey\\s+)?(?:ask|tell|talk\\s+to)|спроси|скажи|поговори\\s+с)\\s+${MATTHEW_NAME}\\s*[,:]?\\s*`,
+          "iu",
+        ),
         "",
       )
       .trim();
@@ -34,3 +44,4 @@ export function stripMatthewPrefix(input: string): string {
 
 /** Default prompt inserted by quick-action buttons. */
 export const MATTHEW_QUICK_PROMPT = "Matthew, what do you think?";
+export const MATVEY_QUICK_PROMPT = "Матвей, что думаешь?";
