@@ -349,6 +349,24 @@ describe("phase3 routing", () => {
     expect(repos.getSession(8)?.onboarding_step).toBe("need_begin");
   });
 
+  it("reset re-applies gateway language to engine", async () => {
+    repos.ensureUser(88, 88);
+    repos.setLanguage(88, "ru");
+    repos.setOnboardingStep(88, "active");
+    repos.setPlayerCredentials(88, "p88", "t88");
+
+    handleTelegramUpdate(
+      repos,
+      makeCallback(720, 88, "reset:yes"),
+      { featureNewSessions: true },
+    );
+    await processQueue(workerDeps);
+    expect(engineCalls).toContain("reset");
+    expect(engineCalls).toContain("settings:ru");
+    expect(repos.getSession(88)?.onboarding_step).toBe("need_begin");
+    expect(repos.getUser(88)?.language).toBe("ru");
+  });
+
   it("daily cap blocks 41st LLM turn", async () => {
     repos.ensureUser(9, 9);
     repos.setOnboardingStep(9, "active");

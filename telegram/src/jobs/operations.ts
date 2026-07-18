@@ -88,7 +88,7 @@ export async function executeJob(
     case "casebook":
       return handleCasebook(ctx, userId, lang);
     case "reset_case":
-      return handleReset(ctx, userId, lang);
+      return handleReset(ctx, job, userId, lang);
     case "submit_verdict": {
       const reply = await handleVerdict(ctx, job, userId, lang, payload);
       funnel("first_verdict", {

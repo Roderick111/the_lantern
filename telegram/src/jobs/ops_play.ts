@@ -76,7 +76,11 @@ export async function handleOnboard(
     try {
       await ctx.engine.ensureSession(userId);
       const snap = await ctx.engine.snapshot(userId, FREE_CASE_ID);
-      if (snap.case_title && snap.case_description) {
+      if (
+        snap.case_title &&
+        snap.case_description &&
+        (snap.language ?? "en") === lang
+      ) {
         cover = { title: snap.case_title, body: snap.case_description };
       }
     } catch {
@@ -129,7 +133,11 @@ export async function handleSettings(
   let cover = newLang === "ru" ? CASE_COVER.ru : CASE_COVER.en;
   try {
     const snap = await ctx.engine.snapshot(userId, FREE_CASE_ID);
-    if (snap.case_title && snap.case_description) {
+    if (
+      snap.case_title &&
+      snap.case_description &&
+      (snap.language ?? "en") === newLang
+    ) {
       cover = { title: snap.case_title, body: snap.case_description };
     }
   } catch {
@@ -151,6 +159,17 @@ export async function handleBegin(
 ): Promise<StoredReply> {
   await ctx.engine.ensureSession(userId);
   ctx.repos.markEngineDispatched(job.id);
+  // Belt-and-suspenders: save language can drift (reset wipe, web client, etc.)
+  try {
+    await ctx.engine.updateSettings(userId, {
+      case_id: FREE_CASE_ID,
+      language: lang,
+      slot: "autosave",
+      request_id: `${job.request_id}:lang-sync`,
+    });
+  } catch {
+    /* continue; catalog fallback below */
+  }
   try {
     await ctx.engine.completeBriefing(userId, FREE_CASE_ID, {
       request_id: job.request_id,
@@ -175,10 +194,12 @@ export async function handleBegin(
   } catch {
     /* default library */
   }
+  // Prefer engine prose only when save language matches gateway language.
+  // Otherwise use gateway catalog (never show EN case YAML as RU player copy).
   let copy = locationCopy(locationId, lang);
   try {
     const location = snap?.current_location_view;
-    if (location?.id === locationId) {
+    if (location?.id === locationId && (snap?.language ?? "en") === lang) {
       copy = { name: location.name, description: location.description };
     }
   } catch {
@@ -476,12 +497,22 @@ export async function handleCasebook(
 
 export async function handleReset(
   ctx: OpContext,
+  job: JobRow,
   userId: number,
   lang: Language,
 ): Promise<StoredReply> {
   try {
     await ctx.engine.ensureSession(userId);
     await ctx.engine.resetCase(userId, FREE_CASE_ID);
+    // Reset deletes the save, including language (engine defaults to en).
+    // Gateway still has users.language — re-apply so cover/location prose match UI.
+    ctx.repos.markEngineDispatched(job.id);
+    await ctx.engine.updateSettings(userId, {
+      case_id: FREE_CASE_ID,
+      language: lang,
+      slot: "autosave",
+      request_id: `${job.request_id}:lang`,
+    });
   } catch {
     /* no save is ok */
   }
