@@ -52,12 +52,22 @@ describe("phase5 retention", () => {
   });
 });
 
-describe("phase5 health + flags", () => {
+describe("phase5 health + metrics", () => {
   let app: ReturnType<typeof createApp>;
+  let healthCalls: number;
 
   beforeEach(() => {
+    healthCalls = 0;
     const repos = new Repositories(resetDbForTests());
-    const engine = mockEngine();
+    const engine = {
+      async ensureSession() {
+        return "tok";
+      },
+      async health() {
+        healthCalls += 1;
+        return true;
+      },
+    } as unknown as EngineClient;
     const workerDeps: WorkerDeps = {
       repos,
       engine,
@@ -69,6 +79,7 @@ describe("phase5 health + flags", () => {
       config: testConfig({
         FEATURE_LLM_TURNS: false,
         FEATURE_MINIAPP_MUTATIONS: false,
+        METRICS_TOKEN: "metrics-secret-token",
       }),
       repos,
       engine,
@@ -76,20 +87,71 @@ describe("phase5 health + flags", () => {
     });
   });
 
-  it("health exposes flags and worker metrics", async () => {
+  it("health is slim liveness only", async () => {
+    const { resetEngineHealthCache } = await import(
+      "../src/server/engine_health_cache"
+    );
+    resetEngineHealthCache();
+    healthCalls = 0;
+
     const res = await app.request("/health");
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
-      status: string;
-      flags: { llm_turns: boolean; miniapp_mutations: boolean };
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.status).toBe("ok");
+    expect(body.db).toBe("ok");
+    expect(body.engine).toBe("ok");
+    expect(body.funnel).toBeUndefined();
+    expect(body.worker).toBeUndefined();
+    expect(body.flags).toBeUndefined();
+  });
+
+  it("caches engine health within TTL", async () => {
+    const { resetEngineHealthCache } = await import(
+      "../src/server/engine_health_cache"
+    );
+    resetEngineHealthCache();
+    healthCalls = 0;
+
+    await app.request("/health");
+    await app.request("/health");
+    expect(healthCalls).toBe(1);
+  });
+
+  it("metrics requires token when configured", async () => {
+    const denied = await app.request("/metrics");
+    expect(denied.status).toBe(401);
+
+    const ok = await app.request("/metrics", {
+      headers: { "X-Metrics-Token": "metrics-secret-token" },
+    });
+    expect(ok.status).toBe(200);
+    const body = (await ok.json()) as {
+      flags: { llm_turns: boolean };
       worker: { pending_jobs: number };
       funnel: Record<string, number>;
     };
-    expect(body.status).toBe("ok");
     expect(body.flags.llm_turns).toBe(false);
-    expect(body.flags.miniapp_mutations).toBe(false);
     expect(typeof body.worker.pending_jobs).toBe("number");
     expect(body.funnel).toBeDefined();
+  });
+
+  it("metrics 404 when token unset", async () => {
+    const repos = new Repositories(resetDbForTests());
+    const engine = mockEngine();
+    const bare = createApp({
+      config: testConfig({ METRICS_TOKEN: undefined }),
+      repos,
+      engine,
+      workerDeps: {
+        repos,
+        engine,
+        delivery: { async sendMessage() {} },
+        featureNewSessions: true,
+        featureLlmTurns: true,
+      },
+    });
+    const res = await bare.request("/metrics");
+    expect(res.status).toBe(404);
   });
 });
 

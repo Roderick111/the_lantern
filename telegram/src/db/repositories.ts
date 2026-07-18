@@ -73,7 +73,16 @@ export class Repositories {
       return { created: true, jobId: Number(result.lastInsertRowid) };
     });
 
-    return tx();
+    // MED-03: concurrent duplicates can still hit UNIQUE; treat as not-created
+    try {
+      return tx();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/UNIQUE|constraint/i.test(msg)) {
+        return { created: false, jobId: null };
+      }
+      throw e;
+    }
   }
 
   /** True if user has pending/running/delivery/manual work ahead of this job. */
@@ -99,7 +108,9 @@ export class Repositories {
       .query("SELECT * FROM users WHERE telegram_user_id = ?")
       .get(telegramUserId) as TelegramUserRow | null;
 
+    // MED-06: skip no-op UPDATE when chat_id unchanged
     if (row) {
+      if (row.chat_id === chatId) return row;
       this.db.run(
         "UPDATE users SET chat_id = ?, updated_at = ? WHERE telegram_user_id = ?",
         [chatId, ts, telegramUserId],

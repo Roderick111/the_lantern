@@ -1,5 +1,5 @@
 import { loadConfig } from "./config";
-import { getDb } from "../db/connection";
+import { closeDb, getDb } from "../db/connection";
 import { Repositories } from "../db/repositories";
 import { EngineClient, repoTokenStore } from "../engine/client";
 import { createApp } from "./app";
@@ -8,6 +8,20 @@ import { createBot, createGrammyDelivery } from "../bot/handlers";
 import { log } from "./logger";
 import { Bot } from "grammy";
 import { resolve } from "node:path";
+
+/** MED-12: close SQLite on process exit */
+function registerShutdown(): void {
+  const shutdown = () => {
+    try {
+      closeDb();
+    } catch {
+      /* ignore */
+    }
+    process.exit(0);
+  };
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
+}
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -77,6 +91,8 @@ async function main(): Promise<void> {
       }
     })();
   };
+
+  registerShutdown();
 
   if (config.TELEGRAM_MODE === "polling") {
     log({ msg: "start_polling", status: "ok" });

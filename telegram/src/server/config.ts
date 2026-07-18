@@ -28,6 +28,14 @@ const ConfigSchema = z.object({
   ASSETS_PATH: z.string().default("../frontend/public"),
   /** Retention for terminal jobs/updates (days). */
   RETENTION_DAYS: z.coerce.number().int().positive().default(7),
+  /** Optional token for GET /metrics (empty/absent = endpoint disabled). */
+  METRICS_TOKEN: z
+    .preprocess(
+      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+      z.string().min(8).optional(),
+    ),
+  /** Allow localhost Origin for Mini App when developing locally. */
+  TELEGRAM_ALLOW_LOCAL_ORIGIN: boolFromEnv.default(false),
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;
@@ -48,6 +56,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     ENGINE_TIMEOUT_MS: env.ENGINE_TIMEOUT_MS,
     ASSETS_PATH: env.ASSETS_PATH,
     RETENTION_DAYS: env.RETENTION_DAYS,
+    METRICS_TOKEN: env.METRICS_TOKEN,
+    TELEGRAM_ALLOW_LOCAL_ORIGIN: env.TELEGRAM_ALLOW_LOCAL_ORIGIN,
   });
   if (!parsed.success) {
     const msg = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
@@ -73,6 +83,8 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     ENGINE_TIMEOUT_MS: 5_000,
     ASSETS_PATH: "../frontend/public",
     RETENTION_DAYS: 7,
+    METRICS_TOKEN: undefined,
+    TELEGRAM_ALLOW_LOCAL_ORIGIN: false,
     ...overrides,
   };
 }

@@ -1,9 +1,15 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { SCHEMA_SQL, migrateSchema } from "./schema";
 
 let _db: Database | null = null;
 
 export function openDb(path: string): Database {
+  // MED-14: parent dir must exist before Bun creates the DB file
+  if (path !== ":memory:") {
+    mkdirSync(dirname(path), { recursive: true });
+  }
   const db = new Database(path, { create: true });
   db.exec("PRAGMA journal_mode=WAL");
   db.exec("PRAGMA busy_timeout=5000");

@@ -127,7 +127,14 @@ export function createMiniAppRouter(deps: MiniAppDeps): Hono {
   }): Response | null {
     const origin = c.req.header("origin");
     const host = c.req.header("host");
-    if (!checkOrigin(origin, host, deps.config.TELEGRAM_PUBLIC_URL)) {
+    if (
+      !checkOrigin(
+        origin,
+        host,
+        deps.config.TELEGRAM_PUBLIC_URL,
+        deps.config.TELEGRAM_ALLOW_LOCAL_ORIGIN,
+      )
+    ) {
       return err(c, "bad_origin", 403);
     }
     const csrf = c.req.header(CSRF_HEADER);

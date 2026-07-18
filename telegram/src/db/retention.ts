@@ -16,7 +16,7 @@ export function oldestPendingAgeSec(db: Database): number | null {
 
 /**
  * Opportunistic retention: terminal jobs + orphan updates older than days.
- * Bounded delete (limit).
+ * Bounded delete (limit). MED-08: bulk DELETE instead of per-row loops.
  */
 export function purgeOldJobs(
   db: Database,
@@ -35,10 +35,13 @@ export function purgeOldJobs(
       .all(cutoff, limit) as { id: number; update_id: number }[];
 
     let jobs = 0;
-    for (const row of jobRows) {
-      db.run("DELETE FROM jobs WHERE id = ?", [row.id]);
-      db.run("DELETE FROM updates WHERE update_id = ?", [row.update_id]);
-      jobs += 1;
+    if (jobRows.length > 0) {
+      const ids = jobRows.map((r) => r.id);
+      const updateIds = jobRows.map((r) => r.update_id);
+      const ph = ids.map(() => "?").join(",");
+      db.run(`DELETE FROM jobs WHERE id IN (${ph})`, ids);
+      db.run(`DELETE FROM updates WHERE update_id IN (${ph})`, updateIds);
+      jobs = jobRows.length;
     }
 
     const orphan = db
@@ -50,9 +53,11 @@ export function purgeOldJobs(
       )
       .all(cutoff, limit) as { update_id: number }[];
     let updates = 0;
-    for (const u of orphan) {
-      db.run("DELETE FROM updates WHERE update_id = ?", [u.update_id]);
-      updates += 1;
+    if (orphan.length > 0) {
+      const oids = orphan.map((u) => u.update_id);
+      const ph = oids.map(() => "?").join(",");
+      db.run(`DELETE FROM updates WHERE update_id IN (${ph})`, oids);
+      updates = orphan.length;
     }
     return { jobs, updates };
   })();

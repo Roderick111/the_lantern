@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import type { Repositories } from "../db/repositories";
 import type { Language } from "../domain/types";
 import { log } from "../server/logger";
@@ -82,15 +83,15 @@ export function handleTelegramUpdate(
   };
 }
 
+function sha256(s: string): Buffer {
+  return createHash("sha256").update(s, "utf8").digest();
+}
+
+/** Constant-time secret compare (LOW-02). Length never early-exits via digest. */
 export function verifyWebhookSecret(
   headerValue: string | undefined,
   expected: string,
 ): boolean {
   if (!headerValue || !expected) return false;
-  if (headerValue.length !== expected.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < expected.length; i++) {
-    mismatch |= headerValue.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  return mismatch === 0;
+  return timingSafeEqual(sha256(headerValue), sha256(expected));
 }

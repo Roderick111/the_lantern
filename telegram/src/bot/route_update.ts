@@ -77,9 +77,15 @@ function extractMessage(
   const requestId = `tg-${updateId}`;
   const session = repos.getSession(from.id);
   const onboarding = session?.onboarding_step ?? "need_language";
-  const pending = session?.pending_json
-    ? (JSON.parse(session.pending_json) as { kind?: string })
-    : null;
+  // MED-10: corrupt pending_json must not crash webhook
+  let pending: { kind?: string } | null = null;
+  if (session?.pending_json) {
+    try {
+      pending = JSON.parse(session.pending_json) as { kind?: string };
+    } catch {
+      pending = null;
+    }
+  }
 
   if (hasUnsupportedMedia && !text) {
     return {

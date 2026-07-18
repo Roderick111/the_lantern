@@ -37,6 +37,10 @@ describe("webhook secret", () => {
     );
   });
 
+  it("rejects different length without throw", () => {
+    expect(verifyWebhookSecret("short", "secret-value-here")).toBe(false);
+  });
+
   it("accepts matching secret", () => {
     expect(verifyWebhookSecret("secret-value-here", "secret-value-here")).toBe(
       true,
@@ -124,6 +128,18 @@ describe("webhook route", () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(repos.hasUpdate(3)).toBe(true);
   });
+
+  it("rejects oversized body", async () => {
+    const res = await app.request("/telegram/webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Telegram-Bot-Api-Secret-Token": testConfig().TELEGRAM_WEBHOOK_SECRET,
+      },
+      body: "x".repeat(120 * 1024),
+    });
+    expect(res.status).toBe(413);
+  });
 });
 
 describe("update dedupe and jobs", () => {
@@ -142,6 +158,22 @@ describe("update dedupe and jobs", () => {
     expect(b.duplicate).toBe(true);
     expect(b.jobId).toBeNull();
     expect(repos.countJobsByState("pending")).toBe(1);
+  });
+
+  it("corrupt pending_json does not crash enqueue", () => {
+    repos.ensureUser(77, 77);
+    // Force bad JSON into session
+    const db = (repos as unknown as {
+      db: { run: (sql: string, params?: unknown[]) => void };
+    }).db;
+    db.run(
+      `UPDATE sessions SET pending_json = 'not-json{{{' WHERE telegram_user_id = 77`,
+    );
+    const r = handleTelegramUpdate(repos, makeUpdate(101, 77, "hello"), {
+      featureNewSessions: true,
+    });
+    expect(r.accepted).toBe(true);
+    expect(r.jobId).not.toBeNull();
   });
 });
 

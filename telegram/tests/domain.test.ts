@@ -21,6 +21,18 @@ describe("entitlements", () => {
   });
 });
 
+describe("ensureUser", () => {
+  it("skips write when chat_id unchanged", () => {
+    const repos = new Repositories(resetDbForTests());
+    const a = repos.ensureUser(9, 100);
+    const b = repos.ensureUser(9, 100);
+    expect(b.updated_at).toBe(a.updated_at);
+    const c = repos.ensureUser(9, 200);
+    expect(c.chat_id).toBe(200);
+    expect(c.updated_at >= a.updated_at).toBe(true);
+  });
+});
+
 describe("usage", () => {
   it("increments llm turns atomically", () => {
     const repos = new Repositories(resetDbForTests());

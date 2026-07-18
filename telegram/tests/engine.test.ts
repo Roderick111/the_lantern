@@ -78,6 +78,40 @@ describe("EngineClient", () => {
     expect(tokens.getToken(1)).toBe("tok-1");
   });
 
+  it("dedupes parallel ensureSession create calls", async () => {
+    let sessionPosts = 0;
+    let resolveSession: (() => void) | null = null;
+    const gate = new Promise<void>((r) => {
+      resolveSession = r;
+    });
+
+    const fetchImpl = async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.endsWith("/api/session")) {
+        sessionPosts += 1;
+        await gate;
+        return new Response(
+          JSON.stringify({ player_id: "p1", token: "shared-tok" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response("missing", { status: 404 });
+    };
+
+    const client = new EngineClient(
+      { baseUrl: "http://engine", timeoutMs: 5000, fetchImpl },
+      tokens,
+    );
+
+    const a = client.ensureSession(42);
+    const b = client.ensureSession(42);
+    resolveSession!();
+    const [ta, tb] = await Promise.all([a, b]);
+    expect(ta).toBe("shared-tok");
+    expect(tb).toBe("shared-tok");
+    expect(sessionPosts).toBe(1);
+  });
+
   it("maps 409 to conflict", async () => {
     const fetchImpl = async () =>
       new Response(JSON.stringify({ detail: { code: "request_in_progress" } }), {

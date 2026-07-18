@@ -138,6 +138,17 @@ describe("origin check", () => {
       false,
     );
   });
+  it("rejects localhost unless allowLocal", () => {
+    expect(checkOrigin("http://localhost:5173", "localhost:5173", publicUrl)).toBe(
+      false,
+    );
+    expect(
+      checkOrigin("http://localhost:5173", "localhost:5173", publicUrl, true),
+    ).toBe(true);
+    expect(
+      checkOrigin("http://127.0.0.1:5173", "127.0.0.1:5173", publicUrl, true),
+    ).toBe(true);
+  });
 });
 
 describe("miniapp HTTP", () => {

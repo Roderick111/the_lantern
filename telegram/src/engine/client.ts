@@ -64,7 +64,8 @@ export interface TokenStore {
 
 export class EngineClient {
   private readonly fetchFn: FetchLike;
-  private refreshAttempted = new Set<number>();
+  /** MED-04/05: dedupe concurrent createSession / refresh per user */
+  private sessionInflight = new Map<number, Promise<string>>();
 
   constructor(
     private readonly opts: EngineClientOptions,
@@ -84,11 +85,24 @@ export class EngineClient {
     return data;
   }
 
+  /** Force a new engine session; concurrent callers share one request. */
+  private recreateSession(telegramUserId: number): Promise<string> {
+    let p = this.sessionInflight.get(telegramUserId);
+    if (!p) {
+      p = this.createSession(telegramUserId)
+        .then((s) => s.token)
+        .finally(() => {
+          this.sessionInflight.delete(telegramUserId);
+        });
+      this.sessionInflight.set(telegramUserId, p);
+    }
+    return p;
+  }
+
   async ensureSession(telegramUserId: number): Promise<string> {
     const existing = this.tokens.getToken(telegramUserId);
     if (existing) return existing;
-    const session = await this.createSession(telegramUserId);
-    return session.token;
+    return this.recreateSession(telegramUserId);
   }
 
   async investigate(
@@ -255,28 +269,21 @@ export class EngineClient {
     schema: { parse: (v: unknown) => T },
     init: { body?: unknown } = {},
   ): Promise<T> {
-    await this.ensureSession(telegramUserId);
+    // MED-07: use token returned from ensureSession (no second getToken)
+    const token = await this.ensureSession(telegramUserId);
     try {
       return await this.requestJson(method, path, schema, {
         ...init,
-        token: this.tokens.getToken(telegramUserId) ?? undefined,
+        token,
       });
     } catch (err) {
-      if (
-        err instanceof EngineError &&
-        err.code === "unauthorized" &&
-        !this.refreshAttempted.has(telegramUserId)
-      ) {
-        this.refreshAttempted.add(telegramUserId);
-        await this.createSession(telegramUserId);
-        try {
-          return await this.requestJson(method, path, schema, {
-            ...init,
-            token: this.tokens.getToken(telegramUserId) ?? undefined,
-          });
-        } finally {
-          this.refreshAttempted.delete(telegramUserId);
-        }
+      if (err instanceof EngineError && err.code === "unauthorized") {
+        // MED-05: concurrent 401s share one recreateSession
+        const fresh = await this.recreateSession(telegramUserId);
+        return await this.requestJson(method, path, schema, {
+          ...init,
+          token: fresh,
+        });
       }
       throw err;
     }

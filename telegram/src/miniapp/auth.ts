@@ -111,7 +111,18 @@ export function checkOrigin(
   origin: string | undefined,
   host: string | undefined,
   publicUrl: string,
+  allowLocal = false,
 ): boolean {
+  // LOW-03: optional localhost Origin for local Mini App dev
+  if (allowLocal && origin) {
+    try {
+      const h = new URL(origin).hostname;
+      if (h === "localhost" || h === "127.0.0.1") return true;
+    } catch {
+      /* fall through */
+    }
+  }
+
   let expectedHost: string;
   try {
     expectedHost = new URL(publicUrl).host;
