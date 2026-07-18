@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import type { Language } from "../../src/domain/types";
 import { tm } from "../../src/i18n/miniapp_ui";
 import { ensureSession, isApiError, readyMiniApp } from "./api";
@@ -11,6 +11,8 @@ import {
 } from "./pages";
 import { ErrorState, Loading } from "./ui";
 
+const DEEP_ROUTES = new Set(["casebook", "evidence", "witnesses", "verdict"]);
+
 export function App() {
   const [lang, setLang] = useState<Language>("en");
   const [ready, setReady] = useState(false);
@@ -19,11 +21,16 @@ export function App() {
 
   useEffect(() => {
     readyMiniApp();
-    // startapp deep link: tgWebAppStartParam or hash already set by button URL
+    // Deep link: startapp / tgWebAppStartParam. Menu Button often opens /app/ with no hash.
     const params = new URLSearchParams(window.location.search);
     const start = params.get("tgWebAppStartParam") ?? params.get("startapp");
-    if (start && ["casebook", "evidence", "witnesses", "verdict"].includes(start)) {
+    if (start && DEEP_ROUTES.has(start)) {
       navigate(`/${start}`, { replace: true });
+    } else {
+      const hashPath = (window.location.hash.replace(/^#/, "") || "/").split("?")[0];
+      if (hashPath === "/" || hashPath === "") {
+        navigate("/casebook", { replace: true });
+      }
     }
 
     let cancelled = false;
@@ -86,7 +93,7 @@ export function App() {
   return (
     <div className="page">
       <Routes>
-        <Route path="/" element={<CasebookPage lang={lang} />} />
+        <Route path="/" element={<Navigate to="/casebook" replace />} />
         <Route path="/casebook" element={<CasebookPage lang={lang} />} />
         <Route path="/evidence" element={<EvidencePage lang={lang} />} />
         <Route path="/witnesses" element={<WitnessesPage lang={lang} />} />
