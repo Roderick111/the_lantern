@@ -219,13 +219,36 @@ Rules:
 - Store engine response **before** Telegram send.
 - Delivery failure: retry send, never re-run LLM.
 - Dedupe Telegram `update_id` with 2xx.
+- On enqueue: UNIQUE / already-seen update → treat as **duplicate success** (2xx). Never 500 on constraint — Telegram will retry forever.
+
+### 6.2.1 Worker concurrency (critical — learned the hard way)
+
+These failures look intermittent in staging and catastrophic in production.
+
+| Rule | Why |
+|------|-----|
+| **Single worker entry** | Only one function (e.g. `kickWorker`) may start the queue loop. Webhook + Mini App must call that, **never** also `queueMicrotask(processQueue)`. Double start while a job is mid-await → **duplicate Telegram deliveries**. |
+| **Drain / re-kick flag** | Work enqueued while the worker is running must re-arm a kick after the current run finishes (or use a drain loop). Otherwise jobs sit forever. |
+| **Isolate per-user failures** | Wrap each user’s step in try/catch. One SQLite/engine throw must not abort the loop for all other users. |
+| **Serial per user, parallel across users** | Global single-threaded FIFO is a free DoS: one slow engine call blocks everyone. Cap cross-user concurrency (e.g. small pool). |
+| **`needs_manual_retry` participates in FIFO** | Either requeue that job to `pending` when the player hits Retry **before** claiming the next job, or treat manual-retry as blocking “work ahead”. Otherwise later messages jump the failed job. |
+| **Retry is real requeue** | Inline “Retry” must requeue the failed job (or equivalent). Cosmetic hint-only buttons leave the player stuck and drop state. |
+
+### 6.2.2 Session and token races
+
+- First-time `createSession` / token refresh: **dedupe in-flight promises per Telegram user**. Parallel messages otherwise mint multiple engine identities.
+- On 401: concurrent refreshers await the same recreate; do not fail siblings because a “refresh already attempted” flag is set.
+- Prefer returning the token from `ensureSession` rather than a second store lookup on the hot path.
 
 ### 6.3 Webhook
 
 - Production: HTTPS webhook + `secret_token` header check **before** trusting body for side effects.
+- Verify secret with **constant-time** compare (e.g. hash both sides then `timingSafeEqual`). Early length exit leaks length.
+- Cap request body size (e.g. ~100 KiB). Unbounded JSON is an OOM DoS.
 - Local: long polling; never both at once.
 - Ack quickly; process async.
 - Allowed updates v1: `message`, `callback_query`, `my_chat_member` (add payments only when you ship payments).
+- Parse stored pending UI JSON safely — corrupt rows must not crash the webhook path.
 
 ### 6.4 Logging
 
@@ -233,9 +256,24 @@ Structured logs with update_id, request_id, operation, duration, status.
 
 **Never log:** player prose, bot token, player token, LLM keys, raw Mini App `initData`.
 
-### 6.5 Health
+Register a **global HTTP error handler** that writes the same structured log format. Pass through intentional HTTP statuses (413 body limit, 401, etc.); do not turn them all into 500.
 
-`/health`: gateway DB ok, engine reachability, queue depth, oldest pending age, feature flags. No PII.
+**Funnel / metrics:** bump on **stable event codes** (`first_clue`, `daily_cap`), never on localized player-facing strings. Locales will break dashboards.
+
+### 6.5 Health vs metrics
+
+Split public liveness from ops detail.
+
+| Endpoint | Who | Body | Status |
+|----------|-----|------|--------|
+| **`/health`** | Docker / load balancer / anyone | `status`, `db`, `engine` only | **200** only when DB **and** engine ok; else **503** so orchestrators restart/re-route |
+| **`/metrics`** (or similar) | Operators only | Queue depths, oldest pending age, feature flags, funnel counters | Behind optional shared secret; **disabled** if secret unset |
+
+Rules:
+
+- **No heavy work on `/health`**: no retention purge, no unbounded scans. Run purge on a timer or separate job.
+- **Cache engine health probes** (e.g. 15s). Unauthenticated `/health` that hits the engine every request is a free internal DoS amplifier.
+- Never put player identities or prose in either body.
 
 ### 6.6 Telegram transport limits and retry policy
 
@@ -248,6 +286,8 @@ Treat Telegram as an at-least-once, rate-limited transport.
 - Bound callback answer text and answer every callback promptly, even when the actual operation is queued.
 - Treat expired, duplicated, or unknown callback payloads as harmless user-facing notices.
 - Log Telegram method, status, retry delay, and request ID without logging message text or tokens.
+- **Delivery retries must not re-send side effects already delivered.** Track notices and media with receipts (or equivalent). A retry of the main text must not flood the chat with the same evidence notice and location photo again.
+- Avoid synchronous disk checks on every send when you can cache existence or resolve paths once at boot.
 
 Do not hard-code undocumented flood limits as product guarantees. Keep limits configurable and verify them against the current [Bot API](https://core.telegram.org/bots/api) and [Bot FAQ](https://core.telegram.org/bots/faq).
 
@@ -328,18 +368,24 @@ Prefer WebP/PNG unless you have proven AVIF reliability on Telegram clients.
 ### 7.8 Daily LLM cap
 
 - Count only LLM-bearing ops (investigate, talk, present, verdict evaluation, …).
-- Check before dispatch; increment on success.
+- **Reserve the turn atomically at job start** (single DB transaction), not check-then-await-then-increment. Otherwise parallel Mini App + chat bypass the daily cap.
+- Refund only when the engine was never successfully invoked (policy you define and test).
 - At cap: localized message with UTC reset; navigation/dossier still work.
 
 ### 7.9 Failure behavior (player-facing)
 
 | Situation | Behavior |
 |-----------|----------|
-| 401 engine | Refresh player token once |
+| 401 engine | Shared refresh per user; retry once with new token |
 | 409 in progress | Wait briefly, same request_id, snapshot; never new ID |
 | Timeout after dispatch | Unknown progress; no auto re-run |
-| Delivery fail after engine success | Keep stored response; retry delivery |
+| Delivery fail after engine success | Keep stored response; retry delivery only (no re-notice/re-media) |
 | Concurrent messages | Queue; **one** “Queued” ack, not spam |
+| Manual retry after failure | Requeue failed job; preserve FIFO |
+
+### 7.10 Engine client schema tolerance
+
+Gateway Zod (or equivalent) schemas for **engine responses** should strip unknown fields, not use full `.strict()` on the whole tree. The engine will add fields; a strict bot should not brick production on a harmless additive deploy. Still validate required fields the gateway actually uses.
 
 ---
 
@@ -353,8 +399,20 @@ Prefer WebP/PNG unless you have proven AVIF reliability on Telegram clients.
 4. Issue short-lived **HttpOnly, Secure, SameSite** session cookie + CSRF for mutations.
 5. Check Origin/Host against public bot URL.
 6. Mini App must never receive bot token, engine player token, LLM keys, or solution data.
+7. Localhost origins only behind an explicit **dev flag** (default off in production).
 
-### 8.2 Typical routes
+### 8.2 Mini App mutations share the chat queue
+
+Do **not** call the engine synchronously from Mini App HTTP for play mutations (verdict, present, select, etc.).
+
+| Rule | Why |
+|------|-----|
+| Enqueue a job with a **stable `request_id`**, then `kickWorker` | Same FIFO, caps, and delivery path as chat |
+| Prefer “queued + close WebView” over waiting on LLM | Avoid Mini App timeouts and double-submit |
+| Update gateway chat mode / local session **after** the job succeeds (or inside the job handler) | Pre-queue mode flips cause **split-brain** with the engine |
+| Atomic LLM reserve at job claim, not in the HTTP handler alone | Stops TOCTOU against the daily cap |
+
+### 8.3 Typical routes
 
 | Route | Role |
 |-------|------|
@@ -365,18 +423,18 @@ Prefer WebP/PNG unless you have proven AVIF reliability on Telegram clients.
 
 Use Telegram theme CSS variables, safe-area padding, BackButton cleanup. Do not port desktop modals.
 
-### 8.3 Localization catalogs
+### 8.4 Localization catalogs
 
 - UI chrome: EN + each locale, EN keys source of truth, parity test.
 - Content overlay: names/descriptions keyed by **canonical IDs**.
 - Never translate IDs, tags, JSON keys, callback payloads, request IDs.
 - Human review gate for non-EN clue wording before public launch.
 
-### 8.4 Deep links
+### 8.5 Deep links
 
 Chat buttons should open Mini App with correct path (`web_app` URL with hash/query). Menu button → dossier. Prefer **subdomain** for the bot gateway (e.g. `bot.yourgame.com`) so the marketing/web game host stays clean.
 
-### 8.5 Mini App launch contexts and stale actions
+### 8.6 Mini App launch contexts and stale actions
 
 Test each supported launch source separately: menu button, inline keyboard, keyboard button, direct link with `startapp`, and attachment menu. Their init data and available Telegram methods differ.
 
@@ -411,6 +469,7 @@ Test each supported launch source separately: menu button, inline keyboard, keyb
 | `TELEGRAM_BOT_TOKEN` | BotFather |
 | `TELEGRAM_WEBHOOK_SECRET` | Must match `setWebhook` secret_token |
 | `MINIAPP_SESSION_SECRET` | Cookie signing |
+| `METRICS_TOKEN` (optional) | Auth for `/metrics`; leave unset to disable |
 | Engine URL | Internal network (`http://backend:8000`) |
 
 Generate webhook/session secrets with `openssl rand -hex 32`. Never commit live values.
@@ -433,6 +492,9 @@ Generate webhook/session secrets with `openssl rand -hex 32`. Never commit live 
 | `sqlite3` missing in slim images | Apply SQL via language runtime already in image (Python/Bun) |
 | Compose fails locally for missing `.env.production` | Production commands run **on server** with real env file |
 | Placeholder setWebhook | Use real token/secret; verify with `getMe` first |
+| SQLite path parent missing on first boot | `mkdir -p` the data directory before open |
+| Process kill leaves WAL open | Handle SIGINT/SIGTERM → close DB cleanly |
+| Health always 200 while engine dead | Return **503** when degraded so Docker restarts |
 
 ### 9.6 Owner checklist (human)
 
@@ -481,7 +543,7 @@ Generate webhook/session secrets with `openssl rand -hex 32`. Never commit live 
 | Layer | What to test |
 |-------|----------------|
 | Engine | Idempotency, snapshot redaction, no web regression without request_id |
-| Gateway unit | Secret verify, update dedupe, serial per user, delivery retry without second engine call, cap, mode routing, 429 backoff, stale callbacks |
+| Gateway unit | Secret verify, update dedupe, serial per user + parallel multi-user, worker isolation, no double-kick, delivery retry without second engine/notice/media, atomic cap, mode routing, 429 backoff, stale callbacks, health 503 + metrics auth |
 | Adapter contract | Every capability maps to a typed engine request/response; unsupported capabilities fail cleanly |
 | Locale | Catalog parity; ability detection phrases for each language; stable IDs; human-review snapshots |
 | Mini App | initData valid/invalid/stale/tampered; every launch source; CSRF/origin; empty/cap/offline/session expired; stale revision |
@@ -511,6 +573,10 @@ Copy into every new game kickoff.
 - [ ] Jobs store engine result before Telegram send
 - [ ] Restart rules implemented and tested
 - [ ] Stale revision and callback behavior is defined
+- [ ] Single worker entry only (no double `processQueue`)
+- [ ] Per-user failure isolation; multi-user concurrency bounded
+- [ ] Delivery retries skip already-sent notices/media
+- [ ] Manual retry requeues real job and preserves FIFO
 
 ### Product / UX
 
@@ -518,6 +584,7 @@ Copy into every new game kickoff.
 - [ ] Reset is confirm + clears progress, not entitlements/identity
 - [ ] Unsupported media handled once, clearly
 - [ ] Cap does not brick navigation
+- [ ] Cap reserved atomically (no TOCTOU vs Mini App)
 - [ ] Queued, offline, expired-session, and blocked-bot states are localized
 - [ ] `/delete_my_data` behavior is documented and tested
 
@@ -538,27 +605,37 @@ Copy into every new game kickoff.
 
 - [ ] HMAC initData; no initDataUnsafe
 - [ ] CSRF + origin on mutations
+- [ ] Play mutations go through the **same job queue** as chat
+- [ ] Local mode/session updated after job success, not pre-queue
 - [ ] Stable request_id for verdict/submit
 - [ ] Close Mini App only after server confirms queue/select
 - [ ] All supported launch contexts have auth and routing tests
 - [ ] CSP/HSTS/host allowlist are configured
+- [ ] Localhost origin only via explicit dev flag
 
 ### Deploy
 
 - [ ] Bot on dedicated host/subdomain
 - [ ] DNS before webhook
-- [ ] Webhook secret matches env
+- [ ] Webhook secret matches env (constant-time verify)
 - [ ] Disk headroom; prune policy
+- [ ] SQLite data dir created on boot; DB closed on SIGTERM
 - [ ] Backup restore tested
 - [ ] Migration rollback documented
 - [ ] Telegram 429/retry_after behavior tested
 - [ ] Kill switches documented
 - [ ] SQL applied once; re-run is IF NOT EXISTS safe
+- [ ] `/health` returns 503 when degraded; no purge on health
+- [ ] Ops metrics not public (or token-gated)
 
 ### Security / privacy
 
 - [ ] No secrets in Mini App responses
 - [ ] No player prose in analytics logs
+- [ ] Funnel metrics use event codes, not localized copy
+- [ ] Body size limit on public HTTP
+- [ ] Engine client schemas tolerate additive fields
+- [ ] Session create/refresh promise-deduped per user
 - [ ] Player tokens encrypted/rotatable at rest
 - [ ] Telegram IDs stored 64-bit safely
 - [ ] Terms/support text exists for beta
