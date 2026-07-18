@@ -39,7 +39,7 @@ def get_language_instruction(language: str) -> str:
     return f"""
 
 LANGUAGE RULE: YOU MUST RESPOND IN {lang_name.upper()}.
-Translate ONLY narration and dialogue text. DO NOT translate any of the following — \
+Translate ONLY narration and dialogue text. DO NOT translate any of the following: \
 they must remain exactly as defined in English:
 - Evidence tags: [EVIDENCE: id]
 - Trust tags: [TRUST_DELTA: N]

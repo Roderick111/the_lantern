@@ -18,29 +18,29 @@ from src.context.narrator import build_narrator_prompt, build_system_prompt
 
 LOCATION_DESC = """Frost on the windows. Unnatural cold.
 
-The Sealed Archive spans three alcoves separated by towering shelves —
+The Sealed Archive spans three alcoves separated by towering shelves,
 each a world unto itself, sound muffled by ancient tomes. You stand in
 the western alcove. The eastern alcove, where a reading chair sits with
 a burned-down candle, is forty feet away and out of direct sight line.
 
 Professor Aldric Vane lies motionless near the reading desk. Black robes pooled
-around him. His right arm outstretched — reaching toward a circle of melted
-candles. His expression: not anger. Concern. His focus is partially drawn
-from his robes, as if he started to react to something.
+around him. His right arm reaches toward a circle of melted candles. Concern
+holds his expression. His focus is partially drawn from his robes, as if he
+started to react to something.
 
-The smell of nightshade. Scattered herbs. The air feels wrong — heavy,
-charged, cold in a way that has nothing to do with the season."""
+The smell of nightshade hangs over scattered herbs. The air feels wrong, heavy
+and charged with a cold that has nothing to do with the season."""
 
 SURFACE_ELEMENTS = [
     "Reading desk with scattered parchments and an ancient tome open to cramped handwriting",
     "Circle of melted candles on the floor, ritual space cleared",
-    "Scattered dried herbs near the candle circle — pungent, unfamiliar smell",
-    "Frost-covered window with unnatural patterns radiating from floor",
-    "Professor Vane's body — arm reaching toward the ritual circle, focus partially drawn, expression of concern",
+    "Scattered dried herbs near the candle circle, pungent and unfamiliar",
+    "Frost-covered window with unnatural patterns radiating from the floor",
+    "Professor Vane's body, arm reaching toward the ritual circle, focus partially drawn, expression of concern",
     "Odd dual-tone shimmer on Professor Vane's skin: blue-white and yellowish-green",
     "Faint scuff marks leading toward the exit",
     "A dark green fiber caught on the doorframe",
-    "Eastern alcove visible in the distance — reading chair, burned-down candle",
+    "Eastern alcove visible in the distance, reading chair and burned-down candle",
 ]
 
 HIDDEN_EVIDENCE = [
@@ -50,7 +50,7 @@ HIDDEN_EVIDENCE = [
         "discovery_guidance": "Revealed when player searches the reading desk, examines papers, or uses Unveil on the desk area.",
         "description": 'A small, crumpled note written in shaky, childlike handwriting: "Master Professor, D. is sorry..."',
         "tag": "[EVIDENCE: hidden_note]",
-        "significance": "Connects to an ingredient theft but not necessarily the attack.",
+        "significance": "Connects to an ingredient theft. Its link to the attack remains open.",
     },
     {
         "id": "frost_pattern",
@@ -58,7 +58,7 @@ HIDDEN_EVIDENCE = [
         "discovery_guidance": "Revealed when player casts Identify Substance on frost/window/floor, or performs magical analysis.",
         "description": "The frost radiates from a single point near the candle circle. Magical discharge signature.",
         "tag": "[EVIDENCE: frost_pattern]",
-        "significance": "Forbidden craft was used here — but what kind?",
+        "significance": "Forbidden craft was used here. The kind remains unclear.",
     },
     {
         "id": "singed_cloak_fiber",
@@ -79,13 +79,13 @@ NOT_PRESENT = [
 
 VICTIM = {
     "name": "Professor Aldric Vane",
-    "humanization": "The most feared professor at Blackwood Collegiate — harsh, unforgiving, brilliant. His arm is outstretched, reaching toward a student he was trying to protect.",
+    "humanization": "The most feared professor at Blackwood Collegiate, harsh and brilliant. His arm is outstretched toward a student he was trying to protect.",
     "cause_of_death": "Layered paralytic binding: Thief's Candle discharge + bound familiar binding magic",
 }
 
 WORLD_CONTEXT = """It is the students' second year at Blackwood Collegiate. The The Hollow Below has been opened.
 Mr. Crankshaw's cat, Morrigan, was found held in stillness weeks ago. uninitiated-born students live in fear.
-The school is tense, divided, suspicious."""
+The school is tense and suspicious."""
 
 # ---------------------------------------------------------------------------
 # 5 immersive player inputs (no evidence should be revealed for most)

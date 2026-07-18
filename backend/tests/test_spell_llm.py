@@ -33,6 +33,11 @@ class TestBuildSpellSystemPrompt:
         assert "Mnemonic Delving" in prompt
         assert "warning" in prompt.lower()
 
+    def test_includes_shared_style_filter(self) -> None:
+        prompt = build_spell_system_prompt()
+        assert "STYLE FILTER" in prompt
+        assert "Maximum one em dash" in prompt
+
 
 class TestBuildSpellEffectPrompt:
     """Tests for build_spell_effect_prompt function."""

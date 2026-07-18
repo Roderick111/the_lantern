@@ -6,6 +6,7 @@ Follows narrator.py structure with spell-specific constraints.
 
 from typing import Any
 
+from src.config.prompt_style import ANTI_AI_STYLE_FILTER
 from src.spells.definitions import get_spell
 
 
@@ -112,23 +113,19 @@ Mnemonic Delving: SUCCESSFUL
 {search_status}
 
 == NARRATION STRUCTURE ==
-CRITICAL: Write exactly 3 paragraphs. Put TWO newline characters (\\n\\n) between each paragraph.
+CRITICAL: Write exactly 2 paragraphs. Put TWO newline characters (\\n\\n) between them.
 
-PARAGRAPH 1 - Connection (1 sentence):
+PARAGRAPH 1 - Connection (1-2 sentences):
 Describe slipping into {witness_name}'s mind. Use creative imagery (silvery threads, ethereal glow, etc).
 
 [INSERT: \\n\\n HERE]
 
-PARAGRAPH 2 - Discovery (1-3 sentences):
+PARAGRAPH 2 - Discovery and withdrawal (2-4 sentences):
 {"Navigate toward: " + search_intent + ". " if search_intent else ""}{"MUST reveal the secrets listed above naturally. " if secrets_context else ""}Describe memories, thoughts, or knowledge discovered.{"Use [EVIDENCE: id] if appropriate." if evidence_context else ""}
-
-[INSERT: \\n\\n HERE]
-
-PARAGRAPH 3 - Withdrawal (1 sentence):
 {withdrawal_note}. Describe exiting their consciousness.
 
 Style: {style}
-Format: Paragraph 1\\n\\nParagraph 2\\n\\nParagraph 3
+Format: Paragraph 1\\n\\nParagraph 2
 
 Respond as narrator:"""
 
@@ -157,23 +154,18 @@ Mnemonic Delving: FAILED
 {search_status}
 
 == NARRATION STRUCTURE ==
-CRITICAL: Write exactly 3 paragraphs. Put TWO newline characters (\\n\\n) between each paragraph.
+CRITICAL: Write exactly 2 paragraphs. Put TWO newline characters (\\n\\n) between them.
 
-PARAGRAPH 1 - Attempt (1 sentence):
+PARAGRAPH 1 - Attempt (1-2 sentences):
 Describe attempting to slip into {witness_name}'s mind. Use creative imagery.
 
 [INSERT: \\n\\n HERE]
 
-PARAGRAPH 2 - Resistance (1-2 sentences):
-{barrier_note}. Describe the frustration of being blocked. No secrets found.
-
-[INSERT: \\n\\n HERE]
-
-PARAGRAPH 3 - Withdrawal (1 sentence):
-{withdrawal_note}. Describe exiting without success.
+PARAGRAPH 2 - Resistance and withdrawal (2-4 sentences):
+{barrier_note}. Describe the frustration of being blocked and exiting without success. No secrets found.
 
 Style: {style}
-Format: Paragraph 1\\n\\nParagraph 2\\n\\nParagraph 3
+Format: Paragraph 1\\n\\nParagraph 2
 
 Respond as narrator:"""
 
@@ -203,7 +195,9 @@ Style:
 - Second person present tense ("Your focus glows...", "The rite reveals...")
 - Evocative but brief descriptions
 - Victorian occult detective universe vocabulary and atmosphere
-- Professional Lantern Investigator field tone{get_language_instruction(language)}"""
+- Professional Lantern Investigator field tone
+
+{ANTI_AI_STYLE_FILTER}{get_language_instruction(language)}"""
 
 
 def build_spell_effect_prompt(

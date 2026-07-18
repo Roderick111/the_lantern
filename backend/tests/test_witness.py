@@ -322,6 +322,12 @@ class TestBuildWitnessSystemPrompt:
         assert "first person" in prompt.lower()
         assert "2-4 sentences" in prompt
 
+    def test_system_prompt_includes_shared_style_filter(self) -> None:
+        prompt = build_witness_system_prompt("Elena Marsh")
+        assert "STYLE FILTER" in prompt
+        assert "Maximum one em dash" in prompt
+        assert "Use spaces around em dashes" not in prompt
+
 
 class TestPromptIntegration:
     """Integration tests for witness prompts."""

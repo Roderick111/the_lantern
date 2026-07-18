@@ -371,6 +371,14 @@ class TestBuildSystemPrompt:
 
         assert "Never invent" in prompt
 
+    def test_system_prompt_includes_style_filter(self) -> None:
+        """Narrator system prompt carries shared prose constraints."""
+        prompt = build_system_prompt()
+
+        assert "STYLE FILTER" in prompt
+        assert "Maximum one em dash" in prompt
+        assert "Use em dashes" not in prompt
+
 
 class TestFormatNarratorConversationHistory:
     """Tests for format_narrator_conversation_history function."""

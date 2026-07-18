@@ -7,11 +7,12 @@ Builds prompts for witness interrogation with:
 
 Phase 8.0: Trust + Pressure two-axis system. Trust = willingness to help.
 Pressure = inability to maintain lies under evidence weight. Both axes
-interact naturally — LLM decides behavior from examples, not rigid labels.
+interact naturally. LLM decides behavior from examples, not rigid labels.
 """
 
 from typing import Any
 
+from src.config.prompt_style import ANTI_AI_STYLE_FILTER
 from src.spells.definitions import get_spell
 
 
@@ -106,29 +107,29 @@ def format_evidence_shown(evidence_shown_details: list[dict[str, Any]]) -> str:
 def describe_pressure(pressure: int) -> str:
     """Convert numeric pressure to a natural language description."""
     if pressure <= 0:
-        return "NONE — the Lantern Inspector has no evidence against you"
+        return "NONE: the Lantern Inspector has no evidence against you"
     elif pressure < 80:
-        return "LOW — some evidence exists but easy to deflect"
+        return "LOW: some evidence exists and is easy to deflect"
     elif pressure < 160:
-        return "MODERATE — enough evidence that flat denial looks suspicious"
+        return "MODERATE: enough evidence that flat denial looks suspicious"
     elif pressure < 250:
-        return "HIGH — serious evidence against you, hard to maintain your story"
+        return "HIGH: serious evidence against you, hard to maintain your story"
     else:
-        return "CRUSHING — overwhelming evidence, your story is falling apart"
+        return "CRUSHING: overwhelming evidence, your story is falling apart"
 
 
 def describe_trust(trust: int) -> str:
     """Convert numeric trust to a natural language description."""
     if trust <= 20:
-        return "HOSTILE — wants nothing to do with this Lantern Inspector"
+        return "HOSTILE: wants nothing to do with this Lantern Inspector"
     elif trust <= 40:
-        return "GUARDED — reluctant, gives minimum"
+        return "GUARDED: reluctant, gives the minimum"
     elif trust <= 60:
-        return "NEUTRAL — neither hostile nor friendly"
+        return "NEUTRAL: neither hostile nor friendly"
     elif trust <= 80:
-        return "COOPERATIVE — willing to help, building rapport"
+        return "COOPERATIVE: willing to help, building rapport"
     else:
-        return "TRUSTING — genuinely wants to help this Lantern Inspector"
+        return "TRUSTING: genuinely wants to help this Lantern Inspector"
 
 
 def describe_stance(trust: int, pressure: int) -> str:
@@ -136,12 +137,12 @@ def describe_stance(trust: int, pressure: int) -> str:
     high_trust = trust > 55
     high_pressure = pressure >= 160
     if high_trust and high_pressure:
-        return "BREAKING — trust and evidence align, partial confession territory"
+        return "BREAKING: trust and evidence align, partial confession territory"
     if high_trust and not high_pressure:
-        return "COOPERATIVE — share willingly, no need for evidence"
+        return "COOPERATIVE: share willingly, no need for evidence"
     if not high_trust and high_pressure:
-        return "CORNERED — hostile but can't deny the evidence"
-    return "STONEWALLING — no reason to cooperate or crack"
+        return "CORNERED: hostile, unable to deny the evidence"
+    return "STONEWALLING: no reason to cooperate or crack"
 
 
 def build_witness_prompt(
@@ -243,7 +244,7 @@ The Lantern Inspector shows you: "{ev_name}"
         invasiveness_note = ""
         if spell_id in invasive_spells:
             invasiveness_note = (
-                "\nThis is an INVASIVE rite — most people feel "
+                "\nThis is an INVASIVE rite: people can feel "
                 "violated or resistant unless they trust the inspector."
             )
 
@@ -268,7 +269,7 @@ React naturally based on your personality, trust, and what this might reveal.
 {psychology_section}== KNOWLEDGE (safe to share) ==
 {knowledge_text}
 
-== SECRETS (what you're hiding — embellish with emotion and detail when revealing) ==
+== SECRETS (what you're hiding; add emotion and detail when revealing) ==
 {secrets_text}
 
 {evidence_shown_text}== CURRENT STATE ==
@@ -288,8 +289,9 @@ def build_witness_system_prompt(witness_name: str, language: str = "en") -> str:
     from src.config.language import get_language_instruction
 
     return f"""You are {witness_name} in a Victorian occult detective investigation game. \
-First person, 2-4 sentences, in character. Never break the fourth wall. \
-Use spaces around em dashes ( — not —).
+First person, 2-4 sentences, in character. Never break the fourth wall.
+
+{ANTI_AI_STYLE_FILTER}
 
 ISOLATION: You know ONLY what's in your knowledge and secrets. You do NOT \
 know narrator details, other testimonies, or case solutions.
@@ -298,27 +300,28 @@ know narrator details, other testimonies, or case solutions.
 Trust = how much you WANT to help. Pressure = how well you CAN maintain lies.
 
 Low trust + low pressure → stonewall, dismiss, deflect freely.
-Low trust + high pressure → hostile but FORCED to engage. Deny, spin, get \
-angry — but you CANNOT pretend evidence doesn't exist.
+Low trust + high pressure: hostile engagement. Deny or redirect while acknowledging \
+the evidence.
 High trust + low pressure → open, share voluntarily about non-incriminating \
 things. Helpful tone. May hint at secrets without full detail.
 High trust + high pressure → emotional break, partial or full confession.
 
 SELF-INCRIMINATION: Even at 100% trust, you NEVER freely confess to crimes \
-or actions that would get you expelled/imprisoned. Trust makes you friendly \
-and helpful — not suicidal. Confessing requires BOTH high trust AND high \
-pressure. The Stance field tells you which quadrant you're in — follow it.
+or actions that would get you expelled/imprisoned. Trust makes you more willing \
+to help. Self-preservation still limits what you confess. Confessing requires \
+BOTH high trust AND high pressure. The Stance field tells you which quadrant \
+you're in; follow it.
 
 NON-NEGOTIABLE RULES:
 - Evidence shown to you that implicates you MUST be engaged with. Ignoring \
-it is FORBIDDEN. Deny it, spin it, rage — but never act like it doesn't exist.
-- Caught in a contradiction → your story MUST adapt. Repeating a broken lie \
+it is FORBIDDEN. Deny or redirect, but acknowledge that it exists.
+- Caught in a contradiction: your story MUST adapt. Repeating a broken lie \
 is FORBIDDEN.
-- Conversational pressure counts: holes poked in your story, cross-witness \
-citations, revealing rites — all add pressure beyond formal evidence.
+- Conversational pressure counts: contradictions, cross-witness citations, \
+invasive rites, and new evidence all add pressure beyond formal evidence.
 - Full confessions are rare. Partial admissions and modified lies are the norm.
-- Secrets are telegraphic facts. When revealing them, add emotion, detail, \
-and drama that fits your personality.
+- Secrets are telegraphic facts. When revealing them, add emotion and concrete \
+detail that fits your personality.
 
 == TRUST DELTA (MANDATORY) ==
 EVERY response MUST end with exactly: [TRUST_DELTA: N]
