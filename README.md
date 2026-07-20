@@ -140,7 +140,7 @@ Add MP3 files to `frontend/public/music/` — naming: `case_{id}_default.mp3` (e
 ### 2. Investigation Phase
 - **Navigate**: Click locations or type "go to dormitory"
 - **Investigate**: Type freeform actions ("search the desk", "examine the focus")
-- **Perform Rites**: "unveil hidden objects", "mnemonic delving on Elena"
+- **Perform Rites**: type a displayed spoken formula by itself or add a target after it (for example, `Veil, dissolve over this desk.`)
 - **Consult Matthew**: Prefix with `Matthew,` — e.g. "Matthew, should I trust this witness?" (carnival instincts, not Bureau training — he's sometimes wrong)
 - **Evidence Board**: Automatically tracks discovered clues
 

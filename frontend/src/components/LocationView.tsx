@@ -522,8 +522,8 @@ export function LocationView({
   }, []);
 
   // Handle spell selection from handbook (Phase 5.7)
-  const handleSpellSelect = useCallback((spellName: string) => {
-    setInputValue(`I perform ${spellName}`);
+  const handleSpellSelect = useCallback((spellFormula: string) => {
+    setInputValue(spellFormula);
     setIsHandbookOpen(false);
     inputRef.current?.focus();
   }, []);
@@ -763,6 +763,7 @@ export function LocationView({
       <LanternCompendium
         isOpen={isHandbookOpen}
         onClose={() => setIsHandbookOpen(false)}
+        language={language === 'ru' ? 'ru' : 'en'}
         onSelectSpell={handleSpellSelect}
       />
     </Card>

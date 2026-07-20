@@ -13,6 +13,8 @@ import { useEffect, useCallback } from "react";
 import { Modal } from "./ui/Modal";
 import type { SpellDefinition } from "../types/spells";
 
+type RiteLanguage = "en" | "ru";
+
 // ============================================
 // Spell Definitions (from backend)
 // ============================================
@@ -24,61 +26,138 @@ import type { SpellDefinition } from "../types/spells";
 const SPELL_DEFINITIONS: SpellDefinition[] = [
   {
     id: "unveil",
-    name: "Unveil",
-    description:
-      "What's hidden wants to stay hidden. This charm convinces it otherwise—invisible ink bleeds into view, concealment cantrips flicker and fade, disguised objects remember their true form.",
+    name: "Veil, dissolve",
+    legacyName: "Unveil",
+    description: "Reveals hidden writing, concealments, and a thing's true form.",
+    example: "Veil, dissolve over this desk.",
     safetyLevel: "safe",
     category: "detection",
   },
   {
     id: "sense_presence",
-    name: "Sense Presence",
-    description:
-      "The air shivers when someone's near. This charm reads that shiver—even through walls, even under cloaks meant to deceive. Useful when you suspect you're not alone.",
+    name: "Presence, answer",
+    legacyName: "Sense Presence",
+    description: "Detects someone nearby, even through walls or concealment.",
+    example: "Presence, answer beyond this wall.",
     safetyLevel: "safe",
     category: "detection",
   },
   {
     id: "identify_substance",
-    name: "Identify Substance",
-    description:
-      "Alchemist's gift to investigators. Whisper this over a suspect potion and watch its secrets unravel—enchantments glow, poisons betray themselves, cursed objects confess their nature.",
+    name: "Essence, speak",
+    legacyName: "Identify Substance",
+    description: "Reveals the nature of a potion, poison, cursed object, or magical residue.",
+    example: "Essence, speak in this vial.",
     safetyLevel: "safe",
     category: "analysis",
   },
   {
     id: "raise_the_lamp",
-    name: "Raise the Lamp",
-    description:
-      "Light reveals what darkness protects. More than mere illumination—lamplight clings to bloodstains, traces the ghost of fire, shows you the things that hide between shadow and sight.",
+    name: "Trace, gleam",
+    legacyName: "Raise the Lamp",
+    description: "Draws blood, burns, and things hiding in shadow into view.",
+    example: "Trace, gleam in the alcove.",
     safetyLevel: "safe",
     category: "detection",
   },
   {
     id: "echo_reading",
-    name: "Echo Reading",
-    description:
-      "Every focus remembers. Force it to speak and ghostly echoes rise—the last spells it cast, shadows of magic long finished. The focus must be in your hand for it to confess.",
+    name: "Echo, speak",
+    legacyName: "Echo Reading",
+    description: "Reveals the last magical traces stored in a focus held in hand.",
+    example: "Echo, speak on Elena's focus.",
     safetyLevel: "safe",
     category: "analysis",
   },
   {
     id: "mend",
-    name: "Mend",
-    description:
-      "Shattered things yearn to be whole. As the pieces float back together, watch closely—the way glass breaks tells you how it was broken. Violence leaves patterns.",
+    name: "Shards, unite",
+    legacyName: "Mend",
+    description: "Restores a broken object and leaves clues about how it broke.",
+    example: "Shards, unite.",
     safetyLevel: "safe",
     category: "restoration",
   },
   {
     id: "mnemonic_delving",
-    name: "Mnemonic Delving",
-    description:
-      "The mind has no lock a skilled Mnemonic Delver cannot pick. Slip past the eyes into memory itself—but tread carefully. Minds resist intrusion, and some remember being violated long after you've withdrawn.",
+    name: "Memory, open",
+    legacyName: "Mnemonic Delving",
+    description: "Enters another person's memory. Intrusion can be noticed and carries consequences.",
+    example: "Memory, open on Elena's recollection of the archive.",
     safetyLevel: "restricted",
     category: "mental",
   },
 ];
+
+const SPELL_DEFINITIONS_RU: SpellDefinition[] = [
+  {
+    id: "unveil",
+    name: "Скрытое, явись",
+    legacyName: "Снять покров",
+    description: "Проявляет скрытые записи, маскировку и подлинный вид вещей.",
+    example: "Скрытое, явись на этом столе.",
+    safetyLevel: "safe",
+    category: "detection",
+  },
+  {
+    id: "sense_presence",
+    name: "Присутствие, отзовись",
+    legacyName: "Ощутить присутствие",
+    description: "Обнаруживает присутствие рядом, даже за стеной или под маскировкой.",
+    example: "Присутствие, отзовись за этой стеной.",
+    safetyLevel: "safe",
+    category: "detection",
+  },
+  {
+    id: "identify_substance",
+    name: "Суть, откройся",
+    legacyName: "Опознать вещество",
+    description: "Раскрывает природу зелья, яда, проклятой вещи или магического следа.",
+    example: "Суть, откройся в этом флаконе.",
+    safetyLevel: "safe",
+    category: "analysis",
+  },
+  {
+    id: "raise_the_lamp",
+    name: "Свет, укажи след",
+    legacyName: "Поднять лампу",
+    description: "Выводит на свет кровь, ожоги и то, что прячется в тени.",
+    example: "Свет, укажи след в нише.",
+    safetyLevel: "safe",
+    category: "detection",
+  },
+  {
+    id: "echo_reading",
+    name: "Отзвук чар, явись",
+    legacyName: "Чтение эха",
+    description: "Показывает последние чары, оставшиеся на фокусе в руке.",
+    example: "Отзвук чар, явись на фокусе Елены.",
+    safetyLevel: "safe",
+    category: "analysis",
+  },
+  {
+    id: "mend",
+    name: "Разбитое, сойдись",
+    legacyName: "Починить",
+    description: "Восстанавливает разбитую вещь и оставляет следы того, как она сломалась.",
+    example: "Разбитое стекло, сойдись.",
+    safetyLevel: "safe",
+    category: "restoration",
+  },
+  {
+    id: "mnemonic_delving",
+    name: "Чужая память, отворись",
+    legacyName: "Погружение в память",
+    description: "Позволяет войти в чужую память. Вторжение могут заметить, и оно имеет последствия.",
+    example: "Чужая память, отворись на воспоминание Елены о библиотеке.",
+    safetyLevel: "restricted",
+    category: "mental",
+  },
+];
+
+function getSpellDefinitions(language: RiteLanguage = "en"): SpellDefinition[] {
+  return language === "ru" ? SPELL_DEFINITIONS_RU : SPELL_DEFINITIONS;
+}
 
 // ============================================
 // Types
@@ -89,6 +168,8 @@ interface LanternCompendiumProps {
   isOpen: boolean;
   /** Callback when modal is closed */
   onClose: () => void;
+  /** Content language for formulas, descriptions, and instructions. */
+  language?: RiteLanguage;
   /** Callback when a spell is selected for casting */
   onSelectSpell?: (spellName: string) => void;
 }
@@ -103,10 +184,13 @@ import type { TerminalTheme } from "../styles/terminal-theme";
 /**
  * Category badge with neutral styling
  */
-function CategoryBadge({ category, theme }: { category: string; theme: TerminalTheme }) {
+function CategoryBadge({ category, language, theme }: { category: string; language: RiteLanguage; theme: TerminalTheme }) {
+  const labels: Record<string, string> = language === "ru"
+    ? { detection: "обнаружение", analysis: "анализ", restoration: "восстановление", mental: "ментальное" }
+    : { detection: "detection", analysis: "analysis", restoration: "restoration", mental: "mental" };
   return (
     <span className={`inline-block px-1.5 py-0.5 text-xs ${theme.colors.bg.hover} ${theme.colors.text.tertiary} border ${theme.colors.border.default} uppercase tracking-wider ${theme.fonts.label}`}>
-      {category}
+      {labels[category] ?? category}
     </span>
   );
 }
@@ -117,10 +201,12 @@ function CategoryBadge({ category, theme }: { category: string; theme: TerminalT
 function SpellCard({
   spell,
   onSelect,
+  language,
   theme,
 }: {
   spell: SpellDefinition;
   onSelect?: (spellName: string) => void;
+  language: RiteLanguage;
   theme: TerminalTheme;
 }) {
   const isRestricted = spell.safetyLevel === "restricted";
@@ -159,7 +245,7 @@ function SpellCard({
         </h3>
         {isRestricted && (
           <span className={`text-xs ${theme.colors.state.error.text} border ${theme.colors.state.error.border} px-1 font-bold uppercase tracking-widest`}>
-            RESTRICTED
+            {language === "ru" ? "ЗАПРЕТНЫЙ" : "RESTRICTED"}
           </span>
         )}
       </div>
@@ -169,9 +255,13 @@ function SpellCard({
         {spell.description}
       </p>
 
+      <p className={`${theme.colors.text.muted} text-xs mb-3 pl-5 ${theme.fonts.ui}`}>
+        {spell.example}
+      </p>
+
       {/* Footer info */}
       <div className="pl-5 flex gap-2">
-        <CategoryBadge category={spell.category} theme={theme} />
+        <CategoryBadge category={spell.category} language={language} theme={theme} />
       </div>
     </div>
   );
@@ -191,9 +281,14 @@ function SpellCard({
 export function LanternCompendium({
   isOpen,
   onClose,
+  language = "en",
   onSelectSpell,
 }: LanternCompendiumProps) {
   const { theme } = useTheme();
+  const spells = getSpellDefinitions(language);
+  const labels = language === "ru"
+    ? { title: "СВЕТОЧ // ИНДЕКС ОБРЯДОВ", footer: "ТАЙНЫЙ ПРИКАЗ / ОТДЕЛ РАССЛЕДОВАНИЙ СВЕТОЧА", confidential: "СЕКРЕТНО" }
+    : { title: "LANTERN COMPENDIUM // RITE INDEX", footer: "CROWN OCCULT BUREAU / LANTERN INVESTIGATIONS DIVISION", confidential: "CONFIDENTIAL" };
 
   // Keyboard shortcut handler for Cmd/Ctrl+H
   const handleKeyDown = useCallback(
@@ -219,7 +314,7 @@ export function LanternCompendium({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="LANTERN COMPENDIUM // RITE INDEX"
+      title={labels.title}
       variant="terminal"
     >
       <div className="space-y-4">
@@ -229,17 +324,16 @@ export function LanternCompendium({
             <span className={theme.colors.text.tertiary}>
               {theme.symbols.prefix}
             </span>{" "}
-            For better results, be specific about what you want to achieve with
-            a rite.
+            {language === "ru"
+              ? "Обряды требуют явной словесной формулы. Напишите формулу отдельно или добавьте после неё цель."
+              : "Rites use spoken formulas. Type a formula by itself or add a target after it."}
             <br />
             <span className={theme.colors.text.tertiary}>
               {theme.symbols.prefix}
             </span>{" "}
-            To perform a rite, type{" "}
-            <span className={`${theme.colors.interactive.text} font-bold`}>
-              &quot;I perform [Rite Name]&quot;
-            </span>{" "}
-            in the console.
+            {language === "ru"
+              ? "Обычные вопросы и описания действий обряд не вызывают."
+              : "Questions and ordinary descriptions do not perform rites."}
           </p>
         </div>
 
@@ -247,15 +341,15 @@ export function LanternCompendium({
 
         {/* Spell Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin">
-          {SPELL_DEFINITIONS.map((spell) => (
-            <SpellCard key={spell.id} spell={spell} onSelect={onSelectSpell} theme={theme} />
+          {spells.map((spell) => (
+            <SpellCard key={spell.id} spell={spell} onSelect={onSelectSpell} language={language} theme={theme} />
           ))}
         </div>
 
         {/* Footer */}
         <div className={`pt-2 border-t ${theme.colors.border.default} flex justify-between items-center text-xs ${theme.colors.text.muted} uppercase tracking-widest`}>
-          <span>CROWN OCCULT BUREAU / LANTERN INVESTIGATIONS DIVISION</span>
-          <span>CONFIDENTIAL</span>
+          <span>{labels.footer}</span>
+          <span>{labels.confidential}</span>
         </div>
       </div>
     </Modal>

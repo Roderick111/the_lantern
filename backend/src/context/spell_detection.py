@@ -1,10 +1,10 @@
-"""Spell detection: fuzzy matching, semantic phrases, intent extraction.
+"""Spell detection: explicit formulas, aliases, fuzzy matching, and intent extraction.
 
 Detects spell casts from player input using multi-priority matching:
 1. Exact match multi-word spell names
 2. Fuzzy match spell name (70% threshold)
-3. Semantic phrase substring match
-4. Fuzzy phrase match (65% threshold)
+3. Explicit formula/legacy alias substring match
+4. Fuzzy formula/name match (65% threshold)
 
 Fuzzy (detect_spell_with_fuzzy) is the source of truth for spell detection.
 Legacy is_spell_input/parse_spell_from_input now delegate to it (A2 unification).
@@ -33,6 +33,9 @@ logger = logging.getLogger(__name__)
 # Priority 3: Semantic phrase substring match
 SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
     "mnemonic_delving": [
+        "memory, open",
+        "memory open",
+        "memory, open on",
         "mnemonic_delving",
         "mnemonic delving",
         "legulemancy",
@@ -56,8 +59,14 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
         "в его мысли",
         "в память",
         "читать мысли",
+        "чужая память, отворись",
+        "чужая память отворись",
     ],
     "unveil": [
+        "veil, dissolve",
+        "veil dissolve",
+        "hidden things, reveal yourselves",
+        "hidden things reveal yourselves",
         "unveil",
         "reveal hidden",
         "show hidden",
@@ -70,8 +79,14 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
         "показать скрытое",
         "снять маскировку",
         "проявить невидимые",
+        "скрытое, явись",
+        "скрытое явись",
     ],
     "raise_the_lamp": [
+        "trace, gleam",
+        "trace gleam",
+        "light, show the trace",
+        "light show the trace",
         "raise_the_lamp",
         "raise the lamp",
         "light up",
@@ -84,8 +99,14 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
         "освещаю",
         "зажечь лампу",
         "свет лампы",
+        "свет, укажи след",
+        "свет укажи след",
     ],
     "sense_presence": [
+        "presence, answer",
+        "presence answer",
+        "presence, make yourself known",
+        "presence make yourself known",
         "sense_presence",
         "sense presence",
         "homenum unveil",
@@ -99,8 +120,14 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
         "ощущаю присутствие",
         "кто рядом",
         "есть ли кто",
+        "присутствие, отзовись",
+        "присутствие отзовись",
     ],
     "identify_substance": [
+        "essence, speak",
+        "essence speak",
+        "essence, declare yourself",
+        "essence declare yourself",
         "identify_substance",
         "specialis unveil",
         "specialis",
@@ -112,8 +139,12 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
         "опознать зелье",
         "анализ вещества",
         "что за вещество",
+        "суть, откройся",
+        "суть откройся",
     ],
     "echo_reading": [
+        "echo, speak",
+        "echo speak",
         "echo_reading",
         "echo reading",
         "last spell",
@@ -124,8 +155,15 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
         "эхо на фокусе",
         "последнее заклинание",
         "история фокуса",
+        "отзвук чар, явись",
+        "отзвук чар явись",
     ],
     "mend": [
+        "shards, unite",
+        "shards unite",
+        "broken thing, be whole",
+        "broken thing be whole",
+        "broken glass, be whole",
         "mend",
         "repair this",
         "fix this",
@@ -136,6 +174,10 @@ SPELL_SEMANTIC_PHRASES: dict[str, list[str]] = {
         "восстановить",
         "чинить",
         "собрать разбитое",
+        "разбитое, сойдись",
+        "разбитое сойдись",
+        "разбитое стекло, сойдись",
+        "разбитое стекло сойдись",
     ],
 }
 
@@ -202,17 +244,21 @@ def extract_target_from_input(text: str) -> str | None:
         >>> extract_target_from_input("use mnemonic_delving on elena")
         'elena'
     """
-    match = re.search(r"\b(?:on|at)\s+(.+)$", text, re.IGNORECASE)
+    match = re.search(
+        r"\b(?:on|at|in|into|within|beyond|through|near|beside|over)\s+(.+)$",
+        text,
+        re.IGNORECASE,
+    )
     if match:
-        return match.group(1).strip()
+        return match.group(1).strip(" \t\n.,!?;:…\"'«»")
     # Russian prepositions (на / по / со / с / у / к)
     match_ru = re.search(
-        r"(?:^|[\s,])(?:на|по|со|с|у|к)\s+(.+)$",
+        r"(?:^|[\s,])(?:на|по|со|с|у|к|в|во|за|под|над)\s+(.+)$",
         text,
         re.IGNORECASE,
     )
     if match_ru:
-        return match_ru.group(1).strip()
+        return match_ru.group(1).strip(" \t\n.,!?;:…\"'«»")
 
     return None
 
@@ -247,6 +293,8 @@ def extract_intent_from_input(text: str) -> str | None:
         r"to\s+(?:find\s+out|learn|discover|see|know|understand|uncover|reveal)\s+about\s+(.+)$",
         r"to\s+(?:find\s+out|learn|discover|see|know|understand|uncover|reveal)\s+(.+)$",
         r"\babout\s+(.+)$",
+        r"(?:чтобы\s+)?(?:узнать|выяснить|понять)\s+(?:о|об|обо|про)?\s*(.+)$",
+        r"\b(?:о|об|обо|про|на)\s+(.+)$",
     ]
 
     for pattern in patterns:
@@ -283,7 +331,10 @@ def calculate_specificity_bonus(player_input: str) -> int:
     """
     bonus = 0
 
-    target_pattern = r"\b(?:on|at|toward|against|around|near|across|through|over|along)\s+\w+"
+    target_pattern = (
+        r"\b(?:on|at|in|into|within|beyond|toward|against|around|near|"
+        r"across|through|over|along|на|в|во|за|под|над|по|со|с|у|к|через)\s+\w+"
+    )
     if re.search(target_pattern, player_input, re.IGNORECASE):
         bonus += 10
 
@@ -420,6 +471,23 @@ def _phrase_words_match_span(phrase: str, span: str, text_lower: str) -> bool:
 # =============================================================================
 
 
+def _explicit_spell_phrases(spell_id: str) -> list[str]:
+    """Return display formulas and legacy names that explicitly invoke a rite."""
+    spell = SPELL_DEFINITIONS.get(spell_id, {})
+    phrases: list[str] = [
+        str(spell.get("formula_en", "")),
+        str(spell.get("formula_ru", "")),
+        str(spell.get("example_en", "")),
+        str(spell.get("example_ru", "")),
+        str(spell.get("name", "")),
+        spell_id,
+        spell_id.replace("_", " "),
+    ]
+    for field in ("legacy_names_en", "legacy_names_ru"):
+        phrases.extend(str(value) for value in spell.get(field, []))
+    return list(dict.fromkeys(phrase.lower() for phrase in phrases if phrase.strip()))
+
+
 def _is_valid_spell_cast(
     text: str, spell_name: str, spell_id: str, matched_word: str | None = None
 ) -> bool:
@@ -429,8 +497,7 @@ def _is_valid_spell_cast(
 
     Requires EITHER:
     1. Action verb present ("cast", "use", "casting", etc.)
-    2. Target present ("on X", "at Y")
-    3. Spell at sentence start (player-initiated)
+    2. Explicit formula or legacy name at sentence start
 
     AND excludes questions (ends with "?").
 
@@ -456,6 +523,7 @@ def _is_valid_spell_cast(
         "use",
         "try",
         "perform",
+        "spell",
         "execute",
         "do",
         "invoke",
@@ -488,36 +556,42 @@ def _is_valid_spell_cast(
         "сейчас",
         "я применяю",
         "я использую",
+        "я заклинаю",
     ]
 
-    for verb in action_verbs:
-        if re.search(rf"\b{re.escape(verb)}\b", text_lower):
-            return True
+    explicit_phrases = _explicit_spell_phrases(spell_id)
+    explicit_tokens = {
+        token
+        for phrase in explicit_phrases
+        for token in phrase.split()
+        if len(token) >= 4
+    }
 
-    for phrase in intent_phrases:
-        if phrase in text_lower:
-            return True
+    has_action = any(
+        re.search(rf"\b{re.escape(verb)}\b", text_lower) for verb in action_verbs
+    ) or any(phrase in text_lower for phrase in intent_phrases)
+    has_explicit_name = any(phrase in text_lower for phrase in explicit_phrases)
+    has_fuzzy_explicit_name = bool(
+        matched_word
+        and any(fuzz.ratio(matched_word.lower(), token) > 70 for token in explicit_tokens)
+    )
 
-    # Rule 2: Target pattern present ("on X", "at Y", or RU prepositions)
-    target = extract_target_from_input(text)
-    if target:
+    # Rule 1: Explicit wrapper plus formula/name anywhere in the input.
+    if has_action and (has_explicit_name or has_fuzzy_explicit_name):
         return True
 
-    # Rule 3: Spell at sentence start (EN name/id or matched phrase/word)
+    # Rule 2: Explicit formula or legacy name at sentence start.
     cleaned_start = text_lower.lstrip("\"'!.,-; ")
 
+    for phrase in explicit_phrases:
+        if cleaned_start.startswith(phrase):
+            return True
+
+    # A fuzzy match is allowed only when the matched token starts the message
+    # and is close to an explicit formula/name token. Generic semantic phrases
+    # ("repair this", "show hidden") do not invoke rites by themselves.
     if matched_word and cleaned_start.startswith(matched_word.lower()):
-        return True
-
-    if cleaned_start.startswith(spell_name):
-        return True
-    if cleaned_start.startswith(spell_id.replace("_", " ")):
-        return True
-
-    # Multi-word semantic phrase at start (e.g. "снять покров со стола")
-    phrases = SPELL_SEMANTIC_PHRASES.get(spell_id, [])
-    for phrase in phrases:
-        if len(phrase) >= 4 and cleaned_start.startswith(phrase):
+        if has_fuzzy_explicit_name:
             return True
 
     return False
@@ -531,17 +605,17 @@ def _is_valid_spell_cast(
 def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
     """Single-stage spell detection using fuzzy matching + semantic phrases.
 
-    Detects ANY of the 7 rites with typo tolerance and natural language.
+    Detects ANY of the 7 rites with typo tolerance and explicit invocation language.
     Performance: 1-2ms per call (acceptable overhead vs 800ms LLM call)
 
     Phase 5.7: Added intent validation to reduce false positives.
-    Now requires action verb, target, or sentence-start position.
+    Now requires an action verb or explicit formula/name at sentence start.
 
     Priority order:
-    1. Exact match multi-word spell names first (homenum unveil, etc.)
-    2. Fuzzy match spell name (70% threshold for typos)
+    1. Exact match formulas and legacy names first
+    2. Fuzzy match formula/name (70% threshold for typos)
     3. Exact match spell ID in text
-    4. Semantic phrase substring match
+    4. Explicit alias substring match
 
     Args:
         text: Player input text

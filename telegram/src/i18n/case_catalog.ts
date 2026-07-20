@@ -296,58 +296,58 @@ export const WITNESS_CATALOG: Record<WitnessId, WitnessCatalogEntry> = {
 export const RITES: RiteCatalogEntry[] = [
   {
     id: "unveil",
-    name: { en: "Unveil", ru: "Снять покров" },
+    name: { en: "Veil, dissolve", ru: "Скрытое, явись" },
     help: {
-      en: "Reveal hidden writing, concealments, true form. Chat: “unveil the desk” / “reveal hidden marks on the note”.",
-      ru: "Открывает скрытые записи, маскировку и истинный вид вещей. Например: «сними покров со стола» или «покажи скрытые знаки на записке».",
+      en: "Reveals hidden writing, concealments, and true form. Say: “Veil, dissolve over this desk.”",
+      ru: "Проявляет скрытые записи, маскировку и подлинный вид вещей. Напишите: «Скрытое, явись на этом столе».",
     },
   },
   {
     id: "sense_presence",
-    name: { en: "Sense Presence", ru: "Ощутить присутствие" },
+    name: { en: "Presence, answer", ru: "Присутствие, отзовись" },
     help: {
-      en: "Feel if someone is near, even through walls. Chat: “sense presence” / “detect people nearby”.",
-      ru: "Помогает понять, есть ли кто-то рядом, даже за стеной. Например: «почувствуй присутствие» или «кто-нибудь есть поблизости?».",
+      en: "Detects someone nearby, even through walls or concealment. Say: “Presence, answer beyond this wall.”",
+      ru: "Обнаруживает присутствие рядом, даже за стеной или под маскировкой. Напишите: «Присутствие, отзовись за этой стеной».",
     },
   },
   {
     id: "identify_substance",
-    name: { en: "Identify Substance", ru: "Опознать вещество" },
+    name: { en: "Essence, speak", ru: "Суть, откройся" },
     help: {
-      en: "Read potions, poisons, cursed matter. Chat: “identify substance on the residue” / “identify potion”.",
-      ru: "Определяет зелья, яды и следы проклятий. Например: «опознай вещество на ткани» или «что это за зелье?».",
+      en: "Reveals the nature of a potion, poison, cursed object, or magical residue. Say: “Essence, speak in this vial.”",
+      ru: "Раскрывает природу зелья, яда, проклятой вещи или магического следа. Напишите: «Суть, откройся в этом флаконе».",
     },
   },
   {
     id: "raise_the_lamp",
-    name: { en: "Raise the Lamp", ru: "Поднять лампу" },
+    name: { en: "Trace, gleam", ru: "Свет, укажи след" },
     help: {
-      en: "Investigative light, blood, scorch, what hides in shadow. Chat: “raise the lamp” / “illuminate the alcove”.",
-      ru: "Выявляет кровь, ожоги и то, что прячется в тени. Например: «подними лампу» или «освети нишу».",
+      en: "Draws blood, burns, and things hiding in shadow into view. Say: “Trace, gleam in the alcove.”",
+      ru: "Выводит на свет кровь, ожоги и то, что прячется в тени. Напишите: «Свет, укажи след в нише».",
     },
   },
   {
     id: "echo_reading",
-    name: { en: "Echo Reading", ru: "Чтение эха" },
+    name: { en: "Echo, speak", ru: "Отзвук чар, явись" },
     help: {
-      en: "Last spells on a focus in hand. Chat: “echo reading on the focus” / “last spell on his focus”.",
-      ru: "Показывает последние чары на фокусе. Например: «прочитай эхо на фокусе» или «какое заклинание он применил последним?».",
+      en: "Reveals the last magical traces stored in a focus held in hand. Say: “Echo, speak on Elena’s focus.”",
+      ru: "Показывает последние чары, оставшиеся на фокусе в руке. Напишите: «Отзвук чар, явись на фокусе Елены».",
     },
   },
   {
     id: "mend",
-    name: { en: "Mend", ru: "Починить" },
+    name: { en: "Shards, unite", ru: "Разбитое, сойдись" },
     help: {
-      en: "Restore a broken object; watch how it broke. Chat: “mend this glass” / “repair this”.",
-      ru: "Собирает разбитую вещь и оставляет подсказки о том, как она сломалась. Например: «почини стекло».",
+      en: "Restores a broken object and leaves clues about how it broke. Say: “Shards, unite.”",
+      ru: "Восстанавливает разбитую вещь и оставляет следы того, как она сломалась. Напишите: «Разбитое стекло, сойдись».",
     },
   },
   {
     id: "mnemonic_delving",
-    name: { en: "Mnemonic Delving", ru: "Погружение в память" },
+    name: { en: "Memory, open", ru: "Чужая память, отворись" },
     help: {
-      en: "Restricted. Probe a mind for memory, costly, detected if clumsy. Chat: “read her mind about the archive” / “mnemonic delving on Elena”.",
-      ru: "Запретный обряд. Позволяет заглянуть в чужие воспоминания, но неосторожность заметят. Например: «взгляни в память Елены о происшествии».",
+      en: "Restricted. Enters another person’s memory; intrusion can be noticed and carries consequences. Say: “Memory, open on Elena’s recollection of the archive.”",
+      ru: "Запретный обряд. Позволяет войти в чужую память; вторжение могут заметить, и оно имеет последствия. Напишите: «Чужая память, отворись на воспоминание Елены о библиотеке».",
     },
   },
 ];

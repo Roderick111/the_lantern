@@ -349,6 +349,19 @@ class TestDetectSpellWithFuzzy:
         assert spell_id is None
         assert target is None
 
+    def test_natural_description_without_formula_is_not_a_rite(self) -> None:
+        """Natural objectives require an explicit formula or invocation verb."""
+        from src.context.spell_llm import detect_spell_with_fuzzy
+
+        for text in (
+            "show hidden marks on the note",
+            "repair this glass",
+            "what potion is this?",
+        ):
+            spell_id, target = detect_spell_with_fuzzy(text)
+            assert spell_id is None
+            assert target is None
+
     def test_all_7_spells_detected(self) -> None:
         """All 7 rites can be detected by name."""
         from src.context.spell_llm import detect_spell_with_fuzzy
@@ -364,6 +377,52 @@ class TestDetectSpellWithFuzzy:
         ]
 
         for text, expected_id in spells:
+            spell_id, _ = detect_spell_with_fuzzy(text)
+            assert spell_id == expected_id, f"Failed for {text}"
+
+    def test_english_formula_examples_detected(self) -> None:
+        """Displayed English formulas are executable rites."""
+        from src.context.spell_llm import detect_spell_with_fuzzy
+
+        examples = [
+            ("Veil, dissolve over this desk.", "unveil"),
+            ("Presence, answer beyond this wall.", "sense_presence"),
+            ("Essence, speak in this vial.", "identify_substance"),
+            ("Trace, gleam in the alcove.", "raise_the_lamp"),
+            ("Echo, speak on Elena's focus.", "echo_reading"),
+            ("Shards, unite.", "mend"),
+            ("Memory, open on Elena's recollection of the archive.", "mnemonic_delving"),
+        ]
+
+        for text, expected_id in examples:
+            spell_id, _ = detect_spell_with_fuzzy(text)
+            assert spell_id == expected_id, f"Failed for {text}"
+
+    def test_explicit_spell_wrapper_is_supported(self) -> None:
+        """Explicit wrapper verbs may precede a displayed formula."""
+        from src.context.spell_llm import detect_spell_with_fuzzy
+
+        spell_id, target = detect_spell_with_fuzzy(
+            "I spell Veil, dissolve over this desk."
+        )
+        assert spell_id == "unveil"
+        assert target == "this desk"
+
+    def test_russian_formula_examples_detected(self) -> None:
+        """Displayed Russian formulas are executable rites."""
+        from src.context.spell_llm import detect_spell_with_fuzzy
+
+        examples = [
+            ("Скрытое, явись на этом столе.", "unveil"),
+            ("Присутствие, отзовись за этой стеной.", "sense_presence"),
+            ("Суть, откройся в этом флаконе.", "identify_substance"),
+            ("Свет, укажи след в нише.", "raise_the_lamp"),
+            ("Отзвук чар, явись на фокусе Елены.", "echo_reading"),
+            ("Разбитое стекло, сойдись.", "mend"),
+            ("Чужая память, отворись на воспоминание Елены о библиотеке.", "mnemonic_delving"),
+        ]
+
+        for text, expected_id in examples:
             spell_id, _ = detect_spell_with_fuzzy(text)
             assert spell_id == expected_id, f"Failed for {text}"
 
@@ -409,6 +468,15 @@ class TestExtractIntentFromInput:
 
         intent = extract_intent_from_input("mnemonic_delving about the crime")
         assert intent == "the crime"
+
+    def test_russian_memory_intent(self) -> None:
+        """Russian memory-purpose wording is recognized for focused delving."""
+        from src.context.spell_llm import extract_intent_from_input
+
+        intent = extract_intent_from_input(
+            "Чужая память, отворись на воспоминание Елены о библиотеке"
+        )
+        assert intent == "воспоминание Елены о библиотеке"
 
     def test_no_intent(self) -> None:
         """Returns None if no intent specified."""
@@ -575,6 +643,12 @@ class TestCalculateSpecificityBonus:
         bonus1 = calculate_specificity_bonus("unveil ON desk TO FIND clues")
         bonus2 = calculate_specificity_bonus("Unveil on desk to find clues")
         assert bonus1 == bonus2 == 20
+
+    def test_russian_formula_target_bonus(self) -> None:
+        """Russian formula targets receive the same specificity bonus as English."""
+        from src.context.spell_llm import calculate_specificity_bonus
+
+        assert calculate_specificity_bonus("Суть, откройся в этом флаконе") == 10
 
 
 class TestCalculateSpellSuccess:

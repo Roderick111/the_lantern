@@ -9,9 +9,8 @@ import {
   VerdictPage,
   WitnessesPage,
 } from "./pages";
+import { getLaunchRedirect } from "./routes";
 import { ErrorState, Loading } from "./ui";
-
-const DEEP_ROUTES = new Set(["casebook", "evidence", "witnesses", "verdict"]);
 
 export function App() {
   const [lang, setLang] = useState<Language>("en");
@@ -21,17 +20,9 @@ export function App() {
 
   useEffect(() => {
     readyMiniApp();
-    // Deep link: startapp / tgWebAppStartParam. Menu Button often opens /app/ with no hash.
-    const params = new URLSearchParams(window.location.search);
-    const start = params.get("tgWebAppStartParam") ?? params.get("startapp");
-    if (start && DEEP_ROUTES.has(start)) {
-      navigate(`/${start}`, { replace: true });
-    } else {
-      const hashPath = (window.location.hash.replace(/^#/, "") || "/").split("?")[0];
-      if (hashPath === "/" || hashPath === "") {
-        navigate("/casebook", { replace: true });
-      }
-    }
+    // Explicit button/Menu hashes win over Telegram start parameters.
+    const redirect = getLaunchRedirect(window.location.search, window.location.hash);
+    if (redirect) navigate(redirect, { replace: true });
 
     let cancelled = false;
     void (async () => {

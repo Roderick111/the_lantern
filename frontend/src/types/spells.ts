@@ -29,10 +29,14 @@ export type SpellCategory = "detection" | "analysis" | "restoration" | "mental";
 export interface SpellDefinition {
   /** Spell ID (lowercase, e.g., "unveil") */
   id: string;
-  /** Display name (e.g., "Unveil") */
+  /** Spoken formula shown to the player. */
   name: string;
+  /** Legacy name accepted by the engine, but not used as primary instruction. */
+  legacyName: string;
   /** Spell description/effect */
   description: string;
+  /** One tested example invocation. */
+  example: string;
   /** Safety level (safe or restricted) */
   safetyLevel: SafetyLevel;
   /** Spell category */

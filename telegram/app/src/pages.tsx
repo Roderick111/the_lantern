@@ -14,10 +14,41 @@ import {
 } from "./api";
 import { Banner, ErrorState, Loading, useT } from "./ui";
 
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Try the legacy WebView fallback below.
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  let copied = false;
+  try {
+    copied = document.execCommand("copy");
+  } catch {
+    copied = false;
+  }
+  textarea.remove();
+  return copied;
+}
+
 export function CasebookPage({ lang }: { lang: Language }) {
   const t = useT(lang);
   const [data, setData] = useState<Casebook | null>(null);
   const [err, setErr] = useState<import("./api").ApiError | null>(null);
+  const [copyStatus, setCopyStatus] = useState<{
+    riteId: string;
+    copied: boolean;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -69,7 +100,16 @@ export function CasebookPage({ lang }: { lang: Language }) {
         {t("rites_hint")}
       </p>
       {data.rites.map((r) => (
-        <div className="card" key={r.id}>
+        <button
+          className="card rite-card"
+          key={r.id}
+          type="button"
+          aria-label={`${t("copy_rite")}: ${r.name}`}
+          onClick={async () => {
+            const copied = await copyText(r.name);
+            setCopyStatus({ riteId: r.id, copied });
+          }}
+        >
           <strong>
             {r.name}
             {r.id === "mnemonic_delving" ? (
@@ -77,7 +117,12 @@ export function CasebookPage({ lang }: { lang: Language }) {
             ) : null}
           </strong>
           <p className="hint">{r.help}</p>
-        </div>
+          {copyStatus?.riteId === r.id ? (
+            <p className="rite-copy-status" aria-live="polite">
+              {copyStatus.copied ? t("rite_copied") : t("rite_copy_failed")}
+            </p>
+          ) : null}
+        </button>
       ))}
     </div>
   );

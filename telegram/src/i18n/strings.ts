@@ -5,7 +5,7 @@ const en = {
     "The Lantern is in public beta. The investigation opens in the next update. Try /help.",
   help:
     "Commands:\n/start — resume or begin\n/casebook — dossier summary\n/language — EN/RU\n/reset — restart case\n/support — help contact\n/terms — terms\n\n" +
-    "Send freeform text to investigate. Enter a witness to ask questions. Rites work as natural language.",
+    "Send freeform text to investigate. Enter a witness to ask questions. Rites require an explicit spoken formula; questions do not cast them.",
   queued: "Queued — processing your previous action first.",
   engine_unknown:
     "Progress may already be saved. Check your casebook and resend only if needed.",
@@ -82,7 +82,7 @@ const ru: Record<keyof typeof en, string> = {
     "«Светоч» работает в открытом бета-тесте. Расследование откроется в следующем обновлении. Попробуйте /help.",
   help:
     "Команды:\n/start — продолжить или начать\n/casebook — материалы дела\n/language — EN/RU\n/reset — сброс дела\n/support — поддержка\n/terms — условия\n\n" +
-    "Свободный текст — расследование. Выберите свидетеля для допроса. Обряды — естественным языком.",
+    "Свободный текст — расследование. Выберите свидетеля для допроса. Обряды требуют явной словесной формулы; обычные вопросы их не вызывают.",
   queued: "В очереди — сначала обрабатывается предыдущее действие.",
   engine_unknown:
     "Прогресс, возможно, уже сохранён. Проверьте материалы дела и повторите только при необходимости.",

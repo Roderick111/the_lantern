@@ -74,7 +74,20 @@ class TestSpellDefinitions:
 
     def test_all_spells_have_required_fields(self) -> None:
         """All spells have required fields."""
-        required_fields = ["name", "description", "safety_level", "category"]
+        required_fields = [
+            "name",
+            "description",
+            "formula_en",
+            "formula_ru",
+            "description_en",
+            "description_ru",
+            "example_en",
+            "example_ru",
+            "legacy_names_en",
+            "legacy_names_ru",
+            "safety_level",
+            "category",
+        ]
 
         for spell_id, spell in SPELL_DEFINITIONS.items():
             for field in required_fields:

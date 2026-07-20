@@ -50,24 +50,20 @@ describe("LanternCompendium", () => {
     it("renders all 7 rites", () => {
       render(<LanternCompendium {...defaultProps} />);
 
-      expect(screen.getByText("Unveil")).toBeInTheDocument();
-      expect(screen.getByText("Sense Presence")).toBeInTheDocument();
-      expect(screen.getByText("Identify Substance")).toBeInTheDocument();
-      expect(screen.getByText("Raise the Lamp")).toBeInTheDocument();
-      expect(screen.getByText("Echo Reading")).toBeInTheDocument();
-      expect(screen.getByText("Mend")).toBeInTheDocument();
-      expect(screen.getByText("Mnemonic Delving")).toBeInTheDocument();
+      expect(screen.getByText("Veil, dissolve")).toBeInTheDocument();
+      expect(screen.getByText("Presence, answer")).toBeInTheDocument();
+      expect(screen.getByText("Essence, speak")).toBeInTheDocument();
+      expect(screen.getByText("Trace, gleam")).toBeInTheDocument();
+      expect(screen.getByText("Echo, speak")).toBeInTheDocument();
+      expect(screen.getByText("Shards, unite")).toBeInTheDocument();
+      expect(screen.getByText("Memory, open")).toBeInTheDocument();
     });
 
     it("renders spell descriptions", () => {
       render(<LanternCompendium {...defaultProps} />);
 
-      expect(
-        screen.getByText(/What's hidden wants to stay hidden/)
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(/The air shivers when someone's near/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Reveals hidden writing/)).toBeInTheDocument();
+      expect(screen.getByText(/Detects someone nearby/)).toBeInTheDocument();
     });
 
     it.todo("renders instructions text");
@@ -239,7 +235,9 @@ describe("LanternCompendium", () => {
       SPELL_DEFINITIONS.forEach((spell) => {
         expect(spell).toHaveProperty("id");
         expect(spell).toHaveProperty("name");
+        expect(spell).toHaveProperty("legacyName");
         expect(spell).toHaveProperty("description");
+        expect(spell).toHaveProperty("example");
         expect(spell).toHaveProperty("safetyLevel");
         expect(spell).toHaveProperty("category");
       });
@@ -298,8 +296,8 @@ describe("LanternCompendium", () => {
     it("Mnemonic Delving name is red", () => {
       render(<LanternCompendium {...defaultProps} />);
 
-      const mnemonic_delvingName = screen.getByText("Mnemonic Delving");
-      expect(mnemonic_delvingName).toHaveClass("text-red-400");
+      const mnemonicDelvingName = screen.getByText("Memory, open");
+      expect(mnemonicDelvingName).toHaveClass("text-red-400");
     });
 
     it.todo("safe spell names are yellow");
