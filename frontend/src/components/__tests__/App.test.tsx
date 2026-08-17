@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from '../../App';
 import { ThemeProvider } from '../../context/ThemeContext';
@@ -208,6 +208,38 @@ describe('App', () => {
         },
         { timeout: 4000 },
       );
+    });
+
+    it('dismisses location navigation hint after first location switch', async () => {
+      localStorage.setItem('lantern-location-switch-discovered', 'true');
+      vi.mocked(api.getLocation).mockResolvedValue(mockLocationData);
+      vi.mocked(api.getWitnesses).mockResolvedValue([]);
+      vi.mocked(api.getLocations).mockResolvedValue([
+        { id: 'library', name: 'Library', type: 'crime_scene' },
+        { id: 'courtyard', name: 'Courtyard', type: 'outdoor' },
+      ]);
+      vi.mocked(api.changeLocation).mockResolvedValue({
+        success: true,
+        location: {
+          id: 'courtyard',
+          name: 'Courtyard',
+          description: 'A quiet courtyard.',
+          surface_elements: [],
+        },
+      });
+
+      renderAppAtUrl('/case/case_001');
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId('location-footstep-hint').length).toBeGreaterThan(0);
+      });
+
+      fireEvent.click(screen.getAllByRole('button', { name: /Go to Courtyard/i })[0]);
+
+      expect(localStorage.getItem('lantern-location-switch-discovered-v2')).toBe('true');
+      await waitFor(() => {
+        expect(screen.queryByTestId('location-footstep-hint')).not.toBeInTheDocument();
+      });
     });
   });
 

@@ -50,6 +50,8 @@ import { getGamePreferences } from "./utils/gamePreferences";
 import { getEvidenceDetails, updateSettings } from "./api/client";
 import type { ChangeLocationResponse } from "./types/investigation";
 
+const LOCATION_NAVIGATION_HINT_STORAGE_KEY = "lantern-location-switch-discovered-v2";
+
 // ============================================
 // App (Router)
 // ============================================
@@ -288,6 +290,25 @@ function InvestigationView({
     },
   });
   const { locations, currentLocationId, visitedLocations, loading: locationLoading, changing: locationChanging, error: locationError, handleLocationChange } = locationHook;
+  const [locationNavigationHintDismissed, setLocationNavigationHintDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(LOCATION_NAVIGATION_HINT_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const handleLocationSelect = useCallback((locationId: string) => {
+    if (!locationNavigationHintDismissed && locationId !== currentLocationId) {
+      setLocationNavigationHintDismissed(true);
+      try {
+        localStorage.setItem(LOCATION_NAVIGATION_HINT_STORAGE_KEY, "true");
+      } catch {
+        // Keep the hint dismissed for the current session if storage is unavailable.
+      }
+    }
+    void handleLocationChange(locationId);
+  }, [currentLocationId, handleLocationChange, locationNavigationHintDismissed]);
 
   const investigation = useInvestigation({ caseId, locationId: currentLocationId, playerId, slot: "autosave" });
   const { state, location, loading, error, clearError, setNarratorVerbosity, setLanguage, applyLocationChange } = investigation;
@@ -423,11 +444,12 @@ function InvestigationView({
               locations={locations}
               currentLocationId={currentLocationId}
               locationData={location}
-              onSelectLocation={(id) => void handleLocationChange(id)}
+              onSelectLocation={handleLocationSelect}
               changing={locationChanging}
               visitedLocations={visitedLocations}
               loading={locationLoading}
               error={locationError}
+              showNavigationHint={!locationNavigationHintDismissed}
             />
           </div>
 
@@ -461,11 +483,12 @@ function InvestigationView({
             locations={locations}
             currentLocationId={currentLocationId}
             locationData={location}
-            onSelectLocation={(id) => void handleLocationChange(id)}
+            onSelectLocation={handleLocationSelect}
             changing={locationChanging}
             visitedLocations={visitedLocations}
             loading={locationLoading}
             error={locationError}
+            showNavigationHint={!locationNavigationHintDismissed}
           />
         </div>
       </header>
@@ -704,7 +727,7 @@ function InvestigationView({
         onSettings={actions.handleMenuSettings}
         onExitToMainMenu={() => {
           modals.setMenuOpen(false);
-          modals.setShowExitConfirm(true);
+          onExitToMainMenu();
         }}
         loading={actions.restartLoading}
       />
@@ -772,21 +795,6 @@ function InvestigationView({
         destructive={true}
         onConfirm={() => void actions.handleRestartCase()}
         onCancel={() => modals.setShowRestartConfirm(false)}
-      />
-
-      {/* Exit to Main Menu Confirmation Dialog (Phase 5.3.1) */}
-      <ConfirmDialog
-        open={modals.showExitConfirm}
-        title="Exit to Main Menu"
-        message="Return to main menu? Any unsaved progress will be lost."
-        confirmText="Exit"
-        cancelText="Cancel"
-        destructive={true}
-        onConfirm={() => {
-          modals.setShowExitConfirm(false);
-          onExitToMainMenu();
-        }}
-        onCancel={() => modals.setShowExitConfirm(false)}
       />
 
       </>

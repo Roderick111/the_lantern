@@ -15,7 +15,6 @@ export function useGameModals() {
   const [witnessesModalOpen, setWitnessesModalOpen] = useState(false);
   const [evidenceListModalOpen, setEvidenceListModalOpen] = useState(false);
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [loadModalOpen, setLoadModalOpen] = useState(false);
   const [handbookTrigger, setHandbookTrigger] = useState(0);
@@ -41,8 +40,6 @@ export function useGameModals() {
     setEvidenceListModalOpen,
     showRestartConfirm,
     setShowRestartConfirm,
-    showExitConfirm,
-    setShowExitConfirm,
     saveModalOpen,
     setSaveModalOpen,
     loadModalOpen,

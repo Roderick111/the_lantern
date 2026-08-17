@@ -298,7 +298,7 @@ export function LandingPage({ onLoadGame, onOpenSettings, shortcutsEnabled = tru
             [X]
           </button>
           <div className={`grid grid-cols-1 md:grid-cols-2 ${theme.colors.bg.primary}`}>
-            <div className={`p-4 md:p-6 md:border-r ${theme.colors.border.default}`}>
+            <div className="p-4 md:p-6">
               <h2 id="onboarding-title" className={`${theme.typography.header} font-bold mb-3 pr-8`}>
                 Your own way through mysteries
               </h2>
@@ -306,9 +306,9 @@ export function LandingPage({ onLoadGame, onOpenSettings, shortcutsEnabled = tru
                 You are a novice inspector in an old occult academy. Describe what you do in natural language, and the world responds.
               </p>
               <ol className={`${theme.typography.bodySm} leading-relaxed list-decimal pl-5 space-y-2`}>
-                <li>Interrogate suspects and uncover their secrets.</li>
-                <li>Investigate every room to find evidence.</li>
-                <li>Piece together what happened.</li>
+                <li><span className="font-semibold">Follow your instincts:</span> interrogate suspects and uncover their secrets.</li>
+                <li><span className="font-semibold">Explore every corner:</span> investigate every room to find evidence.</li>
+                <li><span className="font-semibold">Build your own theory:</span> piece together what happened.</li>
               </ol>
             </div>
             <div className="p-4 md:p-6 flex flex-col justify-center">

@@ -220,6 +220,12 @@ describe('LandingPage', () => {
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /Your own way through mysteries/i })).toBeInTheDocument();
       });
+      expect(screen.getByText('Follow your instincts:')).toBeInTheDocument();
+      expect(screen.getByText(/interrogate suspects and uncover their secrets\./i)).toBeInTheDocument();
+      expect(screen.getByText('Explore every corner:')).toBeInTheDocument();
+      expect(screen.getByText(/investigate every room to find evidence\./i)).toBeInTheDocument();
+      expect(screen.getByText('Build your own theory:')).toBeInTheDocument();
+      expect(screen.getByText(/piece together what happened\./i)).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: /Close onboarding/i }));
 
