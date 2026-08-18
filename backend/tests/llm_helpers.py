@@ -35,6 +35,7 @@ class FakeUsage:
     total_tokens: int = 10
     prompt_tokens: int = 5
     completion_tokens: int = 5
+    reasoning_tokens: int = 2
 
 
 @dataclass
@@ -78,10 +79,17 @@ class FakeStreamChunk:
     """Mimics a LiteLLM streaming chunk."""
 
     text: str | None
+    model: str = "test/model"
+    finish_reason: str | None = None
 
     @property
     def choices(self) -> list[FakeStreamChoice]:
-        return [FakeStreamChoice(delta=FakeStreamDelta(content=self.text))]
+        return [
+            FakeStreamChoice(
+                delta=FakeStreamDelta(content=self.text),
+                finish_reason=self.finish_reason,
+            )
+        ]
 
     @property
     def usage(self) -> FakeUsage:

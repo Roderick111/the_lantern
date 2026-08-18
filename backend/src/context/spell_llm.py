@@ -20,7 +20,6 @@ __all__ = [
     "_normalize_spell_name",
     "build_mnemonic_delving_narration_prompt",
     "build_spell_effect_prompt",
-    "build_spell_system_prompt",
     "calculate_mnemonic_delving_specificity_bonus",
     "calculate_mnemonic_delving_success",
     "calculate_specificity_bonus",
@@ -30,6 +29,7 @@ __all__ = [
     "extract_intent_from_input",
     "extract_target_from_input",
     "is_spell_input",
+    "normalize_spell_target",
     "parse_spell_from_input",
 ]
 
@@ -49,6 +49,7 @@ from src.context.spell_detection import (  # noqa: F401
     extract_intent_from_input,
     extract_target_from_input,
     is_spell_input,
+    normalize_spell_target,
     parse_spell_from_input,
 )
 
@@ -59,5 +60,4 @@ from src.context.spell_prompts import (  # noqa: F401
     _format_revealable_evidence,
     build_mnemonic_delving_narration_prompt,
     build_spell_effect_prompt,
-    build_spell_system_prompt,
 )

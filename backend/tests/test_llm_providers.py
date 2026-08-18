@@ -74,7 +74,7 @@ async def test_provider_anthropic_passes_anthropic_model(
 async def test_provider_anthropic_env_setup(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """Anthropic key written to ANTHROPIC_API_KEY env var on client init."""
+    """Anthropic key stays request-scoped instead of mutating process env."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     _build_client(
         monkeypatch,
@@ -82,7 +82,7 @@ async def test_provider_anthropic_env_setup(
         ANTHROPIC_API_KEY="anthropic-specific-key",
     )
 
-    assert os.environ.get("ANTHROPIC_API_KEY") == "anthropic-specific-key"
+    assert os.environ.get("ANTHROPIC_API_KEY") is None
     reset_llm_singletons()
 
 
@@ -117,7 +117,7 @@ async def test_provider_openrouter_passes_openrouter_model(
 async def test_provider_openrouter_metadata_headers_propagate(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """OpenRouter site/app metadata is exposed via env vars (LiteLLM reads them)."""
+    """OpenRouter metadata does not leak through process-wide env vars."""
     # Clear so we can verify writes
     for k in ("OPENROUTER_API_KEY", "OR_SITE_URL", "OR_APP_NAME"):
         monkeypatch.delenv(k, raising=False)
@@ -130,10 +130,9 @@ async def test_provider_openrouter_metadata_headers_propagate(
         OR_APP_NAME="MyTestApp",
     )
 
-    # Current behavior: metadata pushed to process env
-    assert os.environ.get("OPENROUTER_API_KEY") == "or-key-xyz"
-    assert os.environ.get("OR_SITE_URL") == "https://my-test-app.example"
-    assert os.environ.get("OR_APP_NAME") == "MyTestApp"
+    assert os.environ.get("OPENROUTER_API_KEY") is None
+    assert os.environ.get("OR_SITE_URL") != "https://my-test-app.example"
+    assert os.environ.get("OR_APP_NAME") != "MyTestApp"
 
     reset_llm_singletons()
 
@@ -175,7 +174,7 @@ async def test_provider_openai_env_setup(monkeypatch: pytest.MonkeyPatch):
         OPENAI_API_KEY="openai-specific-key",
     )
 
-    assert os.environ.get("OPENAI_API_KEY") == "openai-specific-key"
+    assert os.environ.get("OPENAI_API_KEY") is None
     reset_llm_singletons()
 
 
@@ -218,7 +217,7 @@ async def test_provider_google_env_setup(monkeypatch: pytest.MonkeyPatch):
         GOOGLE_API_KEY="google-specific-key",
     )
 
-    assert os.environ.get("GOOGLE_API_KEY") == "google-specific-key"
+    assert os.environ.get("GOOGLE_API_KEY") is None
     reset_llm_singletons()
 
 

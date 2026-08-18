@@ -7,9 +7,10 @@ and streaming.
 
 import asyncio
 import logging
-import os
+import random
 import time
 from collections.abc import AsyncGenerator
+from typing import Any
 
 from litellm import acompletion, completion_cost
 from litellm.exceptions import (
@@ -20,13 +21,14 @@ from litellm.exceptions import (
 from src.config.llm_settings import get_llm_settings
 from src.telemetry.logger import log_event
 
-# Timeout before falling back to secondary model
-STREAM_TIMEOUT_SECONDS = 10
+# Provider connection timeout. The shared SSE runner enforces full request
+# deadlines, so no provider attempt can run forever.
+STREAM_TIMEOUT_SECONDS = 8
 
 logger = logging.getLogger(__name__)
 
 
-CHUNK_TIMEOUT_SECONDS = 30
+CHUNK_TIMEOUT_SECONDS = 90
 
 
 class LLMClientError(Exception):
@@ -47,11 +49,35 @@ class AuthenticationFailedError(LLMClientError):
     pass
 
 
+class EmptyLLMResponseError(LLMClientError):
+    """Raised when a provider completes without returning text."""
+
+    pass
+
+
+class LLMConnectionError(LLMClientError):
+    """Raised when provider connection fails before visible output."""
+
+    pass
+
+
+class LLMTimeoutError(LLMClientError):
+    """Raised when provider connection or stream deadline expires."""
+
+    pass
+
+
+class LLMServiceUnavailableError(LLMClientError):
+    """Raised when provider reports a transient service failure."""
+
+    pass
+
 
 class UnsupportedModelError(LLMClientError):
     """Raised when a user-supplied BYOK model is not on known patterns."""
 
     pass
+
 
 # Backward compatibility alias
 ClaudeClientError = LLMClientError
@@ -59,15 +85,31 @@ ClaudeClientError = LLMClientError
 
 def _is_retryable(e: Exception) -> bool:
     """True if the error is worth retrying with a fallback model."""
-    if isinstance(e, (TimeoutError, asyncio.TimeoutError)):
+    if isinstance(e, EmptyLLMResponseError):
         return True
-    if isinstance(e, RateLimitError):
+    if isinstance(e, (TimeoutError, asyncio.TimeoutError, LLMTimeoutError)):
+        return True
+    if isinstance(e, (RateLimitError, LLMConnectionError, LLMServiceUnavailableError)):
         return True
     if isinstance(e, AuthenticationError):
         return False
     msg = str(e).lower()
-    return any(k in msg for k in ("timeout", "502", "503", "504", "overloaded"))
-
+    return any(
+        k in msg
+        for k in (
+            "timeout",
+            "timed out",
+            "connection",
+            "disconnect",
+            "502",
+            "503",
+            "504",
+            "service unavailable",
+            "temporarily unavailable",
+            "overloaded",
+            "connection reset",
+        )
+    )
 
 
 def is_valid_byok_model(model: str) -> bool:
@@ -83,9 +125,12 @@ def is_valid_byok_model(model: str) -> bool:
         return False
     # Accept direct or openrouter prefixed
     prefixes = (
-        "anthropic/", "claude",
-        "openai/", "gpt-",
-        "google/", "gemini",
+        "anthropic/",
+        "claude",
+        "openai/",
+        "gpt-",
+        "google/",
+        "gemini",
         "openrouter/",
         "user/",
     )
@@ -104,6 +149,7 @@ def validate_byok_model(model: str | None) -> None:
     if not is_valid_byok_model(model):
         raise UnsupportedModelError(f"Unsupported model for provider: {model}")
 
+
 class LLMClient:
     """Unified interface for all LLM providers via LiteLLM.
 
@@ -113,23 +159,6 @@ class LLMClient:
 
     def __init__(self) -> None:
         self.settings = get_llm_settings()
-        self._setup_environment()
-
-    def _setup_environment(self) -> None:
-        """Set environment variables for LiteLLM."""
-        if self.settings.OPENROUTER_API_KEY:
-            os.environ["OPENROUTER_API_KEY"] = self.settings.OPENROUTER_API_KEY
-            os.environ["OR_SITE_URL"] = self.settings.OR_SITE_URL
-            os.environ["OR_APP_NAME"] = self.settings.OR_APP_NAME
-
-        if self.settings.ANTHROPIC_API_KEY:
-            os.environ["ANTHROPIC_API_KEY"] = self.settings.ANTHROPIC_API_KEY
-
-        if self.settings.OPENAI_API_KEY:
-            os.environ["OPENAI_API_KEY"] = self.settings.OPENAI_API_KEY
-
-        if self.settings.GOOGLE_API_KEY:
-            os.environ["GOOGLE_API_KEY"] = self.settings.GOOGLE_API_KEY
 
     async def get_response(
         self,
@@ -140,6 +169,7 @@ class LLMClient:
         api_key: str | None = None,
         model: str | None = None,
         timeout: float | None = STREAM_TIMEOUT_SECONDS,
+        disable_reasoning: bool = False,
     ) -> str:
         """Get LLM response, optionally using user-provided key/model.
 
@@ -165,9 +195,24 @@ class LLMClient:
                 temperature=temperature,
                 api_key=api_key,
                 timeout=timeout,
+                disable_reasoning=disable_reasoning,
             )
         except Exception as e:
-            if api_key or not self.settings.ENABLE_FALLBACK or not _is_retryable(e):
+            if api_key and _is_retryable(e):
+                await asyncio.sleep(random.uniform(0, 0.5))
+                try:
+                    return await self._call_llm(
+                        model=target_model,
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        api_key=api_key,
+                        timeout=timeout,
+                        disable_reasoning=disable_reasoning,
+                    )
+                except Exception as retry_error:
+                    raise self._classify_exception(retry_error) from retry_error
+            if not self.settings.ENABLE_FALLBACK or not _is_retryable(e):
                 raise self._classify_exception(e) from e
 
             logger.warning("Primary model failed (retryable): %s", e)
@@ -178,11 +223,17 @@ class LLMClient:
                     messages=messages,
                     max_tokens=max_tokens,
                     temperature=temperature,
-                    timeout=None,
+                    api_key=self._provider_api_key(self.settings.FALLBACK_MODEL),
+                    timeout=STREAM_TIMEOUT_SECONDS,
+                    fallback=True,
+                    disable_reasoning=disable_reasoning,
                 )
             except Exception as fallback_error:
                 logger.error("Fallback also failed: %s", fallback_error)
-                raise LLMClientError(
+                classified = self._classify_exception(fallback_error)
+                if isinstance(classified, (EmptyLLMResponseError, RateLimitExceededError, AuthenticationFailedError, UnsupportedModelError)):
+                    raise classified from fallback_error
+                raise LLMConnectionError(
                     f"Both primary and fallback failed: {fallback_error}"
                 ) from fallback_error
 
@@ -194,6 +245,10 @@ class LLMClient:
         temperature: float = 0.7,
         api_key: str | None = None,
         model: str | None = None,
+        trace: list[dict[str, Any]] | None = None,
+        disable_reasoning: bool = False,
+        endpoint: str | None = None,
+        request_id: str | None = None,
     ) -> AsyncGenerator[str, None]:
         """Stream LLM response chunks with fallback and timeout.
 
@@ -209,12 +264,45 @@ class LLMClient:
 
         try:
             async for chunk in self._stream_with_timeout(
-                target_model, messages, max_tokens, temperature, api_key
+                target_model,
+                messages,
+                max_tokens,
+                temperature,
+                api_key,
+                trace=trace,
+                disable_reasoning=disable_reasoning,
+                endpoint=endpoint,
+                request_id=request_id,
+                attempt=1,
             ):
                 yielded_any = True
                 yield chunk
         except Exception as e:
-            if yielded_any or not can_fallback or not _is_retryable(e):
+            if yielded_any or not _is_retryable(e):
+                raise self._classify_exception(e) from e
+
+            if api_key:
+                logger.warning("BYOK stream failed; retrying same model: %s", target_model)
+                await asyncio.sleep(random.uniform(0, 0.5))
+                try:
+                    async for chunk in self._stream_with_timeout(
+                        target_model,
+                        messages,
+                        max_tokens,
+                        temperature,
+                        api_key=api_key,
+                        trace=trace,
+                        disable_reasoning=disable_reasoning,
+                        endpoint=endpoint,
+                        request_id=request_id,
+                        attempt=2,
+                    ):
+                        yield chunk
+                    return
+                except Exception as retry_error:
+                    raise self._classify_exception(retry_error) from retry_error
+
+            if not can_fallback:
                 raise self._classify_exception(e) from e
 
             logger.warning("Primary stream failed (%s): %s", target_model, e)
@@ -222,13 +310,26 @@ class LLMClient:
 
             try:
                 async for chunk in self._stream_with_timeout(
-                    self.settings.FALLBACK_MODEL, messages, max_tokens, temperature,
-                    timeout=None,
+                    self.settings.FALLBACK_MODEL,
+                    messages,
+                    max_tokens,
+                    temperature,
+                    api_key=self._provider_api_key(self.settings.FALLBACK_MODEL),
+                    timeout=STREAM_TIMEOUT_SECONDS,
+                    fallback=True,
+                    trace=trace,
+                    disable_reasoning=disable_reasoning,
+                    endpoint=endpoint,
+                    request_id=request_id,
+                    attempt=2,
                 ):
                     yield chunk
             except Exception as fallback_err:
                 logger.error("Fallback stream also failed: %s", fallback_err)
-                raise LLMClientError(
+                classified = self._classify_exception(fallback_err)
+                if isinstance(classified, (EmptyLLMResponseError, RateLimitExceededError, AuthenticationFailedError, UnsupportedModelError)):
+                    raise classified from fallback_err
+                raise LLMConnectionError(
                     f"Both primary and fallback failed: {fallback_err}"
                 ) from fallback_err
 
@@ -240,19 +341,42 @@ class LLMClient:
         temperature: float,
         api_key: str | None = None,
         timeout: float | None = STREAM_TIMEOUT_SECONDS,
+        fallback: bool = False,
+        trace: list[dict[str, Any]] | None = None,
+        disable_reasoning: bool = False,
+        endpoint: str | None = None,
+        request_id: str | None = None,
+        attempt: int = 1,
     ) -> AsyncGenerator[str, None]:
         """Stream from a single model with optional timeout on connection."""
         if api_key:
             validate_byok_model(model)
-        kwargs: dict = {
+        kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
             "stream": True,
+            "stream_options": {"include_usage": True},
         }
         if api_key:
             kwargs["api_key"] = api_key
+        else:
+            provider_key = self._provider_api_key(model)
+            if provider_key:
+                kwargs["api_key"] = provider_key
+        if disable_reasoning:
+            kwargs["reasoning"] = {"enabled": False}
+        if model.startswith("openrouter/"):
+            kwargs["provider"] = {
+                "sort": "throughput",
+                "allow_fallbacks": True,
+                "require_parameters": True,
+            }
+            kwargs["extra_headers"] = {
+                "HTTP-Referer": self.settings.OR_SITE_URL,
+                "X-Title": self.settings.OR_APP_NAME,
+            }
 
         t0 = time.monotonic()
         try:
@@ -262,34 +386,91 @@ class LLMClient:
             else:
                 response = await coro
         except TimeoutError:
-            raise LLMClientError(
-                f"Timeout: no response from {model} within {timeout}s"
-            )
+            raise LLMClientError(f"Timeout: no response from {model} within {timeout}s")
         connect_s = round(time.monotonic() - t0, 2)
 
         last_chunk = None
         ttfb = None
+        yielded_content = False
+        actual_model: str | None = None
+        finish_reason: str | None = None
+        usage: object | None = None
+        visible_started = False
+        chunk_count = 0
+        chunk_gaps: list[float] = []
+        last_event_at: float | None = None
+        visible_ttfb: float | None = None
         aiter = response.__aiter__()
         while True:
             try:
                 chunk = await asyncio.wait_for(
-                    aiter.__anext__(), timeout=CHUNK_TIMEOUT_SECONDS
+                    aiter.__anext__(),
+                    timeout=STREAM_TIMEOUT_SECONDS
+                    if not visible_started
+                    else CHUNK_TIMEOUT_SECONDS,
                 )
             except StopAsyncIteration:
                 break
             except TimeoutError:
                 raise LLMClientError(
-                    f"Stream stalled: no chunk from {model} for {CHUNK_TIMEOUT_SECONDS}s"
+                    f"Stream stalled: no visible output from {model} within "
+                    f"{STREAM_TIMEOUT_SECONDS if not visible_started else CHUNK_TIMEOUT_SECONDS}s"
                 )
             if ttfb is None:
                 ttfb = round(time.monotonic() - t0, 2)
+            now = time.monotonic()
+            if last_event_at is not None:
+                chunk_gaps.append(round(now - last_event_at, 3))
+            last_event_at = now
+            chunk_count += 1
             last_chunk = chunk
-            content = chunk.choices[0].delta.content
-            if content:
+            actual_model = _field(chunk, "model") or actual_model
+            usage = _field(chunk, "usage") or usage
+            choices = _field(chunk, "choices") or []
+            if choices:
+                finish_reason = _field(choices[0], "finish_reason") or finish_reason
+                delta = _field(choices[0], "delta")
+                content = _field(delta, "content")
+            else:
+                content = None
+            if content and content.strip():
+                yielded_content = True
+                visible_started = True
+                if visible_ttfb is None:
+                    visible_ttfb = round(time.monotonic() - t0, 2)
                 yield content
 
         total_s = round(time.monotonic() - t0, 2)
-        await _log_llm_metrics(model, last_chunk, total_s, streaming=True, connect_s=connect_s, ttfb=ttfb)
+        metrics_response = {
+            "model": actual_model or model,
+            "choices": ([{"finish_reason": finish_reason}] if finish_reason else []),
+            "usage": usage,
+        }
+        metrics = await _log_llm_metrics(
+            model,
+            metrics_response if last_chunk is not None else None,
+            total_s,
+            streaming=True,
+            connect_s=connect_s,
+            ttfb=ttfb,
+            fallback=fallback,
+            extra={
+                "chunk_count": chunk_count,
+                "visible_ttfb_s": visible_ttfb,
+                "chunk_gap_p50_s": _percentile(chunk_gaps, 0.50),
+                "chunk_gap_p95_s": _percentile(chunk_gaps, 0.95),
+                "visible_tokens_per_second": _visible_tokens_per_second(
+                    usage, total_s, visible_ttfb
+                ),
+                "endpoint": endpoint,
+                "request_id": request_id,
+                "attempt": attempt,
+            },
+        )
+        if trace is not None:
+            trace.append(_diagnostic_trace(metrics))
+        if not yielded_content:
+            raise EmptyLLMResponseError(f"Empty response from {model}")
 
     @staticmethod
     def _classify_exception(e: Exception) -> LLMClientError:
@@ -299,7 +480,25 @@ class LLMClient:
             return RateLimitExceededError(f"Rate limit exceeded: {e}")
         if isinstance(e, AuthenticationError):
             return AuthenticationFailedError(f"Authentication failed: {e}")
+        if isinstance(e, (TimeoutError, asyncio.TimeoutError)) or "timeout" in str(e).lower():
+            return LLMTimeoutError(str(e))
+        if isinstance(e, (ConnectionError, OSError)) or any(
+            token in str(e).lower() for token in ("connection", "disconnect", "502", "503", "504")
+        ):
+            return LLMConnectionError(str(e))
         return LLMClientError(str(e))
+
+    def _provider_api_key(self, model: str) -> str | None:
+        """Resolve server credential per request; never mutate process env."""
+        if model.startswith("openrouter/"):
+            return self.settings.OPENROUTER_API_KEY or None
+        if model.startswith(("anthropic/", "claude")):
+            return self.settings.ANTHROPIC_API_KEY or None
+        if model.startswith(("openai/", "gpt-")):
+            return self.settings.OPENAI_API_KEY or None
+        if model.startswith(("google/", "gemini")):
+            return self.settings.GOOGLE_API_KEY or None
+        return None
 
     def _build_messages(self, prompt: str, system: str | None = None) -> list[dict[str, str]]:
         messages: list[dict[str, str]] = []
@@ -316,11 +515,13 @@ class LLMClient:
         temperature: float,
         api_key: str | None = None,
         timeout: float | None = STREAM_TIMEOUT_SECONDS,
+        fallback: bool = False,
+        disable_reasoning: bool = False,
     ) -> str:
         """Make LLM API call via LiteLLM."""
         if api_key:
             validate_byok_model(model)
-        kwargs: dict = {
+        kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages,
             "max_tokens": max_tokens,
@@ -328,6 +529,22 @@ class LLMClient:
         }
         if api_key:
             kwargs["api_key"] = api_key
+        else:
+            provider_key = self._provider_api_key(model)
+            if provider_key:
+                kwargs["api_key"] = provider_key
+        if disable_reasoning:
+            kwargs["reasoning"] = {"enabled": False}
+        if model.startswith("openrouter/"):
+            kwargs["provider"] = {
+                "sort": "throughput",
+                "allow_fallbacks": True,
+                "require_parameters": True,
+            }
+            kwargs["extra_headers"] = {
+                "HTTP-Referer": self.settings.OR_SITE_URL,
+                "X-Title": self.settings.OR_APP_NAME,
+            }
 
         t0 = time.monotonic()
         try:
@@ -337,14 +554,23 @@ class LLMClient:
             else:
                 response = await coro
         except TimeoutError:
-            raise LLMClientError(
-                f"Timeout: no response from {model} within {timeout}s"
-            )
+            raise LLMClientError(f"Timeout: no response from {model} within {timeout}s")
         total_s = round(time.monotonic() - t0, 2)
 
         content = response.choices[0].message.content or ""
-        await _log_llm_metrics(model, response, total_s, streaming=False, connect_s=total_s, ttfb=total_s)
+        await _log_llm_metrics(
+            model,
+            response,
+            total_s,
+            streaming=False,
+            connect_s=total_s,
+            ttfb=total_s,
+            fallback=fallback,
+        )
+        if not content.strip():
+            raise EmptyLLMResponseError(f"Empty response from {model}")
         return content
+
 
 async def _log_llm_metrics(
     model: str,
@@ -353,7 +579,9 @@ async def _log_llm_metrics(
     streaming: bool,
     connect_s: float | None = None,
     ttfb: float | None = None,
-) -> None:
+    fallback: bool = False,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Log LLM call metrics to stdout and telemetry JSONL.
 
     Args:
@@ -365,33 +593,116 @@ async def _log_llm_metrics(
         ttfb: Time to first byte/chunk
     """
     cost = None
-    tokens = None
+    usage_values = {
+        "prompt_tokens": None,
+        "completion_tokens": None,
+        "reasoning_tokens": None,
+        "total_tokens": None,
+    }
     try:
         cost = completion_cost(completion_response=response)
     except Exception:
         pass
     try:
-        usage = getattr(response, "usage", None)
+        usage = _field(response, "usage")
         if usage:
-            tokens = getattr(usage, "total_tokens", None)
+            usage_values["prompt_tokens"] = _field(usage, "prompt_tokens")
+            usage_values["completion_tokens"] = _field(usage, "completion_tokens")
+            usage_values["total_tokens"] = _field(usage, "total_tokens")
+            usage_values["reasoning_tokens"] = _field(usage, "reasoning_tokens")
+            if usage_values["reasoning_tokens"] is None:
+                details = _field(usage, "completion_tokens_details")
+                usage_values["reasoning_tokens"] = _field(details, "reasoning_tokens")
     except Exception:
         pass
 
+    actual_model = _field(response, "model") or model
+    choices = _field(response, "choices") or []
+    finish_reason = _field(choices[0], "finish_reason") if choices else None
     metrics = {
         "model": model,
+        "requested_model": model,
+        "actual_model": actual_model,
+        "provider": actual_model.split("/", 1)[0] if isinstance(actual_model, str) else None,
+        "fallback": fallback,
+        "finish_reason": finish_reason,
         "connect_s": connect_s,
         "ttfb_s": ttfb,
         "total_s": total_s,
-        "tokens": tokens,
+        "tokens": usage_values["total_tokens"],
+        **usage_values,
         "cost_usd": round(cost, 6) if cost else None,
         "streaming": streaming,
     }
+    if extra:
+        metrics.update(extra)
     logger.info(
-        "LLM call: model=%s, connect=%.2fs, ttfb=%s, total=%.2fs, tokens=%s, cost=$%s",
-        model, connect_s or 0, f"{ttfb:.2f}s" if ttfb else "N/A", total_s, tokens,
+        "LLM call: requested=%s, actual=%s, fallback=%s, finish=%s, "
+        "connect=%.2fs, ttfb=%s, total=%.2fs, completion=%s, reasoning=%s, "
+        "tokens=%s, cost=$%s",
+        model,
+        actual_model,
+        fallback,
+        finish_reason,
+        connect_s or 0,
+        f"{ttfb:.2f}s" if ttfb else "N/A",
+        total_s,
+        usage_values["completion_tokens"],
+        usage_values["reasoning_tokens"],
+        usage_values["total_tokens"],
         f"{cost:.6f}" if cost else "N/A",
     )
     await log_event("llm_call", "system", "system", metrics)
+    return metrics
+
+
+def _field(value: object, name: str) -> Any:
+    """Read one field from LiteLLM objects or dictionaries."""
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return value.get(name)
+    return getattr(value, name, None)
+
+
+def _diagnostic_trace(metrics: dict[str, Any]) -> dict[str, Any]:
+    """Keep provider result fields needed by live diagnostics."""
+    fields = (
+        "requested_model",
+        "actual_model",
+        "provider",
+        "fallback",
+        "finish_reason",
+        "prompt_tokens",
+        "completion_tokens",
+        "reasoning_tokens",
+        "total_tokens",
+        "chunk_count",
+        "visible_ttfb_s",
+        "chunk_gap_p50_s",
+        "chunk_gap_p95_s",
+    )
+    return {field: metrics.get(field) for field in fields}
+
+
+def _percentile(values: list[float], fraction: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, max(0, round((len(ordered) - 1) * fraction)))
+    return ordered[index]
+
+
+def _visible_tokens_per_second(
+    usage: object | None,
+    total_s: float,
+    visible_ttfb: float | None,
+) -> float | None:
+    completion_tokens = _field(usage, "completion_tokens")
+    if not isinstance(completion_tokens, (int, float)):
+        return None
+    visible_duration = max(total_s - (visible_ttfb or 0), 0.001)
+    return round(float(completion_tokens) / visible_duration, 2)
 
 
 # Module-level client instance (lazy initialization)
@@ -429,5 +740,3 @@ async def get_response(prompt: str, system: str | None = None) -> str:
     """Convenience function for quick responses."""
     client = get_client()
     return await client.get_response(prompt, system=system)
-
-

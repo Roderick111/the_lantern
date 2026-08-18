@@ -12,6 +12,8 @@
 // API Request Types
 // ============================================
 
+import type { StreamFailure } from '../api/base';
+
 /** Valid save slot names (matches backend SaveSlotName Literal). */
 export type SaveSlotName = 'autosave' | 'slot_1' | 'slot_2' | 'slot_3';
 
@@ -27,6 +29,8 @@ export interface InvestigateRequest {
   location_id?: string;
   /** Save slot for state persistence (defaults to "autosave") */
   slot?: SaveSlotName;
+  /** Stable id reused when retrying this turn. */
+  request_id?: string;
 }
 
 /**
@@ -93,6 +97,7 @@ export interface LoadResponse {
   conversation_history?: ConversationMessage[] | null;
   /** Narrator verbosity style (Phase 5.7) */
   narrator_verbosity?: 'concise' | 'storyteller' | 'atmospheric';
+  assistance_mode?: 'normal' | 'easy';
   /** Game response language */
   language?: string;
 }
@@ -153,6 +158,7 @@ export interface InvestigationState {
   readonly visited_locations: readonly string[];
   /** Narrator verbosity style */
   readonly narrator_verbosity?: 'concise' | 'storyteller' | 'atmospheric';
+  readonly assistance_mode?: 'normal' | 'easy';
   /** Game response language */
   readonly language?: string;
 }
@@ -173,6 +179,10 @@ export interface ConversationItem {
   evidence_names?: Record<string, string>;
   /** Timestamp of the interaction */
   timestamp: Date;
+  /** Stable id reused when retrying this turn. */
+  requestId?: string;
+  status?: 'streaming' | 'complete' | 'failed';
+  failure?: StreamFailure;
 }
 
 // ============================================
@@ -219,6 +229,12 @@ export interface WitnessConversationItem {
   timestamp: string;
   /** Trust change from this exchange */
   trust_delta?: number;
+  requestId?: string;
+  status?: 'streaming' | 'complete' | 'failed';
+  failure?: StreamFailure;
+  operation?: 'interrogate' | 'present_evidence';
+  evidenceId?: string;
+  evidenceName?: string;
 }
 
 /**
@@ -253,6 +269,7 @@ export interface InterrogateRequest {
   case_id?: string;
   /** Save slot (defaults to "autosave") */
   slot?: SaveSlotName;
+  request_id?: string;
 }
 
 /**
@@ -283,6 +300,7 @@ export interface PresentEvidenceRequest {
   case_id?: string;
   /** Save slot (defaults to "autosave") */
   slot?: SaveSlotName;
+  request_id?: string;
 }
 
 /**

@@ -32,6 +32,7 @@ from src.api.schemas import (
     PresentEvidenceResponse,
     WitnessInfo,
 )
+from src.api.stream_runner import replay_cached_stream
 from src.case_store.loader import get_witness, list_witnesses
 from src.state.idempotency import IdempotencyGuard
 
@@ -47,22 +48,47 @@ async def interrogate_witness_stream(
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ):
     """Stream witness interrogation response via SSE."""
-    _, witness, state, witness_state, prep = await asyncio.to_thread(
-        setup_interrogate_stream,
-        body,
-        player_id,
-    )
-    if prep.mnemonic_delving_redirect:
-        result = await handle_programmatic_mnemonic_delving(
-            body=body,
-            witness=witness,
-            state=state,
-            witness_state=witness_state,
-            llm_config=llm_config,
-            slot=body.slot,
-            player_id=player_id,
+    guard = IdempotencyGuard(player_id, "interrogate_stream", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return replay_cached_stream(early)
+    try:
+        _, witness, state, witness_state, prep = await asyncio.to_thread(
+            setup_interrogate_stream,
+            body,
+            player_id,
         )
-        return wrap_interrogate_as_sse(result, llm_config.model)
+    except Exception:
+        guard.fail_before_mutation()
+        raise
+    if prep.mnemonic_delving_redirect:
+        try:
+            result = await handle_programmatic_mnemonic_delving(
+                body=body,
+                witness=witness,
+                state=state,
+                witness_state=witness_state,
+                llm_config=llm_config,
+                slot=body.slot,
+                player_id=player_id,
+            )
+        except Exception:
+            guard.fail_before_mutation()
+            raise
+        if body.request_id:
+            guard.complete_stream(
+                result.response,
+                {
+                    "done": True,
+                    "trust": result.trust,
+                    "trust_delta": result.trust_delta,
+                    "secrets_revealed": result.secrets_revealed,
+                    "updated_state": result.updated_state,
+                    "meta": {"model": llm_config.model},
+                    "request_id": body.request_id,
+                },
+            )
+        return wrap_interrogate_as_sse(result, llm_config.model, body.request_id)
 
     return stream_witness_llm(
         prep,
@@ -75,6 +101,8 @@ async def interrogate_witness_stream(
         body.slot,
         llm_config,
         "interrogate_stream",
+        request=request,
+        idempotency=guard,
     )
 
 
@@ -169,11 +197,19 @@ async def present_evidence_stream(
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ):
     """Stream evidence presentation response via SSE."""
-    _, witness, state, witness_state, prep = await asyncio.to_thread(
-        setup_present_evidence_stream,
-        body,
-        player_id,
-    )
+    guard = IdempotencyGuard(player_id, "present_evidence_stream", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return replay_cached_stream(early)
+    try:
+        _, witness, state, witness_state, prep = await asyncio.to_thread(
+            setup_present_evidence_stream,
+            body,
+            player_id,
+        )
+    except Exception:
+        guard.fail_before_mutation()
+        raise
 
     return stream_witness_llm(
         prep,
@@ -187,6 +223,8 @@ async def present_evidence_stream(
         llm_config,
         "present_evidence_stream",
         use_natural_warming=False,
+        request=request,
+        idempotency=guard,
     )
 
 

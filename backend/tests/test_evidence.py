@@ -8,6 +8,8 @@ from src.utils.evidence import (
     extract_flags_from_response,
     find_not_present_response,
     matches_trigger,
+    normalize_rite_response,
+    validate_rite_control_result,
 )
 
 
@@ -141,6 +143,35 @@ class TestExtractEvidenceFromResponse:
         result = extract_evidence_from_response(response)
 
         assert result == ["focus_last_spell_signature"]
+
+
+class TestRiteControlResult:
+    def test_accepts_canonical_underscore_marker(self) -> None:
+        response = "The frost forms a starburst.\n\n[EVIDENCE_frost_pattern]"
+
+        valid, reason = validate_rite_control_result(response, {"frost_pattern"})
+
+        assert valid is True
+        assert reason is None
+        assert extract_evidence_from_response(response) == ["frost_pattern"]
+
+    def test_rejects_unknown_canonical_id_and_normalizes_valid_result(self) -> None:
+        response = "The frost forms a starburst. [EVIDENCE_pattern]"
+
+        valid, reason = validate_rite_control_result(response, {"frost_pattern"})
+        normalized = normalize_rite_response(response, "[EVIDENCE_frost_pattern]")
+
+        assert valid is False
+        assert reason == "invalid_evidence_id"
+        assert normalized == "The frost forms a starburst.\n\n[EVIDENCE_frost_pattern]"
+
+    def test_accepts_explicit_no_evidence_result(self) -> None:
+        valid, reason = validate_rite_control_result(
+            "The rite finds nothing here.\n\n[NO_EVIDENCE]", {"frost_pattern"}
+        )
+
+        assert valid is True
+        assert reason is None
 
 
 class TestCheckAlreadyDiscovered:

@@ -41,7 +41,7 @@ def get_language_instruction(language: str) -> str:
 LANGUAGE RULE: YOU MUST RESPOND IN {lang_name.upper()}.
 Translate ONLY narration and dialogue text. DO NOT translate any of the following: \
 they must remain exactly as defined in English:
-- Evidence tags: [EVIDENCE: id]
+- Evidence tags: [EVIDENCE_ID]
 - Trust tags: [TRUST_DELTA: N]
 - Evidence IDs, secret IDs, witness IDs
 - Spell names and incantations

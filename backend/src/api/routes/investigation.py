@@ -5,17 +5,14 @@ import logging
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse
 
 from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
-from src.api.errors import llm_http_exception, llm_stream_error_payload, redact_secrets
+from src.api.errors import llm_http_exception
 from src.api.helpers import (
-    SSE_HEADERS,
     check_spell_already_discovered,
     save_conversation_and_return,
     save_slot_state,
     state_delta,
-    stream_with_keepalive,
 )
 from src.api.llm_client import LLMClientError as ClaudeClientError
 from src.api.llm_client import get_client
@@ -27,16 +24,19 @@ from src.api.routes.investigation_logic import (
     process_investigation_response,
     resolve_spell_mechanics,
     setup_investigation,
+    validate_narrator_control_response,
 )
 from src.api.schemas import InvestigateRequest, InvestigateResponse
 from src.api.sse_format import sse_json_event, sse_text_event
+from src.api.stream_runner import reliable_sse_stream, replay_cached_stream, streaming_response
 from src.context.spell_llm import detect_spell_with_fuzzy
 from src.state.idempotency import IdempotencyGuard
-from src.telemetry.logger import log_event
 from src.utils.evidence import check_already_discovered, find_not_present_response
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+NARRATOR_MAX_TOKENS = 600
+NARRATOR_TEMPERATURE = 0.7
 
 
 @router.post("/investigate/stream")
@@ -48,8 +48,20 @@ async def investigate_stream(
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ):
     """Stream narrator response via SSE."""
+    guard = IdempotencyGuard(player_id, "investigate_stream", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        if early.get("__stream__"):
+            return replay_cached_stream(early)
+        return replay_cached_stream(
+            {"text": early.get("narrator_response", ""), "done_payload": early}
+        )
     t_start = time.monotonic()
-    ctx = await asyncio.to_thread(setup_investigation, body, player_id)
+    try:
+        ctx = await asyncio.to_thread(setup_investigation, body, player_id)
+    except Exception:
+        guard.fail_before_mutation()
+        raise
     logger.debug("TIMING setup: %.0fms", (time.monotonic() - t_start) * 1000)
 
     t1 = time.monotonic()
@@ -65,21 +77,19 @@ async def investigate_stream(
 
         async def location_change_generator():
             yield sse_text_event(narrative)
-            yield sse_json_event(
-                {
-                    "done": True,
-                    "new_evidence": [],
-                    "evidence_names": {},
-                    "location_changed": new_loc_id,
-                    "updated_state": state_delta(ctx.state),
-                }
-            )
+            done_payload = {
+                "done": True,
+                "new_evidence": [],
+                "evidence_names": {},
+                "location_changed": new_loc_id,
+                "updated_state": state_delta(ctx.state),
+                **({"request_id": body.request_id} if body.request_id else {}),
+            }
+            if body.request_id:
+                guard.complete_stream(narrative, done_payload)
+            yield sse_json_event(done_payload)
 
-        return StreamingResponse(
-            location_change_generator(),
-            media_type="text/event-stream",
-            headers=SSE_HEADERS,
-        )
+        return streaming_response(location_change_generator())
 
     spell_id, target = detect_spell_with_fuzzy(body.player_input)
     is_spell = spell_id is not None
@@ -101,93 +111,93 @@ async def investigate_stream(
     )
     logger.debug("TIMING prompt build: %.0fms", (time.monotonic() - t2) * 1000)
     client = get_client()
+    llm_trace: list[dict] = []
 
-    async def event_generator():
-        full_response = ""
-        t0 = time.monotonic()
-        try:
-            llm_stream = client.get_response_stream(
+    async def finalize(full_response: str) -> dict:
+        llm_elapsed_ms = int((time.monotonic() - t0) * 1000)
+
+        control_resolution = await validate_narrator_control_response(
+            full_response,
+            is_spell=is_spell,
+            prompt=prompt,
+            model=llm_config.model,
+            player_id=player_id,
+            case_id=body.case_id,
+            slot=body.slot,
+            assistance_mode=ctx.state.assistance_mode,
+            pre_action_discovered_ids=list(ctx.discovered_ids),
+        )
+        full_response = control_resolution.response
+
+        new_evidence, evidence_names = await process_investigation_response(
+            full_response,
+            body,
+            ctx,
+            is_spell,
+            spell_id,
+            target,
+            player_id,
+        )
+
+        ctx.state.add_conversation_message(
+            "player",
+            body.player_input,
+            location_id=ctx.target_location_id,
+        )
+        ctx.state.add_conversation_message(
+            "narrator",
+            full_response,
+            location_id=ctx.target_location_id,
+        )
+        ctx.state.add_narrator_conversation(
+            body.player_input,
+            full_response,
+            location_id=ctx.target_location_id,
+        )
+        await asyncio.to_thread(save_slot_state, ctx.state, player_id, body.slot)
+        return {
+            "done": True,
+            "new_evidence": new_evidence,
+            "evidence_names": evidence_names,
+            "updated_state": state_delta(ctx.state),
+            "meta": {
+                "model": llm_config.model,
+                "latency_ms": llm_elapsed_ms,
+                "is_spell": is_spell,
+                "spell_id": spell_id,
+                "llm_trace": llm_trace,
+            },
+        }
+
+    t0 = time.monotonic()
+
+    async def persist_completion(text: str, done_payload: dict) -> None:
+        guard.complete_stream(text, done_payload)
+
+    async def on_failure(_exc: Exception, _partial: bool) -> None:
+        guard.fail_before_mutation()
+
+    return streaming_response(
+        reliable_sse_stream(
+            client.get_response_stream(
                 prompt,
                 system=system_prompt,
                 api_key=llm_config.api_key,
                 model=llm_config.model,
-            )
-            async for chunk in stream_with_keepalive(llm_stream):
-                if chunk.startswith(":"):
-                    yield chunk
-                    continue
-                full_response += chunk
-                yield sse_text_event(chunk)
-        except Exception as e:
-            await log_event(
-                "llm_error",
-                player_id,
-                body.case_id,
-                {
-                    "endpoint": "investigate_stream",
-                    "error": redact_secrets(str(e)),
-                    "model": llm_config.model,
-                },
-            )
-            logger.error("LLM stream error in investigate: %s", e)
-            yield sse_json_event(llm_stream_error_payload(e))
-            return
-
-        try:
-            llm_elapsed_ms = int((time.monotonic() - t0) * 1000)
-
-            new_evidence, evidence_names = await process_investigation_response(
-                full_response,
-                body,
-                ctx,
-                is_spell,
-                spell_id,
-                target,
-                player_id,
-            )
-
-            ctx.state.add_conversation_message(
-                "player",
-                body.player_input,
-                location_id=ctx.target_location_id,
-            )
-            ctx.state.add_conversation_message(
-                "narrator",
-                full_response,
-                location_id=ctx.target_location_id,
-            )
-            ctx.state.add_narrator_conversation(
-                body.player_input,
-                full_response,
-                location_id=ctx.target_location_id,
-            )
-            await asyncio.to_thread(save_slot_state, ctx.state, player_id, body.slot)
-        except Exception:
-            logger.error("Post-LLM processing failed in investigate", exc_info=True)
-            yield sse_json_event(
-                {"error": "Progress may not be saved. Try again.", "code": "persist_failed"}
-            )
-            return
-
-        yield sse_json_event(
-            {
-                "done": True,
-                "new_evidence": new_evidence,
-                "evidence_names": evidence_names,
-                "updated_state": state_delta(ctx.state),
-                "meta": {
-                    "model": llm_config.model,
-                    "latency_ms": llm_elapsed_ms,
-                    "is_spell": is_spell,
-                    "spell_id": spell_id,
-                },
-            }
+                max_tokens=NARRATOR_MAX_TOKENS,
+                temperature=NARRATOR_TEMPERATURE,
+                trace=llm_trace,
+                disable_reasoning=True,
+                endpoint="investigate_stream",
+                request_id=body.request_id,
+            ),
+            request=request,
+            endpoint="investigate_stream",
+            request_id=body.request_id,
+            finalize=finalize,
+            persist_completion=persist_completion if body.request_id else None,
+            on_failure=on_failure if body.request_id else None,
         )
-
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers=SSE_HEADERS,
     )
 
 
@@ -292,15 +302,7 @@ async def _investigate_impl(
             slot=body.slot,
         )
 
-    narrator_hint: str | None = None
-    if has_nav_intent and not is_spell:
-        narrator_hint = (
-            "The player seems to be trying to leave this location or go somewhere. "
-            "Do NOT narrate travel or describe arriving at a different place. "
-            "Briefly acknowledge their intent in character — perhaps the path is "
-            "unclear, or suggest they decide where to go. Stay in the current location. "
-            "Keep it to 1-2 sentences."
-        )
+    narrator_hint = build_narrator_hints(body, ctx, has_nav_intent, is_spell, spell_id)
 
     spell_outcome, witness_context = resolve_spell_mechanics(body, ctx, spell_id, target)
 
@@ -321,7 +323,23 @@ async def _investigate_impl(
         system=system_prompt,
         api_key=llm_config.api_key,
         model=llm_config.model,
+        max_tokens=NARRATOR_MAX_TOKENS,
+        temperature=NARRATOR_TEMPERATURE,
+        disable_reasoning=True,
     )
+
+    control_resolution = await validate_narrator_control_response(
+        narrator_response,
+        is_spell=is_spell,
+        prompt=prompt,
+        model=llm_config.model,
+        player_id=player_id,
+        case_id=body.case_id,
+        slot=body.slot,
+        assistance_mode=ctx.state.assistance_mode,
+        pre_action_discovered_ids=list(ctx.discovered_ids),
+    )
+    narrator_response = control_resolution.response
 
     new_evidence, evidence_names = await process_investigation_response(
         narrator_response,

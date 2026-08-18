@@ -1,15 +1,17 @@
-import type { GameLanguage, NarratorVerbosity } from '../components/SettingsModal';
+import type { AssistanceMode, GameLanguage, NarratorVerbosity } from '../components/SettingsModal';
 
 const STORAGE_KEY = 'lantern-game-preferences';
 
 export interface GamePreferences {
   language: GameLanguage;
   narratorVerbosity: NarratorVerbosity;
+  assistanceMode: AssistanceMode;
 }
 
 const DEFAULT_PREFERENCES: GamePreferences = {
   language: 'en',
   narratorVerbosity: 'storyteller',
+  assistanceMode: 'normal',
 };
 
 export function getGamePreferences(): GamePreferences {
@@ -22,6 +24,7 @@ export function getGamePreferences(): GamePreferences {
     return {
       language: parsed.language ?? DEFAULT_PREFERENCES.language,
       narratorVerbosity: parsed.narratorVerbosity ?? DEFAULT_PREFERENCES.narratorVerbosity,
+      assistanceMode: parsed.assistanceMode === 'easy' ? 'easy' : DEFAULT_PREFERENCES.assistanceMode,
     };
   } catch {
     return DEFAULT_PREFERENCES;
@@ -29,7 +32,10 @@ export function getGamePreferences(): GamePreferences {
 }
 
 export function saveGamePreferences(preferences: GamePreferences): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
+  const persisted = preferences.assistanceMode === 'normal'
+    ? { language: preferences.language, narratorVerbosity: preferences.narratorVerbosity }
+    : preferences;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
 }
 
 export function updateGamePreferences(patch: Partial<GamePreferences>): GamePreferences {

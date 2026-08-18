@@ -122,7 +122,7 @@ async def test_byok_with_system_prompt_builds_messages(fresh_client):
 
 @pytest.mark.asyncio
 async def test_no_byok_omits_api_key_kwarg(fresh_client):
-    """Server-side path does not pass api_key (lets LiteLLM read env)."""
+    """Server-side path passes configured credential per request."""
     client, settings = fresh_client
 
     fake = SequentialAcompletion([make_fake_response("ok")])
@@ -130,7 +130,7 @@ async def test_no_byok_omits_api_key_kwarg(fresh_client):
         await client.get_response(prompt="hi")
 
     call = fake.calls[0]
-    assert "api_key" not in call
+    assert call["api_key"] == settings.OPENROUTER_API_KEY
     assert call["model"] == settings.DEFAULT_MODEL
 
 

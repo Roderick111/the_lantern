@@ -9,7 +9,7 @@ tagged with `# REGRESSION`.
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -58,6 +58,9 @@ class TestInvestigateStreamHappyPath:
         self, client: AsyncClient, chunks_with_evidence: list[str]
     ) -> None:
         mock_client = build_mock_llm_client(chunks_with_evidence)
+        mock_client.get_response_stream = MagicMock(
+            side_effect=mock_client.get_response_stream
+        )
         with patch("src.api.routes.investigation.get_client", return_value=mock_client):
             parsed = await collect_sse_stream(
                 client,
@@ -83,6 +86,10 @@ class TestInvestigateStreamHappyPath:
             "the desk. ",
             "[EVIDENCE: hidden_note]",
         ]
+        call_kwargs = mock_client.get_response_stream.call_args.kwargs
+        assert call_kwargs["max_tokens"] == 600
+        assert call_kwargs["temperature"] == 0.7
+        assert call_kwargs["disable_reasoning"] is True
 
     @pytest.mark.asyncio
     async def test_done_frame_has_expected_meta(
@@ -160,6 +167,38 @@ class TestInvestigateStreamEvidence:
         state = load_player_state("case_001", player_id, "autosave")
         assert state is not None
         assert "hidden_note" in state.discovered_evidence
+
+    @pytest.mark.asyncio
+    async def test_malformed_spell_marker_is_rejected_without_second_llm_call(
+        self, client: AsyncClient
+    ) -> None:
+        mock_client = build_mock_llm_client(
+            ["The frost forms a starburst. [EVIDENCE_pattern]"]
+        )
+        mock_client.get_response = AsyncMock(return_value="[EVIDENCE: frost_pattern]")
+
+        with (
+            patch("src.api.routes.investigation.get_client", return_value=mock_client),
+            patch(
+                "src.api.routes.investigation_logic.calculate_spell_outcome",
+                return_value="SUCCESS",
+            ),
+        ):
+            parsed = await collect_sse_stream(
+                client,
+                "POST",
+                "/api/investigate/stream",
+                json_body={
+                    "player_input": "Essence, speak on the window",
+                    "case_id": "case_001",
+                    "location_id": "library",
+                    "player_id": "test_sse_rite_marker_retry",
+                },
+            )
+
+        assert mock_client.get_response.await_count == 0
+        assert parsed.done_frame is not None
+        assert parsed.done_frame["new_evidence"] == []
 
 
 class TestInvestigateStreamKeepalive:

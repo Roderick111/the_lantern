@@ -14,6 +14,7 @@ import { UpdateSettingsResponseSchema } from './schemas';
 export interface UpdateSettingsRequest {
   case_id: string;
   narrator_verbosity?: 'concise' | 'storyteller' | 'atmospheric';
+  assistance_mode?: 'normal' | 'easy';
   language?: string;
   slot?: string;
 }

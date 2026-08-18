@@ -8,11 +8,10 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from src.api.dependencies import UserLLMConfig
-from src.api.errors import llm_stream_error_payload, redact_secrets
 from src.api.helpers import (
     SSE_HEADERS,
     detect_secrets_in_response,
@@ -22,7 +21,6 @@ from src.api.helpers import (
     load_slot_state,
     save_slot_state,
     state_delta,
-    stream_with_keepalive,
 )
 from src.api.llm_client import get_client
 from src.api.schemas import (
@@ -31,6 +29,7 @@ from src.api.schemas import (
     PresentEvidenceRequest,
 )
 from src.api.sse_format import sse_json_event, sse_text_event
+from src.api.stream_runner import reliable_sse_stream, streaming_response
 from src.case_store.loader import build_evidence_index, get_witness
 from src.context.spell_llm import (
     SAFE_INVESTIGATION_SPELLS,
@@ -268,7 +267,7 @@ async def finalize_witness_response(
     slot: str,
     prep: WitnessPrep,
     use_natural_warming: bool = True,
-) -> tuple[int, str, list[str], list[str]]:
+) -> tuple[int, str, list[str], dict[str, str]]:
     """Shared post-LLM processing for all witness interactions."""
     trust_delta = extract_trust_delta(full_response)
     if trust_delta is None:
@@ -291,26 +290,32 @@ async def finalize_witness_response(
     await asyncio.to_thread(save_slot_state, state, player_id, slot)
 
     event_type = "evidence_presented" if prep.evidence_id else "witness_questioned"
-    await log_event(
-        event_type,
-        player_id,
-        case_id,
-        {
-            "witness_id": witness_id,
-            **(
-                {"evidence_id": prep.evidence_id}
-                if prep.evidence_id
-                else {"question": prep.stored_question[:100]}
-            ),
-        },
-    )
-    if secrets_revealed:
+    try:
         await log_event(
-            "secret_revealed",
+            event_type,
             player_id,
             case_id,
-            {"witness_id": witness_id, "secrets": secrets_revealed},
+            {
+                "witness_id": witness_id,
+                **(
+                    {"evidence_id": prep.evidence_id}
+                    if prep.evidence_id
+                    else {"question": prep.stored_question[:100]}
+                ),
+            },
         )
+    except Exception:
+        logger.warning("interaction telemetry failed after state save", exc_info=True)
+    if secrets_revealed:
+        try:
+            await log_event(
+                "secret_revealed",
+                player_id,
+                case_id,
+                {"witness_id": witness_id, "secrets": secrets_revealed},
+            )
+        except Exception:
+            logger.warning("secret telemetry failed after state save", exc_info=True)
 
     return trust_delta, clean_response, secrets_revealed, secret_texts
 
@@ -378,98 +383,93 @@ def stream_witness_llm(
     llm_config: UserLLMConfig,
     endpoint_name: str,
     use_natural_warming: bool = True,
+    request: Request | None = None,
+    idempotency: Any | None = None,
 ) -> StreamingResponse:
     """Stream LLM response for any witness interaction."""
     client = get_client()
+    llm_trace: list[dict[str, Any]] = []
 
-    async def event_generator():
-        full_response = ""
+    display_buffer = ""
+    t0 = time.monotonic()
+
+    def render_chunk(chunk: str) -> str | None:
+        nonlocal display_buffer
+        display_buffer += chunk
+        if TRUST_DELTA_TAG_PARTIAL_RE.search(display_buffer):
+            return None
+        clean = TRUST_DELTA_STRIP_RE.sub("", display_buffer)
         display_buffer = ""
-        t0 = time.monotonic()
-        try:
-            llm_stream = client.get_response_stream(
+        return clean or None
+
+    def flush_render() -> str | None:
+        nonlocal display_buffer
+        clean = TRUST_DELTA_STRIP_RE.sub("", display_buffer)
+        display_buffer = ""
+        return clean or None
+
+    async def finalize(full_response: str) -> dict[str, Any]:
+        llm_elapsed_ms = int((time.monotonic() - t0) * 1000)
+        trust_delta, _, secrets_revealed, _ = await finalize_witness_response(
+            full_response,
+            witness,
+            witness_state,
+            state,
+            player_id,
+            case_id,
+            witness_id,
+            slot,
+            prep,
+            use_natural_warming=use_natural_warming,
+        )
+        return {
+            "done": True,
+            "trust": witness_state.trust,
+            "trust_delta": trust_delta,
+            "secrets_revealed": secrets_revealed,
+            "updated_state": state_delta(state),
+            "meta": {
+                "model": llm_config.model,
+                "latency_ms": llm_elapsed_ms,
+                "llm_trace": llm_trace,
+            },
+        }
+
+    async def persist_completion(text: str, done_payload: dict[str, Any]) -> None:
+        if idempotency is not None:
+            idempotency.complete_stream(text, done_payload)
+
+    async def on_failure(_exc: Exception, _partial: bool) -> None:
+        if idempotency is not None:
+            idempotency.fail_before_mutation()
+
+    return streaming_response(
+        reliable_sse_stream(
+            client.get_response_stream(
                 prep.prompt,
                 system=prep.system_prompt,
                 api_key=llm_config.api_key,
                 model=llm_config.model,
-            )
-            async for chunk in stream_with_keepalive(llm_stream):
-                if chunk.startswith(":"):
-                    yield chunk
-                    continue
-                full_response += chunk
-                display_buffer += chunk
-
-                if TRUST_DELTA_TAG_PARTIAL_RE.search(display_buffer):
-                    continue
-
-                clean = TRUST_DELTA_STRIP_RE.sub("", display_buffer)
-                display_buffer = ""
-                if clean:
-                    yield sse_text_event(clean)
-
-            if display_buffer:
-                clean = TRUST_DELTA_STRIP_RE.sub("", display_buffer)
-                if clean:
-                    yield sse_text_event(clean)
-        except Exception as e:
-            await log_event(
-                "llm_error",
-                player_id,
-                case_id,
-                {
-                    "endpoint": endpoint_name,
-                    "error": redact_secrets(str(e)),
-                    "model": llm_config.model,
-                },
-            )
-            logger.error("LLM stream error in %s: %s", endpoint_name, e)
-            yield sse_json_event(llm_stream_error_payload(e))
-            return
-
-        try:
-            llm_elapsed_ms = int((time.monotonic() - t0) * 1000)
-
-            trust_delta, _, secrets_revealed, _ = await finalize_witness_response(
-                full_response,
-                witness,
-                witness_state,
-                state,
-                player_id,
-                case_id,
-                witness_id,
-                slot,
-                prep,
-                use_natural_warming=use_natural_warming,
-            )
-        except Exception:
-            logger.error("Post-LLM processing failed in %s", endpoint_name, exc_info=True)
-            yield sse_json_event(
-                {"error": "Progress may not be saved. Try again.", "code": "persist_failed"}
-            )
-            return
-
-        yield sse_json_event(
-            {
-                "done": True,
-                "trust": witness_state.trust,
-                "trust_delta": trust_delta,
-                "secrets_revealed": secrets_revealed,
-                "updated_state": state_delta(state),
-                "meta": {"model": llm_config.model, "latency_ms": llm_elapsed_ms},
-            }
+                trace=llm_trace,
+                endpoint=endpoint_name,
+                request_id=getattr(idempotency, "request_id", None),
+            ),
+            request=request,
+            endpoint=endpoint_name,
+            request_id=getattr(idempotency, "request_id", None),
+            finalize=finalize,
+            render_chunk=render_chunk,
+            flush_render=flush_render,
+            persist_completion=persist_completion if idempotency is not None else None,
+            on_failure=on_failure if idempotency is not None else None,
         )
-
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers=SSE_HEADERS,
     )
 
 
 def wrap_interrogate_as_sse(
     result: InterrogateResponse,
     model: str | None,
+    request_id: str | None = None,
 ) -> StreamingResponse:
     """Wrap a non-streaming InterrogateResponse as an SSE stream."""
 
@@ -483,6 +483,7 @@ def wrap_interrogate_as_sse(
                 "secrets_revealed": result.secrets_revealed,
                 "updated_state": result.updated_state,
                 "meta": {"model": model},
+                **({"request_id": request_id} if request_id else {}),
             }
         )
 

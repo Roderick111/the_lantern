@@ -14,9 +14,11 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.context.matthew_llm import (
+    MATTHEW_MAX_TOKENS,
     build_context_prompt,
     build_matthew_system_prompt,
     check_matthew_should_comment,
+    generate_matthew_response,
     get_matthew_fallback_response,
 )
 from src.main import app
@@ -30,6 +32,20 @@ class TestMatthewSystemPrompt:
         """Prompt includes trust percentage."""
         prompt = build_matthew_system_prompt(trust_level=0.5, mode="helpful")
         assert "40-70%" in prompt or "Trust" in prompt
+
+    def test_generation_budget_is_400_tokens(self) -> None:
+        assert MATTHEW_MAX_TOKENS == 400
+
+    @pytest.mark.asyncio
+    async def test_generation_disables_reasoning(self) -> None:
+        client = AsyncMock()
+        client.get_response.return_value = "The frost points inward. Follow its center."
+
+        with patch("src.context.matthew_llm.get_client", return_value=client):
+            await generate_matthew_response({}, [], 0.5, [], mode="helpful")
+
+        assert client.get_response.call_args.kwargs["max_tokens"] == 400
+        assert client.get_response.call_args.kwargs["disable_reasoning"] is True
 
     def test_prompt_helpful_mode(self) -> None:
         """Helpful mode includes Socratic question guidance."""

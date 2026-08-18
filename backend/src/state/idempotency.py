@@ -29,6 +29,7 @@ STATUS_FAILED_BEFORE_MUTATION = "failed_before_mutation"
 
 RETENTION_DAYS = 7
 CLEANUP_BATCH_LIMIT = 100
+IN_PROGRESS_STALE_SECONDS = 180
 
 IDEMPOTENCY_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS idempotency_records (
@@ -101,7 +102,7 @@ def claim_or_get(
 
         row = conn.execute(
             """
-            SELECT status, response_status, response_body
+            SELECT status, response_status, response_body, updated_at
             FROM idempotency_records
             WHERE player_id = ? AND operation = ? AND request_id = ?
             """,
@@ -129,6 +130,21 @@ def claim_or_get(
             return cached
 
         if status == STATUS_IN_PROGRESS:
+            try:
+                updated = datetime.fromisoformat(row[3])
+            except (IndexError, TypeError, ValueError):
+                updated = datetime.now(UTC)
+            if datetime.now(UTC) - updated > timedelta(seconds=IN_PROGRESS_STALE_SECONDS):
+                conn.execute(
+                    """
+                    UPDATE idempotency_records
+                    SET updated_at = ?
+                    WHERE player_id = ? AND operation = ? AND request_id = ?
+                    """,
+                    (now, player_id, operation, request_id),
+                )
+                conn.commit()
+                return None
             raise HTTPException(
                 status_code=409,
                 detail={
@@ -281,6 +297,21 @@ class IdempotencyGuard:
             self.request_id,
             response,
             status_code,
+        )
+
+    def complete_stream(
+        self,
+        text: str,
+        done_payload: dict[str, Any],
+    ) -> None:
+        """Cache stream text and terminal payload for safe client replay."""
+        if not self.active or self.request_id is None:
+            return
+        complete(
+            self.player_id,
+            self.operation,
+            self.request_id,
+            {"__stream__": True, "text": text, "done_payload": done_payload},
         )
 
     def fail_before_mutation(self) -> None:

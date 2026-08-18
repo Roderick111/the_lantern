@@ -6,7 +6,7 @@ Follows narrator.py structure with spell-specific constraints.
 
 from typing import Any
 
-from src.config.prompt_style import ANTI_AI_STYLE_FILTER
+from src.context.spell_detection import normalize_spell_target
 from src.spells.definitions import get_spell
 
 
@@ -77,16 +77,16 @@ These are the memories/knowledge you discover. Weave them into the narrative org
         if undiscovered:
             evidence_list = "\n".join(
                 [
-                    f"- {e.get('id', 'unknown')}: {e.get('name', 'Unknown')} - {e.get('description', '')}"
+                    f"- ID: {e.get('id', 'unknown')}\n"
+                    f"  Name: {e.get('name', 'Unknown')}\n"
+                    f"  Description: {e.get('description', '')}\n"
+                    f"  Required tag: [EVIDENCE_{e.get('id', 'unknown')}]"
                     for e in undiscovered[:3]
                 ]
             )
             evidence_context = f"""
-== AVAILABLE EVIDENCE ==
-You may reveal ONE of these with [EVIDENCE: id] tag:
+== CANDIDATE EVIDENCE ==
 {evidence_list}
-
-IMPORTANT: Use [EVIDENCE: id] tag ONLY if narrative supports it.
 """
 
     if outcome == "success":
@@ -112,22 +112,12 @@ Mnemonic Delving: SUCCESSFUL
 {detection_status}
 {search_status}
 
-== NARRATION STRUCTURE ==
-CRITICAL: Write exactly 2 paragraphs. Put TWO newline characters (\\n\\n) between them.
-
-PARAGRAPH 1 - Connection (1-2 sentences):
-Describe slipping into {witness_name}'s mind. Use creative imagery (silvery threads, ethereal glow, etc).
-
-[INSERT: \\n\\n HERE]
-
-PARAGRAPH 2 - Discovery and withdrawal (2-4 sentences):
-{"Navigate toward: " + search_intent + ". " if search_intent else ""}{"MUST reveal the secrets listed above naturally. " if secrets_context else ""}Describe memories, thoughts, or knowledge discovered.{"Use [EVIDENCE: id] if appropriate." if evidence_context else ""}
-{withdrawal_note}. Describe exiting their consciousness.
-
-Style: {style}
-Format: Paragraph 1\\n\\nParagraph 2
-
-Respond as narrator:"""
+== REQUIRED CONTENT ==
+- Describe entering {witness_name}'s mind.
+- {"Navigate toward: " + search_intent + "." if search_intent else "Show an unfocused search."}
+- {"Naturally reveal every listed secret." if secrets_context else "Do not invent memories or secrets."}
+- {withdrawal_note}. Describe leaving their consciousness.
+- Tone signal: {style}."""
 
     else:  # failure
         detection_status = "Detection: DETECTED" if detected else "Detection: UNDETECTED"
@@ -153,51 +143,11 @@ Mnemonic Delving: FAILED
 {detection_status}
 {search_status}
 
-== NARRATION STRUCTURE ==
-CRITICAL: Write exactly 2 paragraphs. Put TWO newline characters (\\n\\n) between them.
-
-PARAGRAPH 1 - Attempt (1-2 sentences):
-Describe attempting to slip into {witness_name}'s mind. Use creative imagery.
-
-[INSERT: \\n\\n HERE]
-
-PARAGRAPH 2 - Resistance and withdrawal (2-4 sentences):
-{barrier_note}. Describe the frustration of being blocked and exiting without success. No secrets found.
-
-Style: {style}
-Format: Paragraph 1\\n\\nParagraph 2
-
-Respond as narrator:"""
-
-
-def build_spell_system_prompt(language: str = "en") -> str:
-    """Build system prompt for spell effect narrator.
-
-    Args:
-        language: ISO 639-1 language code
-
-    Returns:
-        System prompt setting spell narrator persona
-    """
-    from src.config.language import get_language_instruction
-
-    return f"""You are an immersive narrator for investigation rite effects in a Victorian occult detective Lantern Inspector game.
-
-Your role:
-- Describe rite effects atmospherically but concisely (1-2 sentences max)
-- Reveal evidence ONLY when rite targets match the location's hidden evidence
-- Include [EVIDENCE: id] tags when a rite reveals evidence
-- Never invent evidence not defined in the allowed evidence list
-- For Mnemonic Delving: Give natural warnings before risky mind-reading attempts
-- Maintain mystery and tension appropriate for a detective story
-
-Style:
-- Second person present tense ("Your focus glows...", "The rite reveals...")
-- Evocative but brief descriptions
-- Victorian occult detective universe vocabulary and atmosphere
-- Professional Lantern Investigator field tone
-
-{ANTI_AI_STYLE_FILTER}{get_language_instruction(language)}"""
+== REQUIRED CONTENT ==
+- Describe attempting to enter {witness_name}'s mind.
+- {barrier_note}.
+- {withdrawal_note}. Describe leaving empty-handed. Reveal no secrets.
+- Tone signal: {style}."""
 
 
 def build_spell_effect_prompt(
@@ -234,60 +184,65 @@ def build_spell_effect_prompt(
     reveals_evidence = spell_interaction.get("reveals_evidence", [])
 
     undiscovered_evidence = [e for e in reveals_evidence if e not in discovered_evidence][:2]
+    evidence_by_id = {
+        str(e.get("id")): e
+        for e in location_context.get("hidden_evidence", [])
+        if e.get("id")
+    }
 
     evidence_section = _format_revealable_evidence(
         undiscovered_evidence,
         target,
         valid_targets,
+        evidence_by_id,
+        spell_outcome,
     )
 
     outcome_section = _build_spell_outcome_section(spell_outcome)
+    target_status = "VALID" if _target_matches(target, valid_targets) else "INVALID"
+    world_context = str(location_context.get("world_context") or "None")
+    surface_elements = str(location_context.get("surface_elements") or "None")
+    conversation_history = str(location_context.get("conversation_history") or "None")
+    context_signal = str(location_context.get("context_signal") or "None")
+    narrator_hint = str(location_context.get("narrator_hint") or "None")
 
-    prompt = f"""You are narrating the effect of an investigation rite in a Lantern Inspector investigation.
-
-== RITE PERFORMED ==
+    return f"""== RITE ==
 Rite: {spell["name"]}
 Effect: {spell["description"]}
 Category: {spell["category"]}
 Target: {target or "general area"}
+Target status: {target_status}
+Outcome: {outcome_section}
 
-== RITE OUTCOME (Phase 4.7) ==
-{outcome_section}
+== WORLD CONTEXT ==
+{world_context}
 
 == CURRENT LOCATION ==
 {location_desc.strip()}
 
-== VALID TARGETS FOR THIS RITE AT THIS LOCATION ==
+== VISIBLE ELEMENTS ==
+{surface_elements}
+
+== VALID TARGETS ==
 {", ".join(valid_targets) if valid_targets else "No specific targets defined"}
 
-== EVIDENCE THIS RITE CAN REVEAL (if target matches AND rite succeeded) ==
+== CANDIDATE EVIDENCE ==
 {evidence_section}
 
-== ALREADY DISCOVERED (do not repeat) ==
+== ALREADY DISCOVERED ==
 {", ".join(discovered_evidence) if discovered_evidence else "None"}
 
-== RULES ==
-1. IMPORTANT: Check RITE OUTCOME first!
-   - If outcome is "FAILURE" -> "The rite fizzles and dissipates. Nothing revealed." (regardless of target)
-   - If outcome is "SUCCESS" -> proceed to evidence revelation rules below
-   - If outcome is not specified -> use old behavior (treat as always succeeds)
-2. On SUCCESS: If target matches valid targets AND undiscovered evidence exists -> reveal with [EVIDENCE: id] tag
-3. MAXIMUM 2 evidence per rite. Even if more evidence is available, reveal at most 2.
-4. On SUCCESS: If target is valid but no undiscovered evidence -> describe atmospheric rite effect only
-5. On SUCCESS: If target is not in valid targets list -> "The rite finds nothing of note here."
-6. Keep responses to 2-4 sentences - atmospheric but concise
-7. NEVER invent evidence not in the revealable list
-8. Stay in character as immersive field investigation narrator
-9. NEVER mention mechanical terms like "roll", "percentage", "success rate" - describe naturally
-"""
+== RECENT CONVERSATION ==
+{conversation_history}
 
-    prompt += f"""
+== PLAYER CONTEXT SIGNALS ==
+{context_signal}
+
+== NARRATOR HINT ==
+{narrator_hint}
+
 == PLAYER ACTION ==
-Player performs {spell["name"]}{f" on {target}" if target else ""}.
-
-Respond as the narrator (2-4 sentences):"""
-
-    return prompt
+Player performs {spell["name"]}{f" on {target}" if target else ""}."""
 
 
 def _build_spell_outcome_section(spell_outcome: str | None) -> str:
@@ -300,15 +255,11 @@ def _build_spell_outcome_section(spell_outcome: str | None) -> str:
         Formatted outcome section
     """
     if spell_outcome == "SUCCESS":
-        return """Outcome: SUCCESS
-The rite executes successfully. Proceed with evidence revelation rules below."""
+        return "SUCCESS"
     elif spell_outcome == "FAILURE":
-        return """Outcome: FAILURE
-The rite fails to manifest properly. The cantrip sputters and fades.
-Response: Describe the rite fizzling out atmospherically. NO evidence revealed regardless of target."""
+        return "FAILURE"
     else:
-        return """Outcome: Not calculated (legacy flow)
-Use old behavior - treat rite as always succeeding, check target validity for evidence."""
+        return "NOT_CALCULATED"
 
 
 def _build_unknown_spell_prompt(spell_name: str) -> str:
@@ -320,16 +271,31 @@ def _build_unknown_spell_prompt(spell_name: str) -> str:
     Returns:
         Prompt for handling unknown spell
     """
-    return f"""The player attempted to perform "{spell_name}" but this rite is not recognized.
+    return f"""== UNKNOWN RITE ==
+Attempted rite: {spell_name}
+Status: not recognized or unavailable for investigation use."""
 
-Respond briefly (1-2 sentences) that the rite is unknown or not available for investigation use.
-Stay in character as a field investigation narrator."""
+
+def _target_matches(target: str | None, valid_targets: list[str]) -> bool:
+    """Return whether target is valid using canonicalized spell vocabulary."""
+    if not target:
+        return True
+    canonical_target = normalize_spell_target(target)
+    if not canonical_target:
+        return False
+    target_lower = canonical_target.lower()
+    return any(
+        valid.lower() in target_lower or target_lower in valid.lower()
+        for valid in valid_targets
+    )
 
 
 def _format_revealable_evidence(
     evidence_ids: list[str],
     target: str | None,
     valid_targets: list[str],
+    evidence_by_id: dict[str, dict[str, Any]] | None = None,
+    spell_outcome: str | None = None,
 ) -> str:
     """Format evidence that can be revealed by this spell.
 
@@ -344,15 +310,22 @@ def _format_revealable_evidence(
     if not evidence_ids:
         return "No new evidence can be revealed by this rite here."
 
-    target_matches = False
-    if target:
-        target_lower = target.lower()
-        for valid in valid_targets:
-            if valid.lower() in target_lower or target_lower in valid.lower():
-                target_matches = True
-                break
+    if not _target_matches(target, valid_targets):
+        return "None"
 
-    if not target_matches and target:
-        return f"Target '{target}' is not a valid target for this rite at this location."
-
-    return f"Can reveal: {', '.join(evidence_ids)}"
+    lines: list[str] = []
+    if spell_outcome == "FAILURE":
+        return "None"
+    for evidence_id in evidence_ids:
+        evidence = (evidence_by_id or {}).get(evidence_id, {})
+        description = str(evidence.get("description", "")).strip()
+        guidance = str(evidence.get("discovery_guidance", "")).strip()
+        if not guidance and evidence.get("triggers"):
+            guidance = f"Player action references: {', '.join(str(t) for t in evidence['triggers'])}"
+        lines.append(f"- ID: {evidence_id}")
+        if description:
+            lines.append(f"  Description: {description}")
+        if guidance:
+            lines.append(f"  Discovery guidance: {guidance}")
+        lines.append(f"  Required tag: [EVIDENCE_{evidence_id}]")
+    return "\n".join(lines) if lines else "None"

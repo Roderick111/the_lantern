@@ -41,6 +41,8 @@ interface WitnessInterviewProps {
   discoveredEvidence: { id: string; name: string }[];
   /** Loading state */
   loading: boolean;
+  /** Slow-provider warning state */
+  slowWarning?: boolean;
   /** Error message */
   error: string | null;
   /** Callback when player asks a question */
@@ -50,6 +52,8 @@ interface WitnessInterviewProps {
     evidenceId: string,
     evidenceName: string,
   ) => Promise<void>;
+  onRetryFailed?: (item: WitnessConversationItem) => Promise<void>;
+  onDismissFailed?: () => void;
   /** Callback to clear error */
   onClearError?: () => void;
 }
@@ -136,7 +140,7 @@ function PortraitImage({ witnessId, witnessName, onOpenFullscreen, onImageResolv
     return () => {
       cancelled = true;
     };
-  }, [witnessId]);
+  }, [onImageResolved, witnessId]);
 
   if (hasError) {
     return (
@@ -286,7 +290,10 @@ interface ConversationBubbleProps {
   witnessName: string;
 }
 
-function ConversationBubble({ item, witnessName }: ConversationBubbleProps) {
+function ConversationBubble({ item, witnessName, onRetry, onDismiss }: ConversationBubbleProps & {
+  onRetry?: (item: WitnessConversationItem) => void;
+  onDismiss?: () => void;
+}) {
   const { theme } = useTheme();
   const charTheme = theme.colors.character;
   const msgTheme = theme.components.message.witness;
@@ -326,6 +333,21 @@ function ConversationBubble({ item, witnessName }: ConversationBubbleProps) {
             )}
           </div>
           <p className={msgTheme.text}>{renderInlineMarkdown(stripTrustTags(item.response))}</p>
+          {item.failure && (
+            <div className="mt-3 flex items-center gap-2 text-xs">
+              <span className={theme.colors.state.error.text}>{item.failure.message}</span>
+              {item.failure.retryable && item.requestId && onRetry && (
+                <button type="button" className={theme.components.button.terminalAction} onClick={() => onRetry(item)}>
+                  RETRY
+                </button>
+              )}
+              {onDismiss && (
+                <button type="button" className={theme.components.button.terminalAction} onClick={onDismiss}>
+                  DISMISS
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -379,9 +401,12 @@ export function WitnessInterview({
   secretsRevealed,
   discoveredEvidence,
   loading,
+  slowWarning = false,
   error,
   onAskQuestion,
   onPresentEvidence,
+  onRetryFailed,
+  onDismissFailed,
   onClearError,
 }: WitnessInterviewProps) {
   const { theme } = useTheme();
@@ -519,6 +544,8 @@ export function WitnessInterview({
                   key={`${item.timestamp}-${index}`}
                   item={item}
                   witnessName={witness.name}
+                  onRetry={onRetryFailed ? (failedItem) => { void onRetryFailed(failedItem); } : undefined}
+                  onDismiss={onDismissFailed}
                 />
               ))}
               <div ref={historyEndRef} />
@@ -553,6 +580,11 @@ export function WitnessInterview({
 
         {/* Input Area - Docked to bottom */}
         <div className="mt-auto pt-5 pb-5 px-4">
+          {slowWarning && (
+            <p className={`mb-2 text-center text-xs ${theme.colors.text.muted} ${theme.fonts.ui} uppercase tracking-wider`}>
+              Still working — witness response is slow...
+            </p>
+          )}
           {/* Mobile Present Evidence button */}
           <div className="md:hidden mb-2 relative">
             <button

@@ -112,6 +112,10 @@ class UpdateSettingsRequest(BaseModel):
         default=None,
         description="Narrator style: concise | storyteller | atmospheric",
     )
+    assistance_mode: Literal["normal", "easy"] | None = Field(
+        default=None,
+        description="Narrator assistance: normal | easy",
+    )
     language: str | None = Field(
         default=None,
         description="Game language: en | ru | fr | es | de | pt | zh | ja | ko",
@@ -140,6 +144,7 @@ class StateResponse(BaseModel):
     visited_locations: list[str]
     conversation_history: list[dict[str, Any]] = []
     narrator_verbosity: str | None = None
+    assistance_mode: str | None = None
     language: str | None = None
 
 

@@ -6,37 +6,9 @@ from src.context.spell_llm import (
     _build_unknown_spell_prompt,
     _normalize_spell_name,
     build_spell_effect_prompt,
-    build_spell_system_prompt,
     is_spell_input,
     parse_spell_from_input,
 )
-
-
-class TestBuildSpellSystemPrompt:
-    """Tests for build_spell_system_prompt function."""
-
-    def test_has_narrator_role(self) -> None:
-        """System prompt defines spell narrator role."""
-        prompt = build_spell_system_prompt()
-        assert "narrator" in prompt.lower()
-        assert "rite effects" in prompt.lower()
-
-    def test_has_evidence_rules(self) -> None:
-        """System prompt includes evidence rules."""
-        prompt = build_spell_system_prompt()
-        assert "[EVIDENCE: id]" in prompt
-        assert "Never invent evidence" in prompt
-
-    def test_has_mnemonic_delving_warning(self) -> None:
-        """System prompt mentions Mnemonic Delving warnings."""
-        prompt = build_spell_system_prompt()
-        assert "Mnemonic Delving" in prompt
-        assert "warning" in prompt.lower()
-
-    def test_includes_shared_style_filter(self) -> None:
-        prompt = build_spell_system_prompt()
-        assert "STYLE FILTER" in prompt
-        assert "Maximum one em dash" in prompt
 
 
 class TestBuildSpellEffectPrompt:
@@ -70,7 +42,7 @@ class TestBuildSpellEffectPrompt:
         )
 
         assert "Unveil" in prompt
-        assert "RITE PERFORMED" in prompt
+        assert "== RITE ==" in prompt
 
     def test_includes_target(self, location_context: dict) -> None:
         """Prompt includes target."""
@@ -115,6 +87,37 @@ class TestBuildSpellEffectPrompt:
 
         assert "hidden_note" in prompt
 
+    def test_includes_exact_candidate_evidence_contract_data(self, location_context: dict) -> None:
+        """Dynamic prompt includes candidate ID and exact required tag."""
+        prompt = build_spell_effect_prompt(
+            spell_name="unveil",
+            target="desk",
+            location_context=location_context,
+            player_context={"discovered_evidence": []},
+            spell_outcome="SUCCESS",
+        )
+
+        assert "ID: hidden_note" in prompt
+        assert "Required tag: [EVIDENCE_hidden_note]" in prompt
+        assert "Can reveal:" not in prompt
+
+    def test_contains_dynamic_data_but_no_behavior_or_length_policy(
+        self, location_context: dict
+    ) -> None:
+        prompt = build_spell_effect_prompt(
+            spell_name="unveil",
+            target="desk",
+            location_context=location_context,
+            player_context={"discovered_evidence": []},
+            spell_outcome="SUCCESS",
+        )
+
+        assert "== RITE ==" in prompt
+        assert "== CANDIDATE EVIDENCE ==" in prompt
+        assert "== RULES ==" not in prompt
+        assert "LENGTH:" not in prompt
+        assert "sentences" not in prompt
+
     def test_excludes_discovered_evidence(self, location_context: dict) -> None:
         """Prompt excludes already discovered evidence."""
         prompt = build_spell_effect_prompt(
@@ -124,7 +127,7 @@ class TestBuildSpellEffectPrompt:
             player_context={"discovered_evidence": ["hidden_note"]},
         )
 
-        assert "No new evidence" in prompt or "hidden_note" not in prompt.split("Can reveal:")[0]
+        assert "No new evidence" in prompt or "ID: hidden_note" not in prompt
 
     def test_unknown_spell_handled(self) -> None:
         """Unknown spell returns appropriate prompt."""
@@ -451,6 +454,15 @@ class TestExtractTargetFromInput:
         target = extract_target_from_input("cast unveil")
         assert target is None
 
+    def test_russian_inflected_target_is_canonicalized(self) -> None:
+        """Russian target inflections map to case mechanics IDs."""
+        from src.context.spell_llm import detect_spell_with_fuzzy
+
+        spell_id, target = detect_spell_with_fuzzy("Скрытое, явись на столе")
+
+        assert spell_id == "unveil"
+        assert target == "desk"
+
 
 class TestExtractIntentFromInput:
     """Tests for extract_intent_from_input function (Phase 4.6.2)."""
@@ -567,32 +579,32 @@ class TestCalculateSpecificityBonus:
         assert bonus == 0
 
     def test_target_bonus_on(self) -> None:
-        """Target with 'on X' gives +10%."""
+        """Target with 'on X' gives +20%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
         bonus = calculate_specificity_bonus("Unveil on desk")
-        assert bonus == 10
+        assert bonus == 20
 
     def test_target_bonus_at(self) -> None:
-        """Target with 'at X' gives +10%."""
+        """Target with 'at X' gives +20%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
         bonus = calculate_specificity_bonus("Raise the Lamp at the corner")
-        assert bonus == 10
+        assert bonus == 20
 
     def test_target_bonus_toward(self) -> None:
-        """Target with 'toward X' gives +10%."""
+        """Target with 'toward X' gives +20%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
         bonus = calculate_specificity_bonus("cast unveil toward window")
-        assert bonus == 10
+        assert bonus == 20
 
     def test_target_bonus_against(self) -> None:
-        """Target with 'against X' gives +10%."""
+        """Target with 'against X' gives +20%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
         bonus = calculate_specificity_bonus("specialis unveil against substance")
-        assert bonus == 10
+        assert bonus == 20
 
     def test_intent_bonus_to_find(self) -> None:
         """Intent with 'to find' gives +10%."""
@@ -630,11 +642,11 @@ class TestCalculateSpecificityBonus:
         assert bonus == 10
 
     def test_both_target_and_intent(self) -> None:
-        """Both target and intent gives +20%."""
+        """Both target and intent gives +30%."""
         from src.context.spell_llm import calculate_specificity_bonus
 
         bonus = calculate_specificity_bonus("Unveil on desk to find letters")
-        assert bonus == 20
+        assert bonus == 30
 
     def test_case_insensitive(self) -> None:
         """Bonus detection is case insensitive."""
@@ -642,13 +654,32 @@ class TestCalculateSpecificityBonus:
 
         bonus1 = calculate_specificity_bonus("unveil ON desk TO FIND clues")
         bonus2 = calculate_specificity_bonus("Unveil on desk to find clues")
-        assert bonus1 == bonus2 == 20
+        assert bonus1 == bonus2 == 30
 
     def test_russian_formula_target_bonus(self) -> None:
         """Russian formula targets receive the same specificity bonus as English."""
         from src.context.spell_llm import calculate_specificity_bonus
 
-        assert calculate_specificity_bonus("Суть, откройся в этом флаконе") == 10
+        assert calculate_specificity_bonus("Суть, откройся в этом флаконе") == 20
+
+    def test_intent_phrases_cover_all_setting_languages(self) -> None:
+        """Each selectable game language has a recognized intent phrase."""
+        from src.context.spell_llm import calculate_specificity_bonus
+
+        inputs = [
+            "Unveil to analyze the desk",
+            "Суть, откройся чтобы понять узор",
+            "Essence, speak pour analyser la fenêtre",
+            "Essence, speak para analizar la ventana",
+            "Essence, speak um zu analysieren das Fenster",
+            "Essence, speak para analisar a janela",
+            "Essence, speak 为了分析窗户",
+            "Essence, speak 窓を分析するため",
+            "Essence, speak 창문을 분석하기 위해",
+            "Essence, speak per analizzare la finestra",
+        ]
+
+        assert all(calculate_specificity_bonus(text) >= 10 for text in inputs)
 
 
 class TestCalculateSpellSuccess:
@@ -676,7 +707,7 @@ class TestCalculateSpellSuccess:
 
         from src.context.spell_llm import calculate_spell_success
 
-        # Roll 85 - without bonus (70%) would fail, with +20% bonus (90%) succeeds
+        # Roll 85 - with target +20% and intent +10%, ceiling keeps this at 90%.
         with patch("src.context.spell_detection.random.random", return_value=0.85):
             result = calculate_spell_success(
                 "unveil", "Unveil on desk to find clues", 0, "library"
@@ -696,20 +727,20 @@ class TestCalculateSpellSuccess:
             assert result1 is True  # 70% base > 65% roll
             assert result2 is False  # 60% (70-10) < 65% roll
 
-    def test_floor_at_10_percent(self) -> None:
-        """Success rate never goes below 10%."""
+    def test_floor_at_30_percent(self) -> None:
+        """Success rate never goes below 30%."""
         from unittest.mock import patch
 
         from src.context.spell_llm import calculate_spell_success
 
-        # 7th attempt: 70 - 60 = 10% (floor)
-        # Roll 5 < 10% = success
+        # 7th attempt: 70 - 60 = 30% (floor)
+        # Roll 25 < 30% = success
         with patch("src.context.spell_detection.random.random", return_value=0.05):
             result = calculate_spell_success("unveil", "Unveil", 6, "library")
             assert result is True
 
-        # Roll 15 > 10% = failure
-        with patch("src.context.spell_detection.random.random", return_value=0.15):
+        # Roll 35 > 30% = failure
+        with patch("src.context.spell_detection.random.random", return_value=0.35):
             result = calculate_spell_success("unveil", "Unveil", 6, "library")
             assert result is False
 
@@ -719,10 +750,10 @@ class TestCalculateSpellSuccess:
 
         from src.context.spell_llm import calculate_spell_success
 
-        # 10th attempt would be 70 - 90 = -20%, but floor keeps it at 10%
+        # 10th attempt would be 70 - 90 = -20%, but floor keeps it at 30%
         with patch("src.context.spell_detection.random.random", return_value=0.05):
             result = calculate_spell_success("unveil", "Unveil", 9, "library")
-            assert result is True  # 10% floor > 5% roll
+            assert result is True  # 30% floor > 5% roll
 
     def test_second_attempt_rate(self) -> None:
         """2nd attempt has 60% base (70 - 10)."""
@@ -765,7 +796,7 @@ class TestCalculateSpellSuccess:
                 assert result is True, f"Failed for {spell_id}"
 
     def test_maximum_90_percent(self) -> None:
-        """Maximum success rate is 90% (70 + 10 + 10)."""
+        """Maximum success rate is 90% (70 + 20 + 10, capped)."""
         from unittest.mock import patch
 
         from src.context.spell_llm import calculate_spell_success
@@ -783,6 +814,21 @@ class TestCalculateSpellSuccess:
                 "unveil", "Unveil on desk to find letters", 0, "library"
             )
             assert result is False
+
+    def test_easy_mode_uses_50_to_100_bounds(self) -> None:
+        """Easy assistance raises spell floor and ceiling only."""
+        from unittest.mock import patch
+
+        from src.context.spell_llm import calculate_spell_success
+
+        with patch("src.context.spell_detection.random.random", return_value=0.49):
+            assert calculate_spell_success("unveil", "Unveil", 9, "library", "easy") is True
+
+        with patch("src.context.spell_detection.random.random", return_value=0.99):
+            assert calculate_spell_success("unveil", "Unveil on desk to find letters", 0, "library", "easy") is True
+
+        with patch("src.context.spell_detection.random.random", return_value=1.0):
+            assert calculate_spell_success("unveil", "Unveil on desk to find letters", 0, "library", "easy") is False
 
 
 class TestSafeInvestigationSpells:
@@ -823,24 +869,21 @@ class TestBuildSpellOutcomeSection:
         from src.context.spell_llm import _build_spell_outcome_section
 
         section = _build_spell_outcome_section("SUCCESS")
-        assert "SUCCESS" in section
-        assert "executes successfully" in section.lower()
+        assert section == "SUCCESS"
 
     def test_failure_outcome(self) -> None:
         """FAILURE outcome generates appropriate section."""
         from src.context.spell_llm import _build_spell_outcome_section
 
         section = _build_spell_outcome_section("FAILURE")
-        assert "FAILURE" in section
-        assert "fizzles" in section.lower() or "fails" in section.lower()
-        assert "NO evidence" in section
+        assert section == "FAILURE"
 
     def test_none_outcome(self) -> None:
         """None outcome generates legacy flow section."""
         from src.context.spell_llm import _build_spell_outcome_section
 
         section = _build_spell_outcome_section(None)
-        assert "legacy" in section.lower() or "Not calculated" in section
+        assert section == "NOT_CALCULATED"
 
 
 class TestBuildSpellEffectPromptWithOutcome:
@@ -870,9 +913,7 @@ class TestBuildSpellEffectPromptWithOutcome:
             spell_outcome="SUCCESS",
         )
 
-        assert "RITE OUTCOME" in prompt
-        assert "SUCCESS" in prompt
-        assert "executes successfully" in prompt.lower()
+        assert "Outcome: SUCCESS" in prompt
 
     def test_failure_outcome_in_prompt(self, location_context: dict) -> None:
         """Spell prompt includes FAILURE outcome."""
@@ -883,12 +924,10 @@ class TestBuildSpellEffectPromptWithOutcome:
             spell_outcome="FAILURE",
         )
 
-        assert "RITE OUTCOME" in prompt
-        assert "FAILURE" in prompt
-        assert "fizzles" in prompt.lower()
+        assert "Outcome: FAILURE" in prompt
 
-    def test_no_mechanical_language_rule(self, location_context: dict) -> None:
-        """Prompt includes rule against mechanical language."""
+    def test_no_behavior_rules_in_dynamic_prompt(self, location_context: dict) -> None:
+        """Behavior rules live only in shared system prompt."""
         prompt = build_spell_effect_prompt(
             spell_name="unveil",
             target="desk",
@@ -896,9 +935,8 @@ class TestBuildSpellEffectPromptWithOutcome:
             spell_outcome="SUCCESS",
         )
 
-        assert "NEVER mention mechanical terms" in prompt
-        assert "roll" in prompt.lower()  # Part of the rule text
-        assert "percentage" in prompt.lower()  # Part of the rule text
+        assert "NEVER mention mechanical terms" not in prompt
+        assert "== RULES ==" not in prompt
 
     def test_backward_compatible_without_outcome(self, location_context: dict) -> None:
         """Prompt works without spell_outcome (backward compatible)."""
@@ -909,5 +947,4 @@ class TestBuildSpellEffectPromptWithOutcome:
             # No spell_outcome parameter
         )
 
-        assert "RITE OUTCOME" in prompt
-        assert "legacy" in prompt.lower() or "Not calculated" in prompt
+        assert "Outcome: NOT_CALCULATED" in prompt

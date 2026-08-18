@@ -98,7 +98,7 @@ VICTIM (show genuine care — you know what real harm looks like now):
 
 
 # Matthew-specific configuration (model comes from unified LLM client)
-MATTHEW_MAX_TOKENS = 120  # Strict limit: 2-3 sentences (~30-40 words)
+MATTHEW_MAX_TOKENS = 400
 MATTHEW_TEMPERATURE = 0.8  # Natural variation
 
 
@@ -456,6 +456,7 @@ async def generate_matthew_response(
             system=system_prompt,
             max_tokens=MATTHEW_MAX_TOKENS,
             temperature=MATTHEW_TEMPERATURE,
+            disable_reasoning=True,
         )
 
         response_text = _sanitize_matthew_response(raw_response)
@@ -468,9 +469,7 @@ async def generate_matthew_response(
                 response_text = raw_response.strip()
             else:
                 logger.warning("Matthew LLM returned empty content, using fallback")
-                response_text = get_matthew_fallback_response(
-                    mode, len(evidence_discovered)
-                )
+                response_text = get_matthew_fallback_response(mode, len(evidence_discovered))
 
         logger.info(f"Matthew LLM response (mode={mode}): {response_text[:50]}...")
         return response_text, mode

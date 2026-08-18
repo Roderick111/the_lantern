@@ -311,7 +311,10 @@ class TestInvestigateEndpoint:
     @pytest.fixture
     def mock_claude_response(self) -> str:
         """Mock Claude response."""
-        return "You peer beneath the heavy oak desk and discover a crumpled parchment. [EVIDENCE: hidden_note] The note bears hurried writing."
+        return (
+            "You peer beneath the heavy oak desk and discover a crumpled parchment. "
+            "The note bears hurried writing.\n\n[EVIDENCE: hidden_note]"
+        )
 
     @pytest.mark.asyncio
     async def test_investigate_success(
@@ -337,6 +340,8 @@ class TestInvestigateEndpoint:
         data = response.json()
         assert "narrator_response" in data
         assert data["narrator_response"] == mock_claude_response
+        assert mock_client.get_response.call_args.kwargs["max_tokens"] == 600
+        assert mock_client.get_response.call_args.kwargs["disable_reasoning"] is True
 
     @pytest.mark.asyncio
     async def test_investigate_finds_evidence(

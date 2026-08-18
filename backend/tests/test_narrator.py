@@ -39,7 +39,7 @@ class TestFormatHiddenEvidence:
         assert "hidden_note" in result
         assert "focus_signature" in result
         assert "under desk" in result
-        assert "[EVIDENCE: hidden_note]" in result
+        assert "[EVIDENCE_hidden_note]" in result
 
     def test_excludes_discovered(self, sample_evidence: list[dict]) -> None:
         """Exclude already discovered evidence."""
@@ -158,12 +158,12 @@ class TestBuildNarratorPrompt:
 
         assert "The dusty library stretches before you." in prompt
 
-    def test_includes_case_setting(
+    def test_keeps_case_setting_out_of_dynamic_prompt(
         self,
         sample_evidence: list[dict],
         not_present_items: list[dict],
     ) -> None:
-        """Prompt includes parameterized case setting, not a hardcoded site."""
+        """System-owned role and setting are not duplicated in action data."""
         prompt = build_narrator_prompt(
             location_desc="A candlelit vault.",
             hidden_evidence=sample_evidence,
@@ -173,7 +173,7 @@ class TestBuildNarratorPrompt:
             case_setting="Ironwright Vaults, winter 1888",
         )
 
-        assert "Ironwright Vaults, winter 1888" in prompt
+        assert "Ironwright Vaults, winter 1888" not in prompt
         assert "Blackwood Collegiate" not in prompt
 
     def test_includes_player_input(
@@ -198,16 +198,10 @@ class TestBuildNarratorPrompt:
         not_present_items: list[dict],
     ) -> None:
         """Prompt includes EVIDENCE tag instruction."""
-        prompt = build_narrator_prompt(
-            location_desc="Library",
-            hidden_evidence=sample_evidence,
-            discovered_ids=[],
-            not_present=not_present_items,
-            player_input="test",
-        )
+        prompt = build_system_prompt()
 
-        assert "[EVIDENCE:" in prompt
-        assert "ALWAYS use EXACTLY this format when revealing evidence: [EVIDENCE: id]" in prompt
+        assert "[EVIDENCE_" in prompt
+        assert "Use ONLY [EVIDENCE_ID]" in prompt
 
     def test_includes_response_length_rule(
         self,
@@ -215,13 +209,7 @@ class TestBuildNarratorPrompt:
         not_present_items: list[dict],
     ) -> None:
         """Prompt enforces response length guidelines."""
-        prompt = build_narrator_prompt(
-            location_desc="Library",
-            hidden_evidence=sample_evidence,
-            discovered_ids=[],
-            not_present=not_present_items,
-            player_input="test",
-        )
+        prompt = build_system_prompt()
 
         assert "LENGTH:" in prompt
         assert "YOUR NARRATOR VOICE" in prompt
@@ -292,16 +280,10 @@ class TestBuildNarratorPrompt:
         not_present_items: list[dict],
     ) -> None:
         """Prompt includes narrator rules."""
-        prompt = build_narrator_prompt(
-            location_desc="Library",
-            hidden_evidence=sample_evidence,
-            discovered_ids=[],
-            not_present=not_present_items,
-            player_input="test",
-        )
+        prompt = build_system_prompt()
 
-        assert "== CRITICAL RULES ==" in prompt
-        assert "NEVER invent evidence" in prompt
+        assert "Hard rules" in prompt
+        assert "Never invent evidence" in prompt
 
     def test_includes_surface_elements(
         self,
@@ -362,8 +344,82 @@ class TestBuildSystemPrompt:
 
         assert "EVIDENCE" in prompt
         assert "Never invent" in prompt
-        assert "rite to perform" in prompt
+        assert "Never name the answer" in prompt
+        assert "Prescribe an exact rite only in EASY mode" in prompt
         assert "Candlewick Lane, 1886" in prompt
+
+    def test_discovery_guidance_conditions_are_independent_triggers(self) -> None:
+        prompt = build_system_prompt()
+
+        assert "independent OR trigger" in prompt
+        assert (
+            "A guidance condition matches only when this action directly reaches that "
+            "evidence's object or area; rite name, nearby context, or destination alone "
+            "does not match."
+        ) in prompt
+        assert "Never delay or stage the evidence tag" in prompt
+        assert "Narrate only facts earned by the current action" in prompt
+
+    def test_critical_evidence_control_is_explicit_and_calibrated(self) -> None:
+        prompt = build_system_prompt()
+
+        assert "== CRITICAL EVIDENCE CONTROL ==" in prompt
+        assert "Never reveal evidence in narration without its tag." in prompt
+        assert "Copy the listed Required tag verbatim" in prompt
+        assert "NEVER use [EVIDENCE: ID], [EVIDENCE ID]" in prompt
+        assert "Place all evidence tags at the end of the response." in prompt
+        assert "If no evidence is revealed, end with [NO_EVIDENCE]." in prompt
+        assert "You identify Vane's last spell" not in prompt
+
+    def test_meta_comment_ban_exempts_required_evidence_control_tags(self) -> None:
+        prompt = build_system_prompt()
+
+        assert "Evidence control tags required by this prompt are the only exception." in prompt
+
+    def test_normal_mode_requires_focused_evidence_action(self) -> None:
+        prompt = build_system_prompt(assistance_mode="normal")
+
+        assert "A broad action names only a container, area, or category" in prompt
+        assert "mention its evidence objects as points of interest" in prompt
+        assert "Do not add evidence tags" in prompt
+        assert "Never manipulate, open, read, take, or move an item for the player" in prompt
+        assert "names or clearly refers to one concrete surfaced object or anomaly" in prompt
+        assert "Short wording and pronouns do not make a concrete target broad" in prompt
+
+    def test_narrator_prompt_uses_generic_scope_rules_without_case_examples(self) -> None:
+        prompt = build_narrator_prompt(
+            location_desc="A room.",
+            hidden_evidence=[],
+            discovered_ids=[],
+            not_present=[],
+            player_input="inspect it",
+        )
+
+        assert "== CALIBRATION EXAMPLES ==" not in prompt
+        assert "CLASSIFY SCOPE" in prompt
+        assert "focused follow-up on a surfaced object" in prompt
+
+    def test_easy_mode_may_reveal_accessible_evidence_from_broad_action(self) -> None:
+        prompt = build_system_prompt(assistance_mode="easy")
+
+        assert "A broad container or area action may reveal" in prompt
+        assert "physically accessible evidence within that scope" in prompt
+        assert "Include every earned Required tag" in prompt
+        assert "you may suggest that exact rite" in prompt
+        assert "Do not reveal the rite's answer before it is performed" in prompt
+
+    def test_rite_qualified_facts_require_the_rite(self) -> None:
+        prompt = build_system_prompt(assistance_mode="normal")
+
+        assert "A fact explicitly qualified by a rite or other condition" in prompt
+        assert "Ordinary observation may reveal the evidence" in prompt
+        assert "rite-only interpretation" in prompt
+        assert "you may suggest that exact rite" not in prompt
+
+    def test_shared_control_rule_defers_focus_threshold_to_assistance_mode(self) -> None:
+        prompt = build_system_prompt()
+
+        assert "Apply ASSISTANCE MODE's focus threshold before matching guidance" in prompt
 
     def test_system_prompt_no_hallucination(self) -> None:
         """System prompt prevents hallucination."""
@@ -489,7 +545,11 @@ class TestBuildNarratorPromptWithHistory:
             player_input="look around",
         )
 
-        assert "Vary descriptions" in prompt or "don't repeat" in prompt or "check conversation history" in prompt.lower()
+        assert (
+            "Vary descriptions" in prompt
+            or "don't repeat" in prompt
+            or "check conversation history" in prompt.lower()
+        )
 
 
 # =============================================================================
@@ -514,8 +574,7 @@ class TestBuildNarratorOrSpellPromptWithSpellOutcome:
         )
 
         assert is_spell is True
-        assert "RITE OUTCOME" in prompt
-        assert "SUCCESS" in prompt
+        assert "Outcome: SUCCESS" in prompt
 
     def test_spell_outcome_failure_passed(self) -> None:
         """FAILURE spell_outcome is passed through."""
@@ -531,8 +590,7 @@ class TestBuildNarratorOrSpellPromptWithSpellOutcome:
         )
 
         assert is_spell is True
-        assert "FAILURE" in prompt
-        assert "fizzles" in prompt.lower()
+        assert "Outcome: FAILURE" in prompt
 
     def test_spell_outcome_none_uses_legacy(self) -> None:
         """None spell_outcome uses legacy flow."""
@@ -548,8 +606,7 @@ class TestBuildNarratorOrSpellPromptWithSpellOutcome:
         )
 
         assert is_spell is True
-        assert "RITE OUTCOME" in prompt
-        assert "legacy" in prompt.lower() or "Not calculated" in prompt
+        assert "Outcome: NOT_CALCULATED" in prompt
 
     def test_non_spell_ignores_outcome(self) -> None:
         """Non-spell input ignores spell_outcome."""
@@ -582,4 +639,4 @@ class TestBuildNarratorOrSpellPromptWithSpellOutcome:
         )
 
         assert is_spell is True
-        assert "RITE OUTCOME" in prompt
+        assert "Outcome: NOT_CALCULATED" in prompt

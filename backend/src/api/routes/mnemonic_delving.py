@@ -14,9 +14,9 @@ from src.api.helpers import (
 from src.api.llm_client import LLMClientError as ClaudeClientError
 from src.api.llm_client import get_client
 from src.api.schemas import InterrogateRequest, InterrogateResponse
+from src.context.narrator import build_system_prompt
 from src.context.spell_llm import (
     build_mnemonic_delving_narration_prompt,
-    build_spell_system_prompt,
     calculate_mnemonic_delving_success,
     extract_intent_from_input,
 )
@@ -129,13 +129,17 @@ async def handle_programmatic_mnemonic_delving(
 
     try:
         client = get_client()
-        system_prompt = build_spell_system_prompt()
+        system_prompt = build_system_prompt(
+            state.narrator_verbosity,
+            language=state.language,
+            assistance_mode=state.assistance_mode,
+        )
         _key = llm_config.api_key if llm_config else None
         _model = llm_config.model if llm_config else None
         narrator_text = await client.get_response(
             narration_prompt,
             system=system_prompt,
-            max_tokens=200,
+            max_tokens=400,
             api_key=_key,
             model=_model,
         )

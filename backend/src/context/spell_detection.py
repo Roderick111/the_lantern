@@ -202,6 +202,10 @@ INTENT_PHRASES = [
     "to check",
     "to look",
     "to examine",
+    "to analyze",
+    "to investigate",
+    "to understand",
+    "to identify",
     "to inspect",
     "to see",
     "searching for",
@@ -216,6 +220,122 @@ INTENT_PHRASES = [
     "ищу",
     "проверяю",
     "осматриваю",
+    "чтобы понять",
+    "чтобы узнать",
+    "чтобы выяснить",
+    "чтобы определить",
+    "чтобы исследовать",
+    "для поиска",
+    "для проверки",
+    "для анализа",
+    # French
+    "pour trouver",
+    "pour révéler",
+    "pour montrer",
+    "pour découvrir",
+    "pour détecter",
+    "pour chercher",
+    "pour vérifier",
+    "pour examiner",
+    "pour analyser",
+    "je cherche",
+    "je vérifie",
+    "j'examine",
+    # Spanish
+    "para encontrar",
+    "para revelar",
+    "para mostrar",
+    "para descubrir",
+    "para detectar",
+    "para buscar",
+    "para comprobar",
+    "para examinar",
+    "para analizar",
+    "busco",
+    "compruebo",
+    "examino",
+    # German
+    "um zu finden",
+    "um zu enthüllen",
+    "um zu zeigen",
+    "um aufzudecken",
+    "um zu entdecken",
+    "um zu erkennen",
+    "um zu prüfen",
+    "um zu untersuchen",
+    "um zu analysieren",
+    "ich suche",
+    "ich prüfe",
+    "ich untersuche",
+    # Portuguese
+    "para encontrar",
+    "para revelar",
+    "para mostrar",
+    "para descobrir",
+    "para detectar",
+    "para procurar",
+    "para verificar",
+    "para examinar",
+    "para analisar",
+    "procuro",
+    "verifico",
+    "examino",
+    # Chinese
+    "为了找到",
+    "为了揭示",
+    "为了显示",
+    "为了发现",
+    "为了检测",
+    "为了检查",
+    "为了调查",
+    "为了分析",
+    "寻找",
+    "查找",
+    "揭示",
+    "检测",
+    "检查",
+    "调查",
+    "分析",
+    # Japanese
+    "見つけるため",
+    "明らかにするため",
+    "示すため",
+    "探すため",
+    "検出するため",
+    "確認するため",
+    "調べるため",
+    "分析するため",
+    "探す",
+    "調べる",
+    "確認する",
+    "検出する",
+    "分析する",
+    # Korean
+    "찾기 위해",
+    "밝히기 위해",
+    "보여주기 위해",
+    "발견하기 위해",
+    "감지하기 위해",
+    "확인하기 위해",
+    "조사하기 위해",
+    "분석하기 위해",
+    "찾아",
+    "확인해",
+    "조사해",
+    "분석해",
+    # Italian
+    "per trovare",
+    "per rivelare",
+    "per mostrare",
+    "per scoprire",
+    "per individuare",
+    "per cercare",
+    "per verificare",
+    "per esaminare",
+    "per analizzare",
+    "cerco",
+    "verifico",
+    "esamino",
 ]
 
 
@@ -261,6 +381,37 @@ def extract_target_from_input(text: str) -> str | None:
         return match_ru.group(1).strip(" \t\n.,!?;:…\"'«»")
 
     return None
+
+
+_RUSSIAN_TARGET_ALIASES: tuple[tuple[str, str], ...] = (
+    ("круг свеч", "ritual circle"),
+    ("дверн", "doorframe"),
+    ("бумаг", "papers"),
+    ("стол", "desk"),
+    ("окн", "window"),
+    ("ине", "frost"),
+    ("пол", "floor"),
+    ("выход", "exit"),
+    ("след", "scuff marks"),
+    ("отпечат", "footprints"),
+    ("фокус", "focus"),
+    ("тел", "body"),
+    ("кож", "skin"),
+    ("мерц", "shimmer"),
+)
+
+
+def normalize_spell_target(target: str | None) -> str | None:
+    """Map localized target inflections to canonical case-mechanics targets."""
+    if not target:
+        return None
+
+    normalized = target.strip()
+    lowered = normalized.lower().replace("ё", "е")
+    for fragment, canonical in _RUSSIAN_TARGET_ALIASES:
+        if fragment in lowered:
+            return canonical
+    return normalized
 
 
 def extract_intent_from_input(text: str) -> str | None:
@@ -311,7 +462,7 @@ def extract_intent_from_input(text: str) -> str | None:
 
 
 def calculate_specificity_bonus(player_input: str) -> int:
-    """Calculate specificity bonus (0%, +10%, or +20%).
+    """Calculate specificity bonus (0%, +10%, or +30%).
 
     Rewards players for thoughtful spell usage with specific targets and intent.
 
@@ -319,24 +470,30 @@ def calculate_specificity_bonus(player_input: str) -> int:
         player_input: Full player input text
 
     Returns:
-        0, 10, or 20 (percentage points)
+        0, 20, or 30 (percentage points)
 
     Examples:
         >>> calculate_specificity_bonus("Unveil")
         0
         >>> calculate_specificity_bonus("Unveil on desk")
-        10  # +10% for target
+        20  # +20% for target
         >>> calculate_specificity_bonus("Unveil on desk to find letters")
-        20  # +10% target + 10% intent
+        30  # +20% target + 10% intent
     """
     bonus = 0
 
     target_pattern = (
         r"\b(?:on|at|in|into|within|beyond|toward|against|around|near|"
-        r"across|through|over|along|на|в|во|за|под|над|по|со|с|у|к|через)\s+\w+"
+        r"across|through|over|along|на|в|во|за|под|над|по|со|с|у|к|через|"
+        r"sur|dans|vers|contre|près|autour|à|sobre|hacia|contra|cerca|"
+        r"en|auf|an|gegen|bei|über|unter|neben|em|para|contra|perto|"
+        r"através|ao)\s+\w+"
+        r"|(?:在|向|从|通过)\s*\w+"
+        r"|(?:に|へ|で|を|の)\s*\w+"
+        r"|(?:에|에서|으로|를|을|의)\s*\w+"
     )
     if re.search(target_pattern, player_input, re.IGNORECASE):
-        bonus += 10
+        bonus += 20
 
     input_lower = player_input.lower()
     if any(phrase in input_lower for phrase in INTENT_PHRASES):
@@ -350,10 +507,12 @@ def calculate_spell_success(
     player_input: str,
     attempts_in_location: int,
     location_id: str,
+    assistance_mode: str = "normal",
 ) -> bool:
     """Calculate whether spell cast succeeds.
 
-    Base rate 70%, specificity bonus 0-20%, decline -10% per attempt, floor 10%.
+    Base rate 70%, specificity bonus 0-30%, decline -10% per attempt,
+    floor 30%, ceiling 90%.
 
     Args:
         spell_id: "unveil", "raise_the_lamp", etc.
@@ -374,15 +533,17 @@ def calculate_spell_success(
     specificity_bonus = calculate_specificity_bonus(player_input)
     decline_penalty = attempts_in_location * 10
     success_rate = base_rate + specificity_bonus - decline_penalty
-    success_rate = max(10, success_rate)
+    minimum_rate = 50 if assistance_mode == "easy" else 30
+    maximum_rate = 100 if assistance_mode == "easy" else 90
+    success_rate = min(maximum_rate, max(minimum_rate, success_rate))
 
     roll = random.random() * 100
     success = roll < success_rate
 
     logger.info(
-        "SPELL ROLL: %s @ %s | base=%d + specificity=%d - decline=%d = %d%% | roll=%.1f | %s",
-        spell_id, location_id, base_rate, specificity_bonus, decline_penalty,
-        success_rate, roll, "SUCCESS" if success else "FAILURE",
+        "SPELL ROLL: %s @ %s | mode=%s | base=%d + specificity=%d - decline=%d = %d%% (bounds %d-%d) | roll=%.1f | %s",
+        spell_id, location_id, assistance_mode, base_rate, specificity_bonus, decline_penalty,
+        success_rate, minimum_rate, maximum_rate, roll, "SUCCESS" if success else "FAILURE",
     )
 
     return success
@@ -666,12 +827,12 @@ def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
 
         if spell_name in text_lower:
             if _is_valid_spell_cast(text, spell_name, spell_id):
-                target = extract_target_from_input(text)
+                target = normalize_spell_target(extract_target_from_input(text))
                 return spell_id, target
 
         if spell_id.replace("_", " ") in text_lower:
             if _is_valid_spell_cast(text, spell_name, spell_id):
-                target = extract_target_from_input(text)
+                target = normalize_spell_target(extract_target_from_input(text))
                 return spell_id, target
 
     # Priority 2: Fuzzy match spell name (handles typos)
@@ -698,7 +859,7 @@ def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
                         break
             if matched:
                 if _is_valid_spell_cast(text, spell_name, spell_id, matched_word=word):
-                    target = extract_target_from_input(text)
+                    target = normalize_spell_target(extract_target_from_input(text))
                     return spell_id, target
 
     # Priority 3: Semantic phrase match (exact substring)
@@ -712,7 +873,7 @@ def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
         for phrase in phrases:
             if phrase in text_lower:
                 if _is_valid_spell_cast(text, spell_name, spell_id):
-                    target = extract_target_from_input(text)
+                    target = normalize_spell_target(extract_target_from_input(text))
                     return spell_id, target
 
     # Priority 3.5: Fuzzy phrase match (catches typos like "reed her minde")
@@ -735,7 +896,7 @@ def detect_spell_with_fuzzy(text: str) -> tuple[str | None, str | None]:
                 if not _phrase_words_match_span(phrase, span, text_lower):
                     continue
                 if _is_valid_spell_cast(text, spell_name, spell_id):
-                    target = extract_target_from_input(text)
+                    target = normalize_spell_target(extract_target_from_input(text))
                     return spell_id, target
 
     return None, None

@@ -98,6 +98,7 @@ export const LoadResponseSchema = z
     visited_locations: z.array(z.string()),
     conversation_history: z.array(ConversationMessageSchema).nullish(),
     narrator_verbosity: z.enum(['concise', 'storyteller', 'atmospheric']).optional(),
+    assistance_mode: z.enum(['normal', 'easy']).optional(),
     language: z.string().optional(),
   })
   .strict();
@@ -574,4 +575,3 @@ export const ResetResponseSchema = z
     message: z.string(),
   })
   .strict();
-

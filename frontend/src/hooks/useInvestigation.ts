@@ -66,6 +66,7 @@ interface UseInvestigationReturn {
   restoredMessages: Message[] | null;
   /** Update narrator verbosity in local state */
   setNarratorVerbosity: (v: string) => void;
+  setAssistanceMode: (v: 'normal' | 'easy') => void;
   /** Update game language in local state */
   setLanguage: (v: string) => void;
   /** Apply changeLocation response directly (B3: avoids extra GET roundtrips) */
@@ -168,6 +169,7 @@ export function useInvestigation({
           discovered_evidence: loadedState.discovered_evidence,
           visited_locations: loadedState.visited_locations,
           narrator_verbosity: loadedState.narrator_verbosity ?? 'storyteller',
+          assistance_mode: loadedState.assistance_mode ?? 'normal',
           language: loadedState.language ?? 'en',
         });
 
@@ -267,6 +269,10 @@ export function useInvestigation({
     setState((prev) => prev ? { ...prev, language: v } : prev);
   }, []);
 
+  const setAssistanceMode = useCallback((v: 'normal' | 'easy') => {
+    setState((prev) => prev ? { ...prev, assistance_mode: v } : prev);
+  }, []);
+
   // B3: apply data from changeLocation response to avoid loadState+getLocation roundtrips
   const applyLocationChange = useCallback((response: ChangeLocationResponse) => {
     if (response.location) {
@@ -291,6 +297,7 @@ export function useInvestigation({
           discovered_evidence: Array.isArray(us.discovered_evidence) ? us.discovered_evidence : prev.discovered_evidence,
           narrator_verbosity: (us.narrator_verbosity as InvestigationState["narrator_verbosity"]) ?? prev.narrator_verbosity,
           language: (us.language as string) ?? prev.language,
+          assistance_mode: (us.assistance_mode as InvestigationState["assistance_mode"]) ?? prev.assistance_mode,
         };
       });
 
@@ -324,6 +331,7 @@ export function useInvestigation({
     restoredMessages,
     setNarratorVerbosity,
     setLanguage,
+    setAssistanceMode,
     applyLocationChange,
   };
 }

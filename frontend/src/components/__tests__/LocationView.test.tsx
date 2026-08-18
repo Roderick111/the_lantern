@@ -316,6 +316,53 @@ describe('LocationView', () => {
       expect(screen.getByText(/You find a hidden note\./)).toBeInTheDocument();
     });
 
+    it('extracts canonical [EVIDENCE_id] tags', async () => {
+      const user = userEvent.setup();
+      const onEvidenceDiscovered = vi.fn();
+      (api.investigateStream as Mock).mockImplementation(
+        (_req: unknown, callbacks: { onChunk: (t: string) => void; onDone: (d: Record<string, unknown>) => void }) => {
+          callbacks.onChunk('You identify the pattern. [EVIDENCE_frost_pattern]');
+          callbacks.onDone({
+            new_evidence: ['frost_pattern'],
+            evidence_names: { frost_pattern: 'Frost Pattern' },
+          });
+        },
+      );
+
+      render(
+        <LocationView
+          {...defaultProps}
+          onEvidenceDiscovered={onEvidenceDiscovered}
+        />,
+      );
+      const textarea = screen.getByPlaceholderText(/describe your action/i);
+      await user.type(textarea, 'inspect the pattern');
+      await user.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(onEvidenceDiscovered).toHaveBeenCalledWith(['frost_pattern']);
+      });
+      expect(screen.queryByText(/EVIDENCE_frost_pattern/)).not.toBeInTheDocument();
+    });
+
+    it('strips malformed rite control markers from rendered text', async () => {
+      const user = userEvent.setup();
+      (api.investigateStream as Mock).mockImplementation(
+        (_req: unknown, callbacks: { onChunk: (t: string) => void; onDone: (d: Record<string, unknown>) => void }) => {
+          callbacks.onChunk('The frost forms a starburst. [EVIDENCE_pattern] [NO_EVIDENCE]');
+          callbacks.onDone({ new_evidence: [], evidence_names: {} });
+        },
+      );
+
+      render(<LocationView {...defaultProps} />);
+      const textarea = screen.getByPlaceholderText(/describe your action/i);
+      await user.type(textarea, 'cast essence');
+      await user.keyboard('{Enter}');
+
+      expect(await screen.findByText('The frost forms a starburst.')).toBeInTheDocument();
+      expect(screen.queryByText(/EVIDENCE_pattern|NO_EVIDENCE/)).not.toBeInTheDocument();
+    });
+
     it.todo('displays narrator response after successful submit');
 
     it.todo('shows evidence discovery indicator');

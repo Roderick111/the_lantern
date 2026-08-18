@@ -176,6 +176,7 @@ function LandingRoute() {
         case_id: caseId,
         narrator_verbosity: preferences.narratorVerbosity,
         language: preferences.language,
+        assistance_mode: preferences.assistanceMode,
       });
       if (!result.success) console.error('Failed to apply game preferences:', result.message);
     } catch (error) {
@@ -199,6 +200,8 @@ function LandingRoute() {
         onClose={() => setSettingsOpen(false)}
         narratorVerbosity={gamePreferences.narratorVerbosity}
         onVerbosityChange={(value) => setGamePreferences((prev) => ({ ...prev, narratorVerbosity: value }))}
+        assistanceMode={gamePreferences.assistanceMode}
+        onAssistanceModeChange={(value) => setGamePreferences((prev) => ({ ...prev, assistanceMode: value }))}
         language={gamePreferences.language}
         onLanguageChange={(value) => setGamePreferences((prev) => ({ ...prev, language: value }))}
       />
@@ -311,7 +314,7 @@ function InvestigationView({
   }, [currentLocationId, handleLocationChange, locationNavigationHintDismissed]);
 
   const investigation = useInvestigation({ caseId, locationId: currentLocationId, playerId, slot: "autosave" });
-  const { state, location, loading, error, clearError, setNarratorVerbosity, setLanguage, applyLocationChange } = investigation;
+  const { state, location, loading, error, clearError, setNarratorVerbosity, setAssistanceMode, setLanguage, applyLocationChange } = investigation;
 
   useEffect(() => {
     if (state?.language) setLocationLanguage(state.language);
@@ -328,7 +331,7 @@ function InvestigationView({
     autoLoad: true,
     language: state?.language ?? locationLanguage,
   });
-  const { state: witnessState, askQuestion, presentEvidenceToWitness } = witnessHook;
+  const { state: witnessState, askQuestion, presentEvidenceToWitness, dismissFailedConversation, retryFailedConversation } = witnessHook;
 
   const verdictHook = useVerdictFlow({ caseId, playerId });
   const { state: verdictState, submitVerdict, confirmConfrontation } = verdictHook;
@@ -588,9 +591,12 @@ function InvestigationView({
             secretsRevealed={witnessState.secretsRevealed}
             discoveredEvidence={discoveredEvidenceWithNames}
             loading={witnessState.loading}
+            slowWarning={witnessState.slowWarning}
             error={witnessState.error}
             onAskQuestion={askQuestion}
             onPresentEvidence={presentEvidenceToWitness}
+            onRetryFailed={retryFailedConversation}
+            onDismissFailed={dismissFailedConversation}
           />
         </Modal>
       )}
@@ -740,6 +746,8 @@ function InvestigationView({
         playerId={playerId}
         narratorVerbosity={state?.narrator_verbosity ?? 'storyteller'}
         onVerbosityChange={setNarratorVerbosity}
+        assistanceMode={state?.assistance_mode ?? 'normal'}
+        onAssistanceModeChange={setAssistanceMode}
         language={(state?.language ?? 'en') as import('./components/SettingsModal').GameLanguage}
         onLanguageChange={(value) => {
           setLanguage(value);

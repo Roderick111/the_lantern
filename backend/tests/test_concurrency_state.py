@@ -72,10 +72,10 @@ async def test_concurrent_investigate_same_player_evidence_loss() -> None:
     seed_state(case_id, player_id, fresh_player_state(case_id=case_id))
 
     mock_a = make_text_mock(
-        "You search the desk. [EVIDENCE: hidden_note] A crumpled parchment."
+        "You search the desk. A crumpled parchment.\n\n[EVIDENCE: hidden_note]"
     )
     mock_b = make_text_mock(
-        "You inspect the floor. [EVIDENCE: frost_pattern] Frost rings the body."
+        "You inspect the floor. Frost rings the body.\n\n[EVIDENCE: frost_pattern]"
     )
 
     call_count = {"n": 0}
@@ -171,7 +171,7 @@ async def test_concurrent_investigate_and_interrogate_same_player() -> None:
     seed_state(case_id, player_id, fresh_player_state(case_id=case_id))
 
     invest_mock = make_text_mock(
-        "You search carefully. [EVIDENCE: hidden_note] A note."
+        "You search carefully. A note.\n\n[EVIDENCE: hidden_note]"
     )
     witness_mock = make_text_mock(
         "Elena looks up from her book, eyes wary. [TRUST_DELTA: -5]"
@@ -265,8 +265,8 @@ async def test_save_to_slot_while_autosave_mid_stream() -> None:
         chunks=[
             "You look around.",
             " The candles flicker.",
-            " [EVIDENCE: hidden_note]",
             " A parchment falls.",
+            " [EVIDENCE: hidden_note]",
         ],
         delay_s=0.12,
     )
@@ -367,7 +367,7 @@ async def test_double_fire_same_investigate_request() -> None:
 
     seed_state(case_id, player_id, fresh_player_state(case_id=case_id))
 
-    text = "You find a note. [EVIDENCE: hidden_note] A crumpled parchment."
+    text = "You find a note. A crumpled parchment.\n\n[EVIDENCE: hidden_note]"
     mock_client = make_text_mock(text)
 
     async with make_client() as client:
@@ -521,8 +521,8 @@ async def test_concurrent_read_while_writing() -> None:
         chunks=[
             "You look around. ",
             "The room is silent. ",
-            "[EVIDENCE: hidden_note] ",
             "A note falls.",
+            " [EVIDENCE: hidden_note]",
         ],
         delay_s=0.10,
     )

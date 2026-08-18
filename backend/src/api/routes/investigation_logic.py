@@ -26,7 +26,15 @@ from src.context.spell_llm import SAFE_INVESTIGATION_SPELLS
 from src.location.parser import LocationCommandParser
 from src.state.player_state import PlayerState
 from src.telemetry.logger import log_event
-from src.utils.evidence import check_already_discovered, find_not_present_response
+from src.utils.evidence import (
+    RITE_CONTROL_MARKER_PATTERN,
+    check_already_discovered,
+    extract_evidence_from_response,
+    extract_rite_control_result,
+    find_not_present_response,
+    normalize_rite_response,
+    validate_rite_control_result,
+)
 
 
 def detect_location_command(
@@ -71,10 +79,17 @@ class InvestigationContext:
     location_desc: str
     hidden_evidence: list[dict[str, Any]]
     not_present: list[dict[str, Any]]
-    surface_elements: list[dict[str, Any]]
+    surface_elements: list[str]
     discovered_ids: list[str]
     world_context: str | None
     case_setting: str
+
+
+@dataclass
+class NarratorControlResolution:
+    """Narration after local control-marker validation."""
+
+    response: str
 
 
 def setup_investigation(body: InvestigateRequest, player_id: str) -> InvestigationContext:
@@ -131,8 +146,7 @@ def build_narrator_hints(
             "The player seems to be trying to leave this location or go somewhere. "
             "Do NOT narrate travel or describe arriving at a different place. "
             "Briefly acknowledge their intent in character — perhaps the path is "
-            "unclear, or suggest they decide where to go. Stay in the current location. "
-            "Keep it to 1-2 sentences."
+            "unclear, or suggest they decide where to go. Stay in the current location."
         )
 
     if is_spell:
@@ -216,6 +230,7 @@ def build_investigation_prompt(
             language=ctx.state.language,
             spell_id=spell_id,
             target=target,
+            assistance_mode=ctx.state.assistance_mode,
         )
     else:
         prompt = build_narrator_prompt(
@@ -232,14 +247,60 @@ def build_investigation_prompt(
             world_context=ctx.world_context,
             case_setting=ctx.case_setting,
             narrator_hint=narrator_hint,
+            assistance_mode=ctx.state.assistance_mode,
         )
         system_prompt = build_system_prompt(
             ctx.state.narrator_verbosity,
             case_setting=ctx.case_setting,
             language=ctx.state.language,
+            assistance_mode=ctx.state.assistance_mode,
         )
 
     return prompt, system_prompt
+
+
+async def validate_narrator_control_response(
+    response: str,
+    *,
+    is_spell: bool,
+    prompt: str,
+    model: str | None,
+    player_id: str,
+    case_id: str,
+    slot: str,
+    assistance_mode: str,
+    pre_action_discovered_ids: list[str],
+) -> NarratorControlResolution:
+    """Validate narrator control output locally; never infer or repair evidence."""
+    allowed_ids = set(extract_evidence_from_response(prompt))
+    valid, reason = validate_rite_control_result(response, allowed_ids)
+    control_result = extract_rite_control_result(response) if valid else None
+    malformed_markers = RITE_CONTROL_MARKER_PATTERN.findall(response)
+
+    await log_event(
+        "narrator_control_result",
+        player_id,
+        case_id,
+        {
+            "valid": valid,
+            "reason": reason,
+            "control_result": control_result,
+            "allowed_evidence_ids": sorted(allowed_ids),
+            "markers": malformed_markers[:3],
+            "model": model,
+            "is_spell": is_spell,
+            "slot": slot,
+            "assistance_mode": assistance_mode,
+            "pre_action_discovered_ids": pre_action_discovered_ids,
+        },
+    )
+
+    if valid:
+        return NarratorControlResolution(
+            response=normalize_rite_response(response, control_result)
+        )
+
+    return NarratorControlResolution(response=normalize_rite_response(response, None))
 
 
 async def process_investigation_response(
@@ -267,6 +328,8 @@ async def process_investigation_response(
             "input": body.player_input[:100],
             "is_spell": is_spell,
             "spell_id": spell_id,
+            "slot": body.slot,
+            "assistance_mode": ctx.state.assistance_mode,
         },
     )
     if new_evidence:

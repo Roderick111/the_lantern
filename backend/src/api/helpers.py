@@ -51,17 +51,38 @@ async def stream_with_keepalive(
     browsers and proxies from dropping the connection.
     """
     aiter = source.__aiter__()
-    while True:
-        try:
-            chunk = await asyncio.wait_for(
-                aiter.__anext__(),
+    pending: asyncio.Task[str] | None = None
+
+    async def next_chunk() -> str:
+        return await aiter.__anext__()
+
+    try:
+        while True:
+            if pending is None:
+                pending = asyncio.create_task(next_chunk())
+            done, _ = await asyncio.wait(
+                {pending},
                 timeout=_KEEPALIVE_INTERVAL,
             )
+            if not done:
+                # asyncio.wait leaves pending task alive. wait_for would cancel
+                # __anext__ here, which permanently kills slow provider streams.
+                yield SSE_KEEPALIVE
+                continue
+            try:
+                chunk = pending.result()
+            except StopAsyncIteration:
+                return
+            finally:
+                pending = None
             yield chunk
-        except TimeoutError:
-            yield SSE_KEEPALIVE
-        except StopAsyncIteration:
-            return
+    finally:
+        if pending is not None and not pending.done():
+            pending.cancel()
+            await asyncio.gather(pending, return_exceptions=True)
+        close = getattr(aiter, "aclose", None)
+        if close is not None:
+            await close()
 
 
 logger = logging.getLogger(__name__)
@@ -508,7 +529,9 @@ def load_localized_case_or_404(case_id: str, language: str = "en") -> dict[str, 
             return load_case_or_404(case_id)
         return load_localized_case(case_id, language)
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Case or locale not found: {case_id}/{language}")
+        raise HTTPException(
+            status_code=404, detail=f"Case or locale not found: {case_id}/{language}"
+        )
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -610,7 +633,9 @@ def resolve_location(
         if target_location_id == "library" and "library" in location_ids:
             pass
         else:
-            state = existing_state or load_player_state(request.case_id, player_id or getattr(request, "player_id", "default"), slot)
+            state = existing_state or load_player_state(
+                request.case_id, player_id or getattr(request, "player_id", "default"), slot
+            )
             if state and state.current_location:
                 target_location_id = state.current_location
             elif location_ids:
@@ -696,6 +721,7 @@ def calculate_spell_outcome(
         player_input=player_input,
         attempts_in_location=attempts,
         location_id=location_key,
+        assistance_mode=state.assistance_mode,
     )
     spell_outcome = "SUCCESS" if success else "FAILURE"
 
@@ -754,7 +780,7 @@ def extract_new_evidence(
     discovered_ids: list[str],
     state: PlayerState,
 ) -> list[str]:
-    """Extract newly discovered evidence from LLM response [EVIDENCE: id] tags."""
+    """Extract newly discovered evidence from narrator evidence tags."""
     new_evidence: list[str] = []
 
     response_evidence = extract_evidence_from_response(narrator_response)

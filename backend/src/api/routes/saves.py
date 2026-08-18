@@ -156,6 +156,9 @@ async def update_settings(
                 return result
             state.narrator_verbosity = request.narrator_verbosity
 
+        if request.assistance_mode:
+            state.assistance_mode = request.assistance_mode
+
         if request.language:
             from src.config.language import SUPPORTED_LANGUAGES
 
@@ -215,6 +218,7 @@ async def load_game(
             visited_locations=state.visited_locations,
             conversation_history=state.location_chat_history.get(target_loc, []),
             narrator_verbosity=state.narrator_verbosity,
+            assistance_mode=state.assistance_mode,
             language=state.language,
         )
     except ValueError as e:

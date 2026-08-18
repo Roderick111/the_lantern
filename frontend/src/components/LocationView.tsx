@@ -12,6 +12,8 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Card } from "./ui/Card";
 import { investigateStream, isApiError } from "../api/client";
+import type { StreamFailure } from "../api/base";
+import { logEvent } from "../api/telemetry";
 import { LanternCompendium } from "./LanternCompendium";
 import { renderInlineMarkdown } from "../utils/renderInlineMarkdown";
 import {
@@ -32,14 +34,17 @@ import type {
 // Evidence Tag Helpers
 // ============================================
 
-const EVIDENCE_TAG_RE = /\s*\[EVIDENCE:\s*[^\]]+\]/g;
-const EVIDENCE_TAG_CAPTURE_RE = /\[EVIDENCE:\s*([^\]]+)\]/g;
-/** Matches a partial [EVIDENCE tag building up during streaming */
-const EVIDENCE_TAG_PARTIAL_RE = /\s*\[EVIDENC?E?:?[^\]]*$/;
+const EVIDENCE_TAG_CAPTURE_RE = /\[EVIDENCE(?::\s*|_)([a-z0-9_]+)\s*\]/gi;
+const RITE_CONTROL_MARKER_RE = /\s*\[(?:EVIDENCE[^\]]*|NO_EVIDENCE)\]/gi;
+/** Matches a partial rite control marker building up during streaming. */
+const RITE_CONTROL_PARTIAL_RE = /\s*\[(?:E[A-Z_: ]*|N[A-Z_]*)?$/i;
 
-/** Strip [EVIDENCE: id] tags from text for display (handles partial tags during streaming) */
+/** Strip valid, malformed, and partial rite control markers from player-visible text. */
 function stripEvidenceTags(text: string): string {
-  return text.replace(EVIDENCE_TAG_RE, '').replace(EVIDENCE_TAG_PARTIAL_RE, '').trimEnd();
+  return text
+    .replace(RITE_CONTROL_MARKER_RE, '')
+    .replace(RITE_CONTROL_PARTIAL_RE, '')
+    .trimEnd();
 }
 
 /** Extract evidence IDs from response text */
@@ -74,6 +79,9 @@ interface UnifiedMessage {
   evidenceNames?: Record<string, string>;
   /** Matthew's tone (for matthew_ghost type) */
   tone?: "helpful" | "misleading";
+  itemId?: string;
+  status?: ConversationItem["status"];
+  failure?: StreamFailure;
 }
 
 // ============================================
@@ -167,6 +175,7 @@ export function LocationView({
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [slowWarning, setSlowWarning] = useState(false);
   const [history, setHistory] = useState<ConversationItem[]>([]);
   const [isHandbookOpen, setIsHandbookOpen] = useState(false);
 
@@ -177,6 +186,37 @@ export function LocationView({
   // AbortController for in-flight investigate stream — aborted on unmount or
   // location change so user-initiated navigation doesn't keep burning LLM tokens.
   const streamControllerRef = useRef<AbortController | null>(null);
+  const watchdogRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pendingTextRef = useRef("");
+  const frameRef = useRef<number | null>(null);
+
+  const clearWatchdog = useCallback(() => {
+    watchdogRef.current.forEach(clearTimeout);
+    watchdogRef.current = [];
+    setSlowWarning(false);
+  }, []);
+
+  const flushPendingText = useCallback((itemId: string) => {
+    if (!pendingTextRef.current) return;
+    const text = pendingTextRef.current;
+    pendingTextRef.current = "";
+    setHistory((prev) => prev.map((item) =>
+      item.id === itemId ? { ...item, response: item.response + text } : item,
+    ));
+  }, []);
+
+  const scheduleTextFlush = useCallback((itemId: string) => {
+    if (frameRef.current !== null) return;
+    const flush = () => {
+      frameRef.current = null;
+      flushPendingText(itemId);
+    };
+    if (typeof window.requestAnimationFrame === 'function') {
+      frameRef.current = window.requestAnimationFrame(flush);
+    } else {
+      frameRef.current = window.setTimeout(flush, 16);
+    }
+  }, [flushPendingText]);
 
   // ============================================
   // Unified Message Array
@@ -208,6 +248,9 @@ export function LocationView({
         type: "narrator",
         text: item.response,
         timestamp: baseTimestamp + 1,
+        itemId: item.id,
+        status: item.status,
+        failure: item.failure,
       });
 
       // Evidence discovered (slightly after narrator)
@@ -283,8 +326,13 @@ export function LocationView({
     prevMessagesLengthRef.current = 0;
     initialLoadRef.current = true;
     // Abort any in-flight stream from the previous location.
-    streamControllerRef.current?.abort();
+    if (streamControllerRef.current) {
+      logEvent('stream_intentional_abort', { endpoint: 'investigate_stream' });
+      streamControllerRef.current.abort();
+    }
     streamControllerRef.current = null;
+    clearWatchdog();
+    pendingTextRef.current = "";
     // Clear local history when selecting locations (Phase 5.6)
     setHistory([]);
     setIsLoading(false);
@@ -293,15 +341,20 @@ export function LocationView({
     // Keep initial load flag for 500ms to cover batched state updates
     const timer = setTimeout(() => { initialLoadRef.current = false; }, 500);
     return () => clearTimeout(timer);
-  }, [locationId]);
+  }, [locationId, clearWatchdog]);
 
   // Abort any in-flight stream when component unmounts.
   useEffect(() => {
     return () => {
-      streamControllerRef.current?.abort();
+      if (streamControllerRef.current) {
+        logEvent('stream_intentional_abort', { endpoint: 'investigate_stream' });
+        streamControllerRef.current.abort();
+      }
       streamControllerRef.current = null;
+      clearWatchdog();
+      if (frameRef.current !== null) window.cancelAnimationFrame(frameRef.current);
     };
-  }, []);
+  }, [clearWatchdog]);
 
   useEffect(() => {
     // Scroll to bottom when new messages arrive
@@ -362,147 +415,131 @@ export function LocationView({
     [],
   );
 
+  const runInvestigation = useCallback(async (
+    itemId: string,
+    action: string,
+    requestId: string,
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    setSlowWarning(false);
+    clearWatchdog();
+    pendingTextRef.current = "";
+    setHistory((prev) => prev.map((item) => item.id === itemId
+      ? { ...item, response: "", evidence_discovered: [], status: "streaming", failure: undefined }
+      : item));
+
+    streamControllerRef.current?.abort();
+    const controller = new AbortController();
+    streamControllerRef.current = controller;
+    const markFailed = (failure: StreamFailure) => {
+      flushPendingText(itemId);
+      setHistory((prev) => prev.map((item) => item.id === itemId
+        ? { ...item, status: "failed", failure }
+        : item));
+      setIsLoading(false);
+      clearWatchdog();
+    };
+    const slowTimer = window.setTimeout(() => setSlowWarning(true), 20_000);
+    const noTextTimer = window.setTimeout(() => {
+      logEvent('stream_watchdog_timeout', { endpoint: 'investigate_stream', phase: 'no_visible_text', request_id: requestId });
+      controller.abort();
+      markFailed({ message: "No response yet. Try again.", code: "llm_timeout", retryable: true, partial: false, requestId });
+    }, 90_000);
+    watchdogRef.current.push(slowTimer, noTextTimer);
+
+    try {
+      await investigateStream(
+        { player_input: action, case_id: caseId, location_id: locationId, slot, request_id: requestId },
+        {
+          onChunk: (text) => {
+            if (watchdogRef.current.includes(noTextTimer)) {
+              clearTimeout(noTextTimer);
+              const partialTimer = window.setTimeout(() => {
+                logEvent('stream_watchdog_timeout', { endpoint: 'investigate_stream', phase: 'partial', request_id: requestId });
+                controller.abort();
+                markFailed({ message: "Response stopped before completion. Try again.", code: "partial_stream", retryable: true, partial: true, requestId });
+              }, 120_000);
+              watchdogRef.current.push(partialTimer);
+            }
+            pendingTextRef.current += text;
+            scheduleTextFlush(itemId);
+          },
+          onDone: (data) => {
+            flushPendingText(itemId);
+            const newEvidence = (data.new_evidence as string[] | undefined) ?? [];
+            const evidenceNames = (data.evidence_names as Record<string, string> | undefined) ?? {};
+            setHistory((prev) => prev.map((item) => item.id === itemId
+              ? { ...item, status: "complete", evidence_discovered: newEvidence, evidence_names: evidenceNames }
+              : item));
+            const toReport = newEvidence.filter((id) => !discoveredEvidence.includes(id));
+            if (toReport.length > 0) onEvidenceDiscovered(toReport);
+            const locationChanged = data.location_changed as string | undefined;
+            if (locationChanged && onLocationChanged) onLocationChanged(locationChanged);
+            setIsLoading(false);
+            clearWatchdog();
+          },
+          onError: (failure) => markFailed(failure),
+        },
+        controller.signal,
+      );
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      markFailed({
+        message: isApiError(err) ? err.message : "Connection failed — try again.",
+        code: "llm_connection",
+        retryable: true,
+        partial: Boolean(pendingTextRef.current),
+        requestId,
+      });
+    } finally {
+      if (streamControllerRef.current === controller) streamControllerRef.current = null;
+    }
+  }, [caseId, clearWatchdog, discoveredEvidence, flushPendingText, locationId, onEvidenceDiscovered, onLocationChanged, scheduleTextFlush, slot]);
+
   // Handle form submission (routes to Matthew or narrator)
   const handleSubmit = useCallback(async () => {
     const trimmedInput = inputValue.trim();
-
-    // Validate input
     if (!trimmedInput) {
       setError("Please enter an action to investigate.");
       return;
     }
-
-    // Check if this is a Matthew message
     if (isMatthewInput(trimmedInput) && onMatthewMessage) {
       const matthewMessage = stripMatthewInputPrefix(trimmedInput);
       if (matthewMessage) {
-        // Route to Matthew (async, handled by parent)
         onMatthewMessage(matthewMessage);
         setInputValue("");
         inputRef.current?.focus();
         return;
       }
     }
-
-    // Regular investigation (narrator)
-    setIsLoading(true);
-    setError(null);
-
-    // Create a placeholder history item for streaming
     const itemId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const requestId = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : itemId;
     const streamingItem: ConversationItem = {
       id: itemId,
       action: trimmedInput,
       response: "",
       evidence_discovered: [],
       timestamp: new Date(),
+      requestId,
+      status: "streaming",
     };
-
-    setHistory((prev) => {
-      if (prev.length < MAX_HISTORY_LENGTH) {
-        return [...prev, streamingItem];
-      }
-      return [...prev.slice(1), streamingItem];
-    });
-
+    setHistory((prev) => prev.length < MAX_HISTORY_LENGTH
+      ? [...prev, streamingItem] : [...prev.slice(1), streamingItem]);
     setInputValue("");
     inputRef.current?.focus();
+    await runInvestigation(itemId, trimmedInput, requestId);
+  }, [inputValue, isMatthewInput, onMatthewMessage, runInvestigation, stripMatthewInputPrefix]);
 
-    // Cancel any in-flight stream (defensive — e.g. rapid resubmit), then
-    // create a fresh controller for this request.
-    streamControllerRef.current?.abort();
-    const controller = new AbortController();
-    streamControllerRef.current = controller;
+  const retryInvestigation = useCallback((itemId: string) => {
+    const item = history.find((candidate) => candidate.id === itemId);
+    if (!item?.requestId || isLoading) return;
+    void runInvestigation(item.id, item.action, item.requestId);
+  }, [history, isLoading, runInvestigation]);
 
-    try {
-      await investigateStream(
-        {
-          player_input: trimmedInput,
-          case_id: caseId,
-          location_id: locationId,
-          slot,
-        },
-        {
-          onChunk: (text) => {
-            setHistory((prev) =>
-              prev.map((item) =>
-                item.id === itemId
-                  ? { ...item, response: item.response + text }
-                  : item,
-              ),
-            );
-          },
-          onDone: (data) => {
-            const newEvidence = (data.new_evidence as string[] | undefined) ?? [];
-            const evidenceNames = (data.evidence_names as Record<string, string> | undefined) ?? {};
-            if (newEvidence.length > 0) {
-              setHistory((prev) =>
-                prev.map((item) =>
-                  item.id === itemId
-                    ? { ...item, evidence_discovered: newEvidence, evidence_names: evidenceNames }
-                    : item,
-                ),
-              );
-              const toReport = newEvidence.filter(
-                (id) => !discoveredEvidence.includes(id),
-              );
-              if (toReport.length > 0) {
-                onEvidenceDiscovered(toReport);
-              }
-            }
-            // Handle natural language location change
-            const locationChanged = data.location_changed as string | undefined;
-            if (locationChanged && onLocationChanged) {
-              onLocationChanged(locationChanged);
-            }
-            // Log metadata (dev only)
-            if (import.meta.env.DEV) {
-              const meta = data.meta as { model?: string; latency_ms?: number; is_spell?: boolean; spell_id?: string } | undefined;
-              if (meta) {
-                const parts = [`[${meta.model ?? '?'}]`, `${meta.latency_ms ?? '?'}ms`];
-                if (meta.is_spell) parts.push(`spell:${meta.spell_id}`);
-                console.log(`%c${parts.join(' · ')}`, 'color: #6b7280; font-size: 11px');
-              }
-            }
-            setIsLoading(false);
-          },
-          onError: (errMsg) => {
-            setError(errMsg);
-            setIsLoading(false);
-          },
-        },
-        controller.signal,
-      );
-    } catch (err) {
-      // Intentional abort (unmount, location change, rapid resubmit) — swallow.
-      if (controller.signal.aborted) return;
-      setError(
-        isApiError(err)
-          ? err.message
-          : "An unexpected error occurred. Please try again.",
-      );
-      setIsLoading(false);
-    } finally {
-      // Clear the ref if it still points to this controller (otherwise a newer
-      // request already replaced it).
-      if (streamControllerRef.current === controller) {
-        streamControllerRef.current = null;
-      }
-    }
-  }, [
-    inputValue,
-    caseId,
-    locationId,
-    onEvidenceDiscovered,
-    onLocationChanged,
-
-    slot,
-
-    discoveredEvidence,
-    isMatthewInput,
-    stripMatthewInputPrefix,
-    onMatthewMessage,
-  ]);
+  const dismissInvestigation = useCallback((itemId: string) => {
+    setHistory((prev) => prev.filter((item) => item.id !== itemId));
+  }, []);
 
   // Handle keyboard submit (Enter to submit, Shift+Enter for newline)
   const handleKeyDown = useCallback(
@@ -603,6 +640,29 @@ export function LocationView({
                       <p key={i}>{renderInlineMarkdown(para)}</p>
                     ))}
                   </div>
+                  {message.failure && (
+                    <div className="mt-3 flex items-center gap-3 text-xs">
+                      <span className={theme.colors.state.error.text}>{message.failure.message}</span>
+                      {message.failure.retryable && message.itemId && (
+                        <button
+                          type="button"
+                          className={theme.components.button.terminalAction}
+                          onClick={() => retryInvestigation(message.itemId!)}
+                        >
+                          RETRY
+                        </button>
+                      )}
+                      {message.itemId && (
+                        <button
+                          type="button"
+                          className={theme.components.button.terminalAction}
+                          onClick={() => dismissInvestigation(message.itemId!)}
+                        >
+                          DISMISS
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             }
@@ -754,7 +814,9 @@ export function LocationView({
               Spirit resonance...
             </span>
           ) : isLoading ? (
-            <span className={`${theme.colors.text.tertiary} ${theme.animation.pulse}`}>Analyzing...</span>
+            <span className={`${theme.colors.text.tertiary} ${theme.animation.pulse}`}>
+              {slowWarning ? 'Still working — provider is slow...' : 'Analyzing...'}
+            </span>
           ) : null}
         </div>
       </div>

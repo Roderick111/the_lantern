@@ -262,19 +262,18 @@ describe('useWitnessInterrogation', () => {
       });
 
       expect(api.interrogateStream).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           witness_id: 'elena',
           question: 'What did you see?',
           case_id: 'case_001',
           slot: 'autosave',
-        },
-        /* eslint-disable @typescript-eslint/no-unsafe-assignment -- vitest expect.any matchers */
+          request_id: expect.any(String),
+        }),
         expect.objectContaining({
           onChunk: expect.any(Function),
           onDone: expect.any(Function),
           onError: expect.any(Function),
         }),
-        /* eslint-enable @typescript-eslint/no-unsafe-assignment */
         expect.any(AbortSignal),
       );
 

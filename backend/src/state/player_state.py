@@ -565,6 +565,9 @@ class PlayerState(BaseModel):
     location_narrator_history: dict[str, list[ConversationItem]] = Field(default_factory=dict)
     # Narrator verbosity style: "concise" | "storyteller" | "atmospheric"
     narrator_verbosity: str = Field(default="storyteller", description="Narrator style verbosity")
+    assistance_mode: Literal["normal", "easy"] = Field(
+        default="normal", description="Narrator assistance: normal | easy"
+    )
     # Game language (ISO 639-1): "en", "ru", "fr", "es", "de", "pt", "zh", "ja", "ko"
     language: str = Field(default="en", description="Game response language")
 

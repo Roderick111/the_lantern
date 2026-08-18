@@ -409,7 +409,15 @@ export async function apiCallNullable<T>(
 export interface StreamCallbacks {
   onChunk: (text: string) => void;
   onDone: (data: Record<string, unknown>) => void;
-  onError: (error: string) => void;
+  onError: (error: StreamFailure) => void;
+}
+
+export interface StreamFailure {
+  message: string;
+  code: string;
+  retryable: boolean;
+  partial: boolean;
+  requestId?: string;
 }
 
 /**
@@ -450,13 +458,37 @@ export async function streamSSE(
   signal?: AbortSignal,
 ): Promise<void> {
   await ensureSession();
+  let terminal = false;
+  const telemetry = (eventType: string, data: Record<string, unknown> = {}): void => {
+    void import('./telemetry')
+      .then(({ logEvent }) => logEvent(eventType, data))
+      .catch(() => undefined);
+  };
+  const fail = (failure: StreamFailure): void => {
+    if (terminal) return;
+    terminal = true;
+    telemetry(failure.code === 'stream_incomplete' ? 'stream_unexpected_eof' : 'stream_backend_error', {
+      code: failure.code,
+      partial: failure.partial,
+      request_id: failure.requestId,
+    });
+    callbacks.onError(failure);
+  };
+  const makeFailure = (
+    message: string,
+    code: string,
+    retryable = true,
+    partial = false,
+    requestId?: string,
+  ): StreamFailure => ({ message, code, retryable, partial, requestId });
   let response: Response;
   try {
     response = await fetchSSE(url, body, signal);
   } catch (err) {
     // Caller aborted before/during fetch — silent.
     if (signal?.aborted || isAbortError(err)) return;
-    throw err;
+    fail(makeFailure('Connection failed — try again.', 'llm_connection'));
+    return;
   }
 
   if (response.status === 401) {
@@ -466,7 +498,8 @@ export async function streamSSE(
       response = await fetchSSE(url, body, signal);
     } catch (err) {
       if (signal?.aborted || isAbortError(err)) return;
-      throw err;
+      fail(makeFailure('Connection failed — try again.', 'llm_connection'));
+      return;
     }
   }
 
@@ -475,21 +508,20 @@ export async function streamSSE(
       const errBody = (await response.json()) as { detail?: unknown };
       const detailMessage = formatErrorDetail(errBody.detail);
       if (detailMessage) {
-        callbacks.onError(detailMessage);
+        fail(makeFailure(detailMessage, 'http_error', response.status >= 500));
         return;
       }
     } catch {
       // non-JSON error body
     }
-    callbacks.onError(`HTTP ${response.status}`);
+    fail(makeFailure(`HTTP ${response.status}`, 'http_error', response.status >= 500));
     return;
   }
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-  let receivedDone = false;
-  let receivedAnyChunk = false;
+  let receivedAnyText = false;
 
   try {
     while (true) {
@@ -506,33 +538,56 @@ export async function streamSSE(
         try {
           const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
           if (data.error) {
-            const code = typeof data.code === 'string' ? data.code : undefined;
-            const message = data.error as string;
-            callbacks.onError(code ? `${message} (${code})` : message);
+            const code = typeof data.code === 'string' ? data.code : 'llm_connection';
+            const message = typeof data.error === 'string' ? data.error : 'Request failed.';
+            fail({
+              message,
+              code,
+              retryable: data.retryable !== false,
+              partial: data.partial === true,
+              requestId: typeof data.request_id === 'string' ? data.request_id : undefined,
+            });
             return;
           }
           if (data.done) {
-            receivedDone = true;
+            if (terminal) return;
+            terminal = true;
+            telemetry('stream_done', {
+              request_id: typeof data.request_id === 'string' ? data.request_id : undefined,
+            });
             callbacks.onDone(data);
             return;
           }
           if (data.text) {
-            receivedAnyChunk = true;
+            receivedAnyText = true;
             callbacks.onChunk(data.text as string);
           }
         } catch {
-          // Skip malformed SSE lines (including keepalive comments)
+          // Keepalive comments never reach this branch. A malformed data line
+          // means terminal state cannot be trusted.
+          if (line.startsWith('data: ')) {
+            fail(makeFailure('Stream ended unexpectedly — try again.', 'stream_incomplete', true, receivedAnyText));
+            return;
+          }
         }
       }
     }
   } catch (err) {
     // Cancellation surfaces here as AbortError — exit silently.
     if (signal?.aborted || isAbortError(err)) return;
-    throw err;
+    fail(makeFailure('Connection failed — try again.', 'llm_connection', true, receivedAnyText));
+    return;
+  } finally {
+    reader.releaseLock();
   }
 
   // Stream ended without a done message — connection was dropped
-  if (!receivedDone && receivedAnyChunk) {
-    callbacks.onError('Connection lost — response may be incomplete.');
+  if (!terminal) {
+    fail(makeFailure(
+      'Stream ended unexpectedly — try again.',
+      'stream_incomplete',
+      true,
+      receivedAnyText,
+    ));
   }
 }

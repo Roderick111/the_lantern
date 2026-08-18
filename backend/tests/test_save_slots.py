@@ -65,12 +65,12 @@ class TestAutosaveOverwritesOnEveryAction:
         responses = [
             "First action. [EVIDENCE: hidden_note]",
             "Second action. [EVIDENCE: frost_pattern]",
-            "Third action. [EVIDENCE: melted_wax]",
+            "Third action. [EVIDENCE: dual_shimmer]",
         ]
         expected_evidence_at_step = [
             {"hidden_note"},
             {"hidden_note", "frost_pattern"},
-            {"hidden_note", "frost_pattern", "melted_wax"},
+            {"hidden_note", "frost_pattern", "dual_shimmer"},
         ]
 
         for narrator_text, expected in zip(responses, expected_evidence_at_step):

@@ -30,6 +30,7 @@ import { updateGamePreferences } from '../utils/gamePreferences';
 // ============================================
 
 export type NarratorVerbosity = 'concise' | 'storyteller' | 'atmospheric';
+export type AssistanceMode = 'normal' | 'easy';
 
 export type GameLanguage = 'en' | 'ru' | 'fr' | 'es' | 'de' | 'pt' | 'zh' | 'ja' | 'ko' | 'it';
 
@@ -53,6 +54,8 @@ interface SharedSettingsProps {
   onVerbosityChange?: (v: NarratorVerbosity) => void;
   language: GameLanguage;
   onLanguageChange?: (v: GameLanguage) => void;
+  assistanceMode?: AssistanceMode;
+  onAssistanceModeChange?: (v: AssistanceMode) => void;
 }
 
 interface GameSettingsProps extends SharedSettingsProps {
@@ -125,6 +128,8 @@ export function SettingsModal(props: SettingsModalProps) {
     onVerbosityChange,
     language,
     onLanguageChange,
+    assistanceMode = 'normal',
+    onAssistanceModeChange,
   } = props;
   const isGeneral = props.mode === 'general';
   const caseId = isGeneral ? '' : props.caseId;
@@ -291,6 +296,29 @@ export function SettingsModal(props: SettingsModalProps) {
     }
   };
 
+  const handleAssistanceModeChange = async (newMode: AssistanceMode) => {
+    if (newMode === assistanceMode || updating) return;
+    if (isGeneral) {
+      updateGamePreferences({ assistanceMode: newMode });
+      onAssistanceModeChange?.(newMode);
+      return;
+    }
+    setUpdating(true);
+    try {
+      const data = await updateSettings({ case_id: caseId, assistance_mode: newMode });
+      if (data.success) {
+        updateGamePreferences({ assistanceMode: newMode });
+        onAssistanceModeChange?.(newMode);
+      } else {
+        console.error('Failed to update assistance mode:', data.message);
+      }
+    } catch (error) {
+      console.error('Error updating assistance mode:', error);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   // Section header style
   const sectionLabel = `${theme.colors.text.tertiary} ${theme.fonts.ui} text-sm font-bold uppercase tracking-wider`;
 
@@ -374,6 +402,24 @@ export function SettingsModal(props: SettingsModalProps) {
                 onChange={(v) => void handleVerbosityChange(v)}
                 disabled={updating}
               />
+            </div>
+
+            <div className={`border-t ${theme.colors.border.separator}`} />
+
+            <div className="space-y-2">
+              <span className={sectionLabel}>Guidance</span>
+              <SegmentedControl
+                options={[
+                  { value: 'normal' as const, label: 'Normal' },
+                  { value: 'easy' as const, label: 'Easy' },
+                ]}
+                value={assistanceMode}
+                onChange={(v) => void handleAssistanceModeChange(v)}
+                disabled={updating}
+              />
+              <p className={`${theme.typography.helper} ${theme.colors.text.muted} text-xs`}>
+                Easy gives fuller orientation and gentle nudges.
+              </p>
             </div>
 
             <div className={`border-t ${theme.colors.border.separator}`} />

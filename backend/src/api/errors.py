@@ -8,7 +8,10 @@ from fastapi import HTTPException
 
 from src.api.llm_client import (
     AuthenticationFailedError,
+    EmptyLLMResponseError,
     LLMClientError,
+    LLMConnectionError,
+    LLMTimeoutError,
     RateLimitExceededError,
     UnsupportedModelError,
 )
@@ -49,12 +52,36 @@ def llm_http_exception(exc: Exception) -> HTTPException:
     return HTTPException(status_code=503, detail="LLM service temporarily unavailable.")
 
 
-def llm_stream_error_payload(exc: Exception) -> dict[str, str]:
-    """SSE/JSON error payload with stable codes for the frontend."""
+def llm_stream_error_payload(
+    exc: Exception,
+    *,
+    request_id: str | None = None,
+    partial: bool = False,
+) -> dict[str, object]:
+    """SSE error payload with stable code and retry semantics."""
+    code = "llm_connection"
+    message = "Connection failed — try again."
+    retryable = True
     if isinstance(exc, AuthenticationFailedError):
-        return {"error": "Check your API key in Settings.", "code": "llm_auth"}
-    if isinstance(exc, RateLimitExceededError):
-        return {"error": "Rate limited — wait and try again.", "code": "llm_rate_limit"}
-    if isinstance(exc, UnsupportedModelError):
-        return {"error": str(exc), "code": "llm_model"}
-    return {"error": "An error occurred while processing your request.", "code": "llm_error"}
+        code, message, retryable = "llm_auth", "Check your API key in Settings.", False
+    elif isinstance(exc, RateLimitExceededError):
+        code, message = "llm_rate_limit", "Rate limited — wait and try again."
+    elif isinstance(exc, UnsupportedModelError):
+        code, message, retryable = "llm_model", str(exc), False
+    elif isinstance(exc, EmptyLLMResponseError):
+        code, message = "llm_empty", "No response received — try again."
+    elif isinstance(exc, LLMTimeoutError) or isinstance(exc, TimeoutError):
+        code, message = "llm_timeout", "Response took too long — try again."
+    elif isinstance(exc, LLMConnectionError):
+        code, message = "llm_connection", "Connection failed — try again."
+    elif isinstance(exc, LLMClientError):
+        code, message = "llm_connection", "LLM service unavailable — try again."
+    payload: dict[str, object] = {
+        "error": message,
+        "code": code,
+        "retryable": retryable,
+        "partial": partial,
+    }
+    if request_id is not None:
+        payload["request_id"] = request_id
+    return payload
