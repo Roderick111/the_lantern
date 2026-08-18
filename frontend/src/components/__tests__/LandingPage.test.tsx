@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
- 
- 
- 
 /**
  * LandingPage Component Tests
  *
@@ -20,7 +16,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '../../test/render';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { LandingPage } from '../LandingPage';
 import * as client from '../../api/client';
 import type { CaseListResponse } from '../../types/investigation';
@@ -50,10 +46,10 @@ const mockCasesResponse: CaseListResponse = {
   cases: [
     {
       id: 'case_001',
-      title: 'The Restricted Section',
+      title: 'The Sealed Archive',
       difficulty: 'intermediate',
       description:
-        'A third-year student has been found petrified in the Hogwarts Library.',
+        'A third-year student has been found held in stillness in the Blackwood Collegiate Library.',
     },
     {
       id: 'case_002',
@@ -74,9 +70,9 @@ const mockPartialErrorResponse: CaseListResponse = {
   cases: [
     {
       id: 'case_001',
-      title: 'The Restricted Section',
+      title: 'The Sealed Archive',
       difficulty: 'intermediate',
-      description: 'A student has been found petrified.',
+      description: 'A student has been found held in stillness.',
     },
   ],
   count: 1,
@@ -99,7 +95,8 @@ describe('LandingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockNavigate.mockClear();
-    (client.getCases as any).mockResolvedValue(mockCasesResponse);
+    localStorage.removeItem('lantern-onboarding-seen');
+    vi.mocked(client.getCases).mockResolvedValue(mockCasesResponse);
   });
 
   afterEach(() => {
@@ -114,13 +111,13 @@ describe('LandingPage', () => {
     it.todo('displays loading state while fetching cases');
 
     it('shows game title during loading', () => {
-      (client.getCases as any).mockImplementation(
+      vi.mocked(client.getCases).mockImplementation(
         () => new Promise<CaseListResponse>(() => { /* intentionally never resolves */ })
       );
 
       render(<LandingPage {...defaultProps} />);
 
-      expect(screen.getByText('AUROR ACADEMY')).toBeInTheDocument();
+      expect(screen.getByText('THE LANTERN')).toBeInTheDocument();
       expect(screen.getByText(/Case Investigation System/i)).toBeInTheDocument();
     });
   });
@@ -133,7 +130,7 @@ describe('LandingPage', () => {
     it.todo('displays error message when API fails');
 
     it('shows retry button on error', async () => {
-      (client.getCases as any).mockRejectedValue(new Error('API error'));
+      vi.mocked(client.getCases).mockRejectedValue(new Error('API error'));
 
       render(<LandingPage {...defaultProps} />);
 
@@ -153,7 +150,7 @@ describe('LandingPage', () => {
     it.todo('displays empty state when no cases available');
 
     it('shows help text in empty state', async () => {
-      (client.getCases as any).mockResolvedValue(mockEmptyResponse);
+      vi.mocked(client.getCases).mockResolvedValue(mockEmptyResponse);
 
       render(<LandingPage {...defaultProps} />);
 
@@ -183,7 +180,7 @@ describe('LandingPage', () => {
     it('logs warnings when some cases fail to load', async () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { /* suppress console output */ });
 
-      (client.getCases as any).mockResolvedValue(mockPartialErrorResponse);
+      vi.mocked(client.getCases).mockResolvedValue(mockPartialErrorResponse);
 
       render(<LandingPage {...defaultProps} />);
 
@@ -213,8 +210,41 @@ describe('LandingPage', () => {
       render(<LandingPage {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getByText(/petrified/i)).toBeInTheDocument();
+        expect(screen.getByText(/held in stillness/i)).toBeInTheDocument();
       });
+    });
+
+    it('shows onboarding and remembers explicit dismissal', async () => {
+      render(<LandingPage {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Your own way through mysteries/i })).toBeInTheDocument();
+      });
+      expect(screen.getByText('Follow your instincts:')).toBeInTheDocument();
+      expect(screen.getByText(/interrogate suspects and uncover their secrets\./i)).toBeInTheDocument();
+      expect(screen.getByText('Explore every corner:')).toBeInTheDocument();
+      expect(screen.getByText(/investigate every room to find evidence\./i)).toBeInTheDocument();
+      expect(screen.getByText('Build your own theory:')).toBeInTheDocument();
+      expect(screen.getByText(/piece together what happened\./i)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /Close onboarding/i }));
+
+      expect(screen.queryByRole('heading', { name: /Your own way through mysteries/i })).not.toBeInTheDocument();
+      expect(localStorage.getItem('lantern-onboarding-seen')).toBe('true');
+      expect(screen.getByRole('button', { name: /What is The Lantern/i })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /What is The Lantern/i }));
+      expect(screen.getByRole('heading', { name: /Your own way through mysteries/i })).toBeInTheDocument();
+    });
+
+    it('hides onboarding after it was dismissed on a previous visit', async () => {
+      localStorage.setItem('lantern-onboarding-seen', 'true');
+      render(<LandingPage {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText(/The Sealed Archive/i).length).toBeGreaterThan(0);
+      });
+      expect(screen.queryByRole('heading', { name: /Your own way through mysteries/i })).not.toBeInTheDocument();
     });
 
     it.todo('renders Load Game button');

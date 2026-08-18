@@ -9,9 +9,9 @@
  * @since Phase 6.5 (Music Ambience)
  */
 
-import { useRef, useEffect, useCallback } from 'react';
-import { useMusic } from '../hooks/useMusic';
-import type { Track } from '../context/MusicContext';
+import { useRef, useEffect, useCallback } from "react";
+import { useMusic } from "../hooks/useMusic";
+import type { Track } from "../context/MusicContext";
 
 // ============================================
 // Types
@@ -31,6 +31,9 @@ export function MusicPlayer({ caseId }: MusicPlayerProps) {
   const hasAttemptedPlayRef = useRef(false);
   const lastCaseIdRef = useRef<string | null>(null);
   const manifestLoadedRef = useRef(false);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
 
   const {
     volume,
@@ -73,6 +76,10 @@ export function MusicPlayer({ caseId }: MusicPlayerProps) {
 
   // Handle play event from audio element
   const handlePlay = useCallback(() => {
+    // Resume AudioContext if suspended (required by iOS after user gesture)
+    if (audioContextRef.current?.state === "suspended") {
+      void audioContextRef.current.resume();
+    }
     setIsPlaying(true);
   }, [setIsPlaying]);
 
@@ -115,7 +122,7 @@ export function MusicPlayer({ caseId }: MusicPlayerProps) {
 
     if (trackIndex === -1) {
       // No saved track - try to find case default
-      const caseNumber = caseId.replace('case_', '');
+      const caseNumber = caseId.replace("case_", "");
       const defaultTrackId = `case_${caseNumber}_default`;
       trackIndex = tracks.findIndex((t: Track) => t.id === defaultTrackId);
     }
@@ -149,7 +156,7 @@ export function MusicPlayer({ caseId }: MusicPlayerProps) {
     if (!track) return;
 
     const expectedPath = `/music/${track.file}`;
-    const currentSrc = audio.src ? new URL(audio.src).pathname : '';
+    const currentSrc = audio.src ? new URL(audio.src).pathname : "";
 
     // Only update if the source actually needs to change
     if (currentSrc !== expectedPath) {
@@ -164,11 +171,40 @@ export function MusicPlayer({ caseId }: MusicPlayerProps) {
     }
   }, [currentTrackIndex, tracks, enabled, setIsPlaying]);
 
-  // Sync volume with audio element (convert 0-100 to 0-1)
+  // Initialize Web Audio API GainNode for volume control
+  // iOS Safari ignores audio.volume — GainNode works on all platforms
+  const MASTER_GAIN = 0.5;
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio) {
-      audio.volume = volume / 100;
+    if (!audio || audioContextRef.current) return;
+
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaElementSource(audio);
+      const gain = ctx.createGain();
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      audioContextRef.current = ctx;
+      sourceNodeRef.current = source;
+      gainNodeRef.current = gain;
+      gain.gain.value = (volume / 100) * MASTER_GAIN;
+    } catch (e) {
+      // Fallback: direct volume (works on desktop, ignored on iOS)
+      console.warn("[MusicPlayer] Web Audio API unavailable, using fallback", e);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioRef.current]);
+
+  // Sync volume via GainNode (or fallback to audio.volume)
+  useEffect(() => {
+    const gain = gainNodeRef.current;
+    if (gain) {
+      gain.gain.value = (volume / 100) * MASTER_GAIN;
+    } else {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.volume = (volume / 100) * MASTER_GAIN;
+      }
     }
   }, [volume]);
 
@@ -198,16 +234,16 @@ export function MusicPlayer({ caseId }: MusicPlayerProps) {
     const audio = audioRef.current;
     if (!audio) return;
 
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
+    audio.addEventListener("error", handleError);
+    audio.addEventListener("canplay", handleCanPlay);
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
 
     return () => {
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener("error", handleError);
+      audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
     };
   }, [handleError, handleCanPlay, handlePlay, handlePause]);
 
@@ -240,7 +276,7 @@ export function MusicPlayer({ caseId }: MusicPlayerProps) {
       loop
       preload="auto"
       aria-hidden="true"
-      style={{ display: 'none' }}
+      style={{ display: "none" }}
     />
   );
 }

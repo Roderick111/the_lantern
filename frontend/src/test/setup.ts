@@ -8,14 +8,22 @@ Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
 });
 
 // Ensure localStorage is available (jsdom sometimes has issues)
-if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.localStorage.getItem !== 'function') {
+function createStorage(): Storage {
   const store: Record<string, string> = {};
-  globalThis.localStorage = {
+  return {
     getItem: (key: string) => store[key] ?? null,
     setItem: (key: string, value: string) => { store[key] = value; },
     removeItem: (key: string) => { delete store[key]; },
-    clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+    clear: () => { Object.keys(store).forEach((k) => delete store[k]); },
     get length() { return Object.keys(store).length; },
     key: (index: number) => Object.keys(store)[index] ?? null,
   };
+}
+
+if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.localStorage.getItem !== 'function') {
+  globalThis.localStorage = createStorage();
+}
+
+if (typeof globalThis.sessionStorage === 'undefined' || typeof globalThis.sessionStorage.getItem !== 'function') {
+  globalThis.sessionStorage = createStorage();
 }

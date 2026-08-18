@@ -26,9 +26,9 @@ async def test_verdict_endpoint():
         request = SubmitVerdictRequest(
             case_id="case_001",
             player_id="default",
-            accused_suspect_id="draco_malfoy",
-            reasoning="The evidence clearly points to Draco as the culprit based on the wand signature.",
-            evidence_cited=["wand_signature", "witness_statement"],
+            accused_suspect_id="cassian_thorne",
+            reasoning="The evidence clearly points to Cassian as the culprit based on the focus signature.",
+            evidence_cited=["focus_signature", "witness_statement"],
         )
         print(f"Request: {request.model_dump_json(indent=2)}")
 
@@ -50,7 +50,7 @@ async def test_verdict_endpoint():
     print("-" * 70)
     try:
         request = SubmitVerdictRequest(
-            accused_suspect_id="draco_malfoy",
+            accused_suspect_id="cassian_thorne",
             reasoning="",  # Invalid
         )
         result = await submit_verdict(request)

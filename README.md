@@ -1,22 +1,28 @@
-# Auror Academy: Critical Thinking Investigation Game
+# The Lantern: Critical Thinking Investigation Game
 
-> An AI-powered Harry Potter detective game teaching rationality and deductive reasoning through immersive investigations.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Version:** 1.7.0 | **Type Safety:** Grade A | **Status:** Production Ready
+> An AI-powered Victorian occult detective game teaching rationality and deductive reasoning through immersive investigations.
+
+The web game is the primary product and full-featured experience. Telegram is a secondary client for a simpler, chat-first Case 001 beta; it shares the backend engine and player state but does not replace the web version.
+
+**Version:** 2.3.0 | **Type Safety:** Grade A | **Status:** Primary web production + secondary Telegram beta
 
 ---
 
 ## 🎯 Overview
 
-**Auror Academy** is an interactive investigation game where you play as an Auror-in-training, solving magical mysteries at Hogwarts. The game combines:
+**The Lantern** is an interactive investigation game where you play as a probationary Lantern Inspector, solving occult mysteries at Blackwood Collegiate. The game combines:
 
 - 🔍 **AI-Powered Investigations** - Dynamic LLM narrator responds to freeform actions
 - 🗣️ **Witness Interrogation** - Build trust, reveal secrets, detect lies
-- 🔮 **Magic System** - Cast 7 investigation spells (Revelio, Legilimency, etc.)
+- 🔮 **Rite System** - Perform 7 investigation rites (Unveil, Mnemonic Delving, etc.)
 - 🧠 **Critical Thinking** - Detect fallacies, avoid bias, submit verdicts
-- 👻 **Inner Voice (Tom)** - AI mentor who's 50/50 helpful/misleading
+- 👻 **Spirit Companion (Matthew Croft)** - Unreliable ghost advisor; 50% helpful, 50% misleading
+- 📱 **Telegram Gateway (secondary client)** - Play Case 001 in private Telegram chats with freeform investigation, inline buttons, witnesses, evidence, verdicts, and a Mini App casebook
+- 🌍 **English + Russian** - Authored case localization with natural prose, localized evidence/witness/location text, and paragraph-safe rendering
 
-**Perfect for:** Educators teaching critical thinking, Harry Potter fans, detective game enthusiasts
+**Perfect for:** Educators teaching critical thinking, Victorian occult detective fans, detective game enthusiasts
 
 ---
 
@@ -26,7 +32,7 @@
 - **Freeform Input**: Type any action—LLM narrator responds dynamically
 - **Evidence Discovery**: Keyword triggers with 5+ variants per clue
 - **Location Navigation**: Move between Library, Dormitory, Great Hall (clickable or natural language)
-- **7 Investigation Spells**: Revelio, Homenum Revelio, Prior Incantato, Specialis Revelio, Legilimency, Finite Incantatem, Protego Totalum
+- **7 Investigation Rites**: Unveil, Sense Presence, Echo Reading, Identify Substance, Mnemonic Delving, Dispel, Ward Circle
 - **Conversation History**: Full investigation transcript preserved across saves
 - **Multi-LLM Provider Support**: Switch between OpenRouter, Anthropic, OpenAI, Google providers
 - **Music Ambience**: Per-case background music with volume control, play/pause, mute (localStorage persistence)
@@ -39,13 +45,13 @@
 
 ### Verdict & Feedback
 - **Detective Reasoning**: Submit suspect + explanation + evidence
-- **Fallacy Detection**: Moody analyzes for 4 types of logical errors
+- **Fallacy Detection**: Graves analyzes for 4 types of logical errors
 - **Adaptive Hints**: Feedback scales with attempt count
 - **Post-Verdict Confrontation**: Dialogue scene with culprit if correct
 
 ### Educational Components
-- **Briefing System**: Moody teaches rationality concepts (base rates, evidence strength)
-- **Tom's Guidance**: Ghost mentor provides 50% helpful, 50% misleading advice
+- **Briefing System**: Graves teaches rationality concepts (base rates, evidence strength)
+- **Matthew's Guidance**: Spirit companion provides 50% helpful, 50% misleading advice
 - **Critical Thinking**: Learn to evaluate evidence objectively
 
 ---
@@ -54,64 +60,88 @@
 
 ### Prerequisites
 - **Python 3.11+** with [uv](https://github.com/astral-sh/uv)
-- **Bun** (not npm/yarn)
-- **LLM API Key** - OpenRouter recommended ([Get key](https://openrouter.ai/)), or Anthropic/OpenAI/Google
+- **Bun** (not npm/yarn — use `~/.bun/bin/bun` if `bun` is not on your PATH)
+- **LLM API Key** — OpenRouter recommended ([Get key](https://openrouter.ai/)), or Anthropic/OpenAI/Google
 
-### Installation
+### First-time setup
 
-1. **Clone repository**
-   ```bash
-   git clone https://github.com/Roderick111/hp-game.git
-   cd hp-game
-   ```
+```bash
+git clone https://github.com/Roderick111/the-lantern.git
+cd the-lantern
 
-2. **Backend setup**
-   ```bash
-   cd backend
-   uv venv
-   uv sync
-   cp .env.example .env
-   # Configure LLM provider in .env (see backend/README.md for details)
-   # Recommended: DEFAULT_LLM_PROVIDER=openrouter, OPENROUTER_API_KEY=sk-or-v1-...
-   uv run uvicorn src.main:app --reload
-   ```
-   Backend runs at `http://localhost:8000`
+# Backend
+cd backend
+uv venv
+uv sync
+cp .env.example .env
+# Edit .env — see backend/README.md
+# Recommended: DEFAULT_LLM_PROVIDER=openrouter, OPENROUTER_API_KEY=sk-or-v1-...
 
-3. **Frontend setup** (new terminal)
-   ```bash
-   cd frontend
-   bun install
-   ~/.bun/bin/bun run dev
-   ```
-   Frontend runs at `http://localhost:5173`
+# Frontend (from repo root)
+cd ../frontend
+bun install
+```
 
-4. **Add music (optional)**
-   ```bash
-   # Add MP3 files to frontend/public/music/
-   # Naming: case_{id}_default.mp3 (e.g., case_001_default.mp3)
-   # Format: MP3, 128-192 kbps, 30-120s loop
-   ```
+### Run locally (two terminals)
 
-5. **Play!**
-   - Open browser to `http://localhost:5173`
-   - Select a case from landing page
-   - Complete Moody's briefing
-   - Start investigating!
+Use **two terminal tabs**. Start the backend first, then the frontend.
+
+**Terminal 1 — backend** → `http://localhost:8000`
+```bash
+cd backend
+uv run uvicorn src.main:app --reload --port 8000
+```
+
+**Terminal 2 — frontend** → `http://localhost:5173`
+```bash
+cd frontend
+~/.bun/bin/bun run dev
+```
+
+Open **http://localhost:5173** in your browser. In dev, the Vite proxy forwards `/api` to `http://127.0.0.1:8000`.
+
+### Telegram gateway (optional secondary client)
+
+Run the backend first, then start the gateway in a separate terminal:
+
+```bash
+cd telegram
+~/.bun/bin/bun install
+cp .env.example .env
+# Fill TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, MINIAPP_SESSION_SECRET,
+# LANTERN_ENGINE_URL, and TELEGRAM_PUBLIC_URL in .env.
+~/.bun/bin/bun run dev:poll
+```
+
+Use polling only for local development. The bot is an optional secondary client: it supports English/Russian onboarding, freeform investigation and witness messages, Casebook/Evidence/Witnesses/Verdict buttons, autosave, and a 40 LLM-turn daily cap. The full web game remains the primary surface. See [telegram/CLAUDE.md](telegram/CLAUDE.md) and the [Telegram deployment plan](docs/plans/2026-07-17-telegram-phase5-deploy.md).
+
+**Troubleshooting:** If you see the wrong app or stale content, another process may be bound to `:8000` or `:5173`. Stop it and restart both servers. If Matthew returns empty replies or the backend uses the wrong Python, check `head -1 backend/.venv/bin/uvicorn` — it must point at `the_lantern/backend/.venv`, not another project. Rebuild: `cd backend && rm -rf .venv && uv venv && uv sync`.
+
+### Optional: music
+
+Add MP3 files to `frontend/public/music/` — naming: `case_{id}_default.mp3` (e.g. `case_001_default.mp3`). Format: MP3, 128–192 kbps, 30–120s loop.
+
+### Play
+
+1. Open `http://localhost:5173`
+2. Select a case from the landing page
+3. Complete Graves's briefing
+4. Start investigating
 
 ---
 
 ## 🎮 How to Play
 
 ### 1. Briefing Phase
-- Moody explains the case (WHO/WHAT/WHERE/WHEN)
+- Graves explains the case (WHO/WHAT/WHERE/WHEN)
 - Ask follow-up questions to clarify details
 - Learn a rationality concept (e.g., base rates, evidence strength)
 
 ### 2. Investigation Phase
 - **Navigate**: Click locations or type "go to dormitory"
-- **Investigate**: Type freeform actions ("search the desk", "examine the wand")
-- **Cast Spells**: "revelio hidden objects", "legilimens on Hermione"
-- **Talk to Tom**: "Tom, should I trust this witness?" (but beware—he's sometimes wrong!)
+- **Investigate**: Type freeform actions ("search the desk", "examine the focus")
+- **Perform Rites**: type a displayed spoken formula by itself or add a target after it (for example, `Veil, dissolve over this desk.`)
+- **Consult Matthew**: Prefix with `Matthew,` — e.g. "Matthew, should I trust this witness?" (carnival instincts, not Bureau training — he's sometimes wrong)
 - **Evidence Board**: Automatically tracks discovered clues
 
 ### 3. Interrogation Phase
@@ -121,7 +151,7 @@
 
 ### 4. Verdict Phase
 - **Submit Accusation**: Choose suspect + reasoning + evidence
-- **Moody's Analysis**: Fallacy detection and scoring (0-100)
+- **Graves's Analysis**: Fallacy detection and scoring (0-100)
 - **Confrontation**: Dialogue scene with culprit if correct
 - **10 Attempts**: Educational focus—learn from mistakes
 
@@ -129,7 +159,7 @@
 - **ESC**: Open main menu (New Game, Save, Load, Settings, Exit)
 - **1-3**: Quick-select locations
 - **Ctrl+Enter**: Submit investigation action
-- **Cmd+H**: View Auror's Handbook (spell reference)
+- **Cmd+H**: View Lantern Compendium (rite reference)
 - **Settings → Audio**: Control music volume, play/pause, mute
 
 ---
@@ -145,13 +175,14 @@
 | **Styling** | Tailwind CSS | 3.4 |
 | **Testing** | pytest / Vitest | - |
 | **Package Mgmt** | uv / Bun | - |
+| **Telegram** | Bun + Hono + grammY + Vite/React Mini App | - |
 
 ---
 
 ## 📖 Documentation
 
 ### Getting Started
-- [Game Design Document](docs/game-design/AUROR_ACADEMY_GAME_DESIGN.md) - Complete game design
+- [Game Design Document](docs/game-design/LANTERN_GAME_DESIGN.md) - Complete game design
 - [Case Design Guide](docs/CASE_DESIGN_GUIDE.md) - Create your own cases
 - [Developer Guide](CLAUDE.md) - Coding standards & agent orchestration
 
@@ -163,6 +194,8 @@
 ### Technical Details
 - [Type System Audit](docs/TYPE_SYSTEM_AUDIT.md) - TypeScript architecture
 - [Validation Report](VALIDATION-GATES-ZOD-REPORT.md) - Zod implementation
+- [Telegram Public Beta Plan](docs/plans/2026-07-17-telegram-public-beta-implementation-plan.md) - Gateway, Mini App, deployment, and acceptance gates
+- [Telegram Deployment Plan](docs/plans/2026-07-17-telegram-phase5-deploy.md) - Production env, migrations, webhook, and smoke checks
 
 ---
 
@@ -170,11 +203,14 @@
 
 ### Run Tests
 ```bash
-# Backend (154 tests, 100% coverage)
+# Backend
 cd backend && uv run pytest
 
-# Frontend (377/565 tests)
+# Frontend
 cd frontend && bun test
+
+# Telegram gateway
+cd telegram && ~/.bun/bin/bun test ./tests
 ```
 
 ### Type Checking
@@ -203,16 +239,82 @@ cd frontend && bun run build
 
 ---
 
+## 🚢 Production Deployment
+
+**Live site:** https://thelantern.institute
+
+### Deploy
+
+From the repo root (requires SSH access to the server):
+
+```bash
+./deploy.sh              # default: root@188.34.196.228
+./deploy.sh <server-ip>  # override target
+```
+
+The script rsyncs backend/frontend + Docker configs to `/opt/the-lantern`, copies `backend/.env` → `.env.production` on the server, then runs `docker compose build --no-cache && docker compose up -d`.
+
+**Stack:** `nginx-proxy` (TLS) → `lantern-frontend` (primary web SPA + `/api` proxy) → `lantern-backend` (FastAPI), plus optional `telegram` (secondary Hono/grammY webhook + Mini App) at `bot.thelantern.institute`. Game saves live in the `lantern-saves` Docker volume; Telegram gateway state lives in `lantern-telegram`.
+
+**SSE streaming:** `deploy.sh` copies `nginx-proxy/thelantern.institute_location` into the shared `crowd_due_dill_nginx_vhost` volume and restarts `crowd-due-dill-proxy`. Without `proxy_buffering off` at this layer, token streaming arrives as one chunk (inner nginx already disables buffering for `/api/`).
+
+### Required production env vars
+
+Copy `.env.production.example` → `backend/.env` and fill in API keys before deploying. Minimum:
+
+| Variable | Purpose |
+|----------|---------|
+| `OPENROUTER_API_KEY` | Default LLM provider |
+| `PLAYER_TOKEN_SECRET` | HMAC signing for `X-Player-Token` (32+ chars) |
+| `CORS_ORIGINS` | e.g. `https://thelantern.institute` |
+| `TRUSTED_PROXY` | **Set to `1` when behind nginx/Cloudflare** (see below) |
+
+Telegram deployment also requires `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `MINIAPP_SESSION_SECRET`, and `TELEGRAM_PUBLIC_URL`. Apply the SQL files in `backend/migrations/` and `telegram/migrations/` before enabling the production worker; do not run them from the application container.
+
+### `TRUSTED_PROXY=1` (rate limiting)
+
+When the API sits behind a reverse proxy, FastAPI only sees the proxy’s IP—not the browser’s. Without `TRUSTED_PROXY`, unauthenticated rate limits (e.g. `POST /api/session`) can bucket all users together.
+
+Set `TRUSTED_PROXY=1` in `backend/.env` (deployed as `.env.production`) when:
+
+1. Traffic passes through nginx-proxy / Cloudflare / a load balancer, **and**
+2. The backend is not exposed directly to the internet.
+
+The backend then reads the client IP from `X-Forwarded-For` (set by `nginx.conf` on `/api/`). **Do not enable this** on a dev machine where clients can reach the API directly—otherwise anyone could spoof that header.
+
+Authenticated requests are keyed by `player_id`; `TRUSTED_PROXY` mainly affects IP-based limits on session creation and similar endpoints.
+
+### Post-deploy smoke test
+
+```bash
+curl -sS https://thelantern.institute/health
+# → {"status":"ok","db":true}
+
+curl -sS -X POST https://thelantern.institute/api/session \
+  -H 'Content-Type: application/json' -d '{}'
+# → {"player_id":"...","token":"v1...."}
+```
+
+**Server ops:**
+
+```bash
+ssh root@188.34.196.228 'cd /opt/the-lantern && docker compose ps'
+ssh root@188.34.196.228 'cd /opt/the-lantern && docker compose logs -f backend'
+```
+
+---
+
 ## 📊 Project Metrics
 
-**Current Version:** 1.7.0 (Multi-LLM Provider Support)
+**Current Version:** 2.3.0 (Primary web game + secondary Telegram beta + EN/RU localization)
 
 | Metric | Status |
 |--------|--------|
 | Type Safety | ✅ Grade A (compile-time + runtime) |
 | Security | ✅ 0 vulnerabilities (audited 2026-01-18) |
-| Backend Tests | ✅ 154/154 (100%) |
-| Frontend Tests | ⚠️ 377/565 (66.7% - pre-existing) |
+| Backend Tests | ✅ 898 passed / 4 skipped |
+| Frontend Tests | ✅ 332 passed / 2 skipped / 134 todo |
+| Telegram Tests | ✅ 55 passed |
 | Bundle Size | ✅ 104.83 KB gzipped |
 | Cases Complete | ✅ 2 playable cases |
 | Production Ready | ✅ Yes |
@@ -224,7 +326,7 @@ See [STATUS.md](STATUS.md) for detailed current state.
 ## 🗂️ Project Structure
 
 ```
-hp_game/
+lantern_game/
 ├── backend/                # Python FastAPI + Claude LLM
 │   ├── src/
 │   │   ├── case_store/     # YAML case files + loader
@@ -233,7 +335,7 @@ hp_game/
 │   │   └── state/          # Player state + persistence
 │   ├── tests/              # pytest tests (154, 100% coverage)
 │   └── pyproject.toml
-├── frontend/               # React + Vite + TypeScript
+├── frontend/               # React + Vite + TypeScript web client
 │   ├── src/
 │   │   ├── components/     # UI components
 │   │   │   └── layout/     # Layout orchestration (InvestigationLayout)
@@ -242,7 +344,12 @@ hp_game/
 │   │   └── types/          # TypeScript types
 │   ├── tests/              # Vitest tests
 │   └── package.json
-├── docs/                   # Documentation
+├── telegram/               # Bun + Hono + grammY bot and Mini App
+│   ├── src/bot/             # Webhook, handlers, keyboards, formatting
+│   ├── src/jobs/            # Durable SQLite worker and operations
+│   ├── src/miniapp/         # Telegram initData/session/CSRF API
+│   └── app/                 # Vite/React Mini App
+├── docs/                   # Documentation and implementation plans
 │   ├── game-design/        # Game design documents
 │   ├── case-files/         # Case specifications
 │   └── research/           # Research & analysis
@@ -270,14 +377,14 @@ This is an educational project. Contributions welcome!
 
 ## 📜 License
 
-[Add license information]
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
 ## 🙏 Acknowledgments
 
 - Built with [Anthropic Claude](https://www.anthropic.com/)
-- Harry Potter universe © J.K. Rowling
+- Victorian occult detective universe 
 - Inspired by *Return of the Obra Dinn*, *LA Noire*, and rationality education
 
 ---

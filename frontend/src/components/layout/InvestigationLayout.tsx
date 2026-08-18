@@ -37,18 +37,18 @@ export function InvestigationLayout({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-10 gap-4">
-      {/* Main Content: 70% (7 of 10 columns) */}
-      <div className="lg:col-span-7 relative">
-        {/* Fade gradient below header — scoped to main content only */}
-        <div
-          className={`pointer-events-none sticky top-[4.5rem] h-8 bg-gradient-to-b ${theme.colors.gradient.fromBg} to-transparent z-10 -mb-10`}
-        />
-        {mainContent}
+      {/* Sidebar: appears FIRST on mobile (image at top), moves to right on desktop */}
+      <div className="lg:col-span-3 lg:order-2">
+        <div className="lg:sticky lg:top-[5rem] space-y-4">{sidebar}</div>
       </div>
 
-      {/* Sidebar: 30% (3 of 10 columns) — sticky to viewport */}
-      <div className="lg:col-span-3">
-        <div className="lg:sticky lg:top-[5rem] space-y-4">{sidebar}</div>
+      {/* Main Content: 70% (7 of 10 columns) */}
+      <div className="lg:col-span-7 lg:order-1 relative">
+        {/* Fade gradient below header — desktop only */}
+        <div
+          className={`hidden lg:block pointer-events-none sticky top-[4.5rem] h-8 bg-gradient-to-b ${theme.colors.gradient.fromBg} to-transparent z-10 -mb-10`}
+        />
+        {mainContent}
       </div>
     </div>
   );

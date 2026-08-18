@@ -4,11 +4,14 @@
  * Main application layout with URL-based routing.
  * `/` → LandingPage, `/case/:caseId` → Investigation game.
  *
+ * Player ID resolution is lazy (inside React via usePlayerId hook) to avoid
+ * top-level side effects on module import (e.g. during JSDOM tests).
+ *
  * @module App
  * @since Phase 1, updated Phase 7 (URL routing)
  */
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import { LandingPage } from "./components/LandingPage";
 import { LocationView } from "./components/LocationView";
@@ -35,20 +38,19 @@ import { useInvestigation } from "./hooks/useInvestigation";
 import { useWitnessInterrogation } from "./hooks/useWitnessInterrogation";
 import { useVerdictFlow } from "./hooks/useVerdictFlow";
 import { useBriefing } from "./hooks/useBriefing";
-import { useTomChat } from "./hooks/useTomChat";
+import { useMatthewChat } from "./hooks/useMatthewChat";
 import { useLocation } from "./hooks/useLocation";
 import { useSaveSlots } from "./hooks/useSaveSlots";
 import { useGameModals } from "./hooks/useGameModals";
 import { useGameActions } from "./hooks/useGameActions";
 import { useTheme } from "./context/useTheme";
 import { logSessionStart } from "./api/telemetry";
-import { getOrCreatePlayerId } from "./utils/playerId";
+import { usePlayerId } from "./utils/playerId";
+import { getGamePreferences } from "./utils/gamePreferences";
+import { getEvidenceDetails, updateSettings } from "./api/client";
+import type { ChangeLocationResponse } from "./types/investigation";
 
-// ============================================
-// Configuration
-// ============================================
-
-const PLAYER_ID = getOrCreatePlayerId();
+const LOCATION_NAVIGATION_HINT_STORAGE_KEY = "lantern-location-switch-discovered-v2";
 
 // ============================================
 // App (Router)
@@ -60,6 +62,9 @@ export default function App() {
     () => !localStorage.getItem("telemetry_consent_shown"),
   );
 
+  // B2: global-ish session toast via event (from api/base 401 handling)
+  const [sessionToast, setSessionToast] = useState<string | null>(null);
+
   useEffect(() => {
     logSessionStart();
     if (showConsent) {
@@ -70,6 +75,18 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for 401 session expiry events from base.ts
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ message?: string }>) => {
+      const detail = e.detail ?? {};
+      const msg = detail.message ?? "Session expired — refreshing";
+      setSessionToast(msg);
+      setTimeout(() => setSessionToast(null), 2500);
+    };
+    window.addEventListener("lantern-session-expired", handler as EventListener);
+    return () => window.removeEventListener("lantern-session-expired", handler as EventListener);
+  }, []);
 
   return (
     <>
@@ -84,6 +101,15 @@ export default function App() {
           Anonymous data collected to improve the game
         </div>
       )}
+
+      {/* B2 session toast root level */}
+      {sessionToast && (
+        <Toast
+          message={sessionToast}
+          variant="info"
+          onClose={() => setSessionToast(null)}
+        />
+      )}
     </>
   );
 }
@@ -92,11 +118,24 @@ export default function App() {
 // Landing Route
 // ============================================
 
+function navigateWithTransition(nav: ReturnType<typeof useNavigate>, to: string) {
+  if (document.startViewTransition) {
+    document.startViewTransition(() => { void nav(to); });
+  } else {
+    void nav(to);
+  }
+}
+
 function LandingRoute() {
   const navigate = useNavigate();
   const [loadModalOpen, setLoadModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [gamePreferences, setGamePreferences] = useState(getGamePreferences);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"success" | "error" | "info">("success");
+
+  // Lazy player ID resolution inside React (no top-level)
+  const playerId = usePlayerId();
 
   // Default case for save slots listing on landing page
   const defaultCaseId = "case_001";
@@ -107,7 +146,7 @@ function LandingRoute() {
     error: saveSlotsError,
     loadFromSlot,
     refreshSlots,
-  } = useSaveSlots(defaultCaseId, PLAYER_ID);
+  } = useSaveSlots(defaultCaseId, playerId);
 
   const handleLoadGameFromLanding = useCallback(() => {
     setLoadModalOpen(true);
@@ -121,7 +160,7 @@ function LandingRoute() {
         setToastVariant("success");
         setToastMessage(`Loaded from ${slot.replace("_", " ")}`);
         setLoadModalOpen(false);
-        void navigate(`/case/${loadedState.case_id}`);
+        navigateWithTransition(navigate, `/case/${loadedState.case_id}`);
       } else {
         setToastVariant("error");
         setToastMessage(saveSlotsError ?? "Load failed");
@@ -130,9 +169,42 @@ function LandingRoute() {
     [loadFromSlot, saveSlotsError, navigate],
   );
 
+  const handlePrepareStartCase = useCallback(async (caseId: string) => {
+    const preferences = getGamePreferences();
+    try {
+      const result = await updateSettings({
+        case_id: caseId,
+        narrator_verbosity: preferences.narratorVerbosity,
+        language: preferences.language,
+        assistance_mode: preferences.assistanceMode,
+      });
+      if (!result.success) console.error('Failed to apply game preferences:', result.message);
+    } catch (error) {
+      console.error('Failed to apply game preferences:', error);
+    }
+  }, []);
+
   return (
     <>
-      <LandingPage onLoadGame={handleLoadGameFromLanding} />
+      <LandingPage
+        onLoadGame={handleLoadGameFromLanding}
+        onOpenSettings={() => setSettingsOpen(true)}
+        language={gamePreferences.language}
+        shortcutsEnabled={!loadModalOpen && !settingsOpen}
+        onPrepareStartCase={handlePrepareStartCase}
+      />
+
+      <SettingsModal
+        mode="general"
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        narratorVerbosity={gamePreferences.narratorVerbosity}
+        onVerbosityChange={(value) => setGamePreferences((prev) => ({ ...prev, narratorVerbosity: value }))}
+        assistanceMode={gamePreferences.assistanceMode}
+        onAssistanceModeChange={(value) => setGamePreferences((prev) => ({ ...prev, assistanceMode: value }))}
+        language={gamePreferences.language}
+        onLanguageChange={(value) => setGamePreferences((prev) => ({ ...prev, language: value }))}
+      />
 
       <SaveLoadModal
         isOpen={loadModalOpen}
@@ -143,7 +215,7 @@ function LandingRoute() {
         slots={slots}
         loading={saveSlotsLoading}
         caseId={defaultCaseId}
-        playerId={PLAYER_ID}
+        playerId={playerId}
         onImportSuccess={() => void refreshSlots()}
       />
 
@@ -166,6 +238,9 @@ function GameRoute() {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
 
+  // Lazy resolution (MUST be before any early return — rules of hooks)
+  const playerId = usePlayerId();
+
   if (!caseId) {
     return <Navigate to="/" replace />;
   }
@@ -173,8 +248,9 @@ function GameRoute() {
   return (
     <InvestigationView
       caseId={caseId}
-      playerId={PLAYER_ID}
-      onExitToMainMenu={() => void navigate("/")}
+      playerId={playerId}
+      language={getGamePreferences().language}
+      onExitToMainMenu={() => navigateWithTransition(navigate, "/")}
     />
   );
 }
@@ -186,12 +262,14 @@ function GameRoute() {
 interface InvestigationViewProps {
   caseId: string;
   playerId: string;
+  language: string;
   onExitToMainMenu: () => void;
 }
 
 function InvestigationView({
   caseId,
   playerId,
+  language,
   onExitToMainMenu,
 }: InvestigationViewProps) {
   // Toast state
@@ -199,23 +277,69 @@ function InvestigationView({
   const [toastVariant, setToastVariant] = useState<"success" | "error" | "info">("success");
   const handleToastClose = useCallback(() => setToastMessage(null), []);
 
+  // B3/B1: ref for cross-hook location change handler (to sync apply without circular hook init)
+  const locationChangeHandlerRef = useRef<((id: string, resp: ChangeLocationResponse) => void) | null>(null);
+  const [locationLanguage, setLocationLanguage] = useState(language);
+
   // Domain hooks
-  const locationHook = useLocation({ caseId, playerId });
+  // B1: pass slot to useLocation (was missing), B3: wire onChange via ref for apply
+  const locationHook = useLocation({
+    caseId,
+    playerId,
+    slot: "autosave",
+    language: locationLanguage,
+    onLocationChange: (id, resp) => {
+      locationChangeHandlerRef.current?.(id, resp);
+    },
+  });
   const { locations, currentLocationId, visitedLocations, loading: locationLoading, changing: locationChanging, error: locationError, handleLocationChange } = locationHook;
+  const [locationNavigationHintDismissed, setLocationNavigationHintDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(LOCATION_NAVIGATION_HINT_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const handleLocationSelect = useCallback((locationId: string) => {
+    if (!locationNavigationHintDismissed && locationId !== currentLocationId) {
+      setLocationNavigationHintDismissed(true);
+      try {
+        localStorage.setItem(LOCATION_NAVIGATION_HINT_STORAGE_KEY, "true");
+      } catch {
+        // Keep the hint dismissed for the current session if storage is unavailable.
+      }
+    }
+    void handleLocationChange(locationId);
+  }, [currentLocationId, handleLocationChange, locationNavigationHintDismissed]);
 
   const investigation = useInvestigation({ caseId, locationId: currentLocationId, playerId, slot: "autosave" });
-  const { state, location, loading, error, clearError, setNarratorVerbosity } = investigation;
+  const { state, location, loading, error, clearError, setNarratorVerbosity, setAssistanceMode, setLanguage, applyLocationChange } = investigation;
 
-  const witnessHook = useWitnessInterrogation({ caseId, playerId, autoLoad: true });
-  const { state: witnessState, askQuestion, presentEvidenceToWitness } = witnessHook;
+  useEffect(() => {
+    if (state?.language) setLocationLanguage(state.language);
+  }, [state?.language]);
+
+  // wire after both hooks defined (ref holds latest)
+  locationChangeHandlerRef.current = (_id, resp) => {
+    applyLocationChange(resp);
+  };
+
+  const witnessHook = useWitnessInterrogation({
+    caseId,
+    playerId,
+    autoLoad: true,
+    language: state?.language ?? locationLanguage,
+  });
+  const { state: witnessState, askQuestion, presentEvidenceToWitness, dismissFailedConversation, retryFailedConversation } = witnessHook;
 
   const verdictHook = useVerdictFlow({ caseId, playerId });
   const { state: verdictState, submitVerdict, confirmConfrontation } = verdictHook;
 
   const briefingHook = useBriefing({ caseId, playerId });
-  const { briefing, conversation: briefingConversation, selectedChoice: briefingSelectedChoice, choiceResponse: briefingChoiceResponse, loading: briefingLoading, selectChoice: selectBriefingChoice, resetChoice: resetBriefingChoice, askQuestion: askBriefingQuestion } = briefingHook;
+  const { briefing, loading: briefingLoading, error: briefingError } = briefingHook;
 
-  const tomHook = useTomChat({ caseId, playerId });
+  const matthewHook = useMatthewChat({ caseId, playerId });
 
   const saveSlots = useSaveSlots(caseId, playerId);
   const { slots, loading: saveSlotsLoading } = saveSlots;
@@ -233,77 +357,117 @@ function InvestigationView({
     witnesses: { selectWitness: witnessHook.selectWitness, clearConversation: witnessHook.clearConversation },
     verdict: { reset: verdictHook.reset, confirmConfrontation },
     briefing: { loadBriefing: briefingHook.loadBriefing, markComplete: briefingHook.markComplete },
-    tom: { checkAutoComment: tomHook.checkAutoComment, sendMessage: tomHook.sendMessage },
+    matthew: { checkAutoComment: matthewHook.checkAutoComment, sendMessage: matthewHook.sendMessage },
     saveSlots: { saveToSlot: saveSlots.saveToSlot, loadFromSlot: saveSlots.loadFromSlot, refreshSlots: saveSlots.refreshSlots, error: saveSlots.error },
   });
 
   // Derived data
   const suspects = useMemo(() => witnessState.witnesses.map((w) => ({ id: w.id, name: w.name })), [witnessState.witnesses]);
-  const discoveredEvidenceWithNames = useMemo(() => (state?.discovered_evidence ?? []).map((id) => ({ id, name: id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) })), [state?.discovered_evidence]);
+  const evidenceIds = useMemo(() => state?.discovered_evidence ?? [], [state?.discovered_evidence]);
+  const evidenceKey = evidenceIds.join("|");
+  const contentLanguage = state?.language ?? "en";
+  const [evidenceNames, setEvidenceNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const lookupIds = evidenceKey ? evidenceKey.split("|") : [];
+    if (lookupIds.length === 0) {
+      setEvidenceNames({});
+      return;
+    }
+
+    let cancelled = false;
+    void Promise.all(
+      lookupIds.map(async (id) => {
+        try {
+          const details = await getEvidenceDetails(id, caseId);
+          return details?.name ? [id, details.name] as const : null;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((entries) => {
+      if (!cancelled) setEvidenceNames(Object.fromEntries(entries.filter(Boolean) as [string, string][]));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId, contentLanguage, evidenceKey]);
+
+  const discoveredEvidenceWithNames = useMemo(
+    () => evidenceIds.map((id) => ({
+      id,
+      name: evidenceNames[id] ?? id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    })),
+    [evidenceIds, evidenceNames],
+  );
 
   // Theme
   const { theme } = useTheme();
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className={`min-h-screen ${theme.colors.bg.primary} ${theme.colors.text.secondary} flex items-center justify-center`}>
-        <div className="text-center">
-          <div className={`animate-pulse ${theme.colors.text.secondary} ${theme.fonts.ui} text-xl mb-2`}>
-            Initializing Investigation...
-          </div>
-          <div className={`${theme.colors.text.muted} text-sm ${theme.fonts.ui}`}>
-            Loading case files...
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // B1: single source slot const (standardize autosave)
+  const currentSlot = "autosave";
 
   return (
     <div className={`min-h-screen ${theme.colors.bg.primary} ${theme.colors.text.secondary}`}>
-      {/* Background Music Player */}
+      {/* Background Music Player — always mounted to prevent track restart */}
       <MusicPlayer caseId={caseId} />
 
-      {/* Full-width Header Bar — sticky top with scroll shadow */}
-      <header className={`w-full py-4 px-6 sticky top-0 z-30 ${theme.colors.bg.primary}`}>
-        <div className="flex items-center">
-          {/* Logo — far left, opens system menu */}
+      {loading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className={`animate-pulse ${theme.colors.text.secondary} ${theme.fonts.ui} text-xl mb-2`}>
+              Initializing Investigation...
+            </div>
+            <div className={`${theme.colors.text.muted} text-sm ${theme.fonts.ui}`}>
+              Loading case files...
+            </div>
+          </div>
+        </div>
+      ) : (
+      <>
+
+      {/* Full-width Header Bar — scrolls on mobile, sticky on desktop */}
+      <header className={`w-full py-2 px-3 md:py-4 md:px-6 lg:sticky lg:top-0 z-30 ${theme.colors.bg.primary}`}>
+        {/* Row 1: Logo + desktop location tabs + action buttons */}
+        <div className="flex items-center justify-between lg:justify-start">
+          {/* Logo — opens system menu */}
           <button
             onClick={() => modals.setMenuOpen(true)}
-            className={`text-xl font-bold ${theme.colors.text.primary} ${theme.fonts.ui} tracking-widest shrink-0 mr-8 hover:opacity-80 transition-opacity cursor-pointer`}
+            className={`text-lg lg:text-xl font-bold ${theme.colors.text.primary} ${theme.fonts.ui} tracking-widest shrink-0 lg:mr-8 hover:opacity-80 active:opacity-70 transition-opacity cursor-pointer`}
             type="button"
             aria-label="Open system menu"
           >
-            AUROR ACADEMY
+            THE LANTERN
           </button>
 
-          {/* Location Tabs — fills center */}
-          <div className="flex-1 min-w-0">
+          {/* Location Tabs — large screens only, fills center */}
+          <div className="hidden lg:flex lg:justify-center flex-1 min-w-0">
             <LocationHeaderBar
               locations={locations}
               currentLocationId={currentLocationId}
               locationData={location}
-              onSelectLocation={(id) => void handleLocationChange(id)}
+              onSelectLocation={handleLocationSelect}
               changing={locationChanging}
               visitedLocations={visitedLocations}
               loading={locationLoading}
               error={locationError}
+              showNavigationHint={!locationNavigationHintDismissed}
             />
           </div>
 
           {/* Action Buttons — far right */}
-          <div className="flex items-center gap-2 shrink-0 ml-8">
+          <div className="flex items-center gap-4 shrink-0 lg:ml-8">
             <button
-              onClick={() => modals.setSettingsOpen(true)}
-              className={`w-10 h-10 rounded-full ${theme.colors.bg.hover} ${theme.colors.text.tertiary} hover:${theme.colors.text.primary} flex items-center justify-center transition-all hover:brightness-125`}
+              onClick={() => modals.setMenuOpen(true)}
+              className={`flex items-center gap-2 ${theme.colors.text.tertiary} hover:${theme.colors.text.primary} ${theme.fonts.ui} text-xs uppercase tracking-widest transition-colors active:opacity-70`}
               type="button"
-              aria-label="Open settings"
-              title="Settings"
+              aria-label="Open game menu"
+              title="Menu"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-                <circle cx="12" cy="12" r="3"/>
+              <span>Menu</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16"/>
               </svg>
             </button>
             <Button
@@ -314,6 +478,21 @@ function InvestigationView({
               Verdict
             </Button>
           </div>
+        </div>
+
+        {/* Row 2: Location tabs — mobile/tablet, horizontally scrollable */}
+        <div className="lg:hidden mt-2 -mx-3 px-3 overflow-x-auto scrollbar-thin">
+          <LocationHeaderBar
+            locations={locations}
+            currentLocationId={currentLocationId}
+            locationData={location}
+            onSelectLocation={handleLocationSelect}
+            changing={locationChanging}
+            visitedLocations={visitedLocations}
+            loading={locationLoading}
+            error={locationError}
+            showNavigationHint={!locationNavigationHintDismissed}
+          />
         </div>
       </header>
 
@@ -343,15 +522,20 @@ function InvestigationView({
               locationId={currentLocationId}
               locationData={location}
               onEvidenceDiscovered={(ids) =>
-                void actions.handleEvidenceDiscoveredWithTom(ids)
+                void actions.handleEvidenceDiscoveredWithMatthew(ids)
               }
               discoveredEvidence={[...(state?.discovered_evidence ?? [])]}
               inlineMessages={actions.inlineMessages}
-              onTomMessage={(msg) => void actions.handleTomMessage(msg)}
-              tomLoading={tomHook.loading}
+              onMatthewMessage={(msg) => void actions.handleMatthewMessage(msg)}
+              matthewLoading={matthewHook.loading}
               showLocationHeader={false}
               hintsEnabled={actions.hintsEnabled}
+              isFirstLocation={currentLocationId === locations[0]?.id}
               handbookTrigger={modals.handbookTrigger}
+              onEvidenceClick={(id) => void actions.handleEvidenceClick(id)}
+              onLocationChanged={(id) => void handleLocationChange(id)}
+              slot={currentSlot}
+              language={contentLanguage}
             />
           }
           sidebar={
@@ -374,7 +558,7 @@ function InvestigationView({
       {modals.briefingModalOpen && briefing && (
         <Modal
           isOpen={modals.briefingModalOpen}
-          onClose={() => void actions.handleBriefingComplete()}
+          onClose={actions.handleBriefingDismiss}
           variant="terminal"
           hideHeader={true}
           frameless={true}
@@ -382,15 +566,10 @@ function InvestigationView({
         >
           <BriefingModal
             briefing={briefing}
-            conversation={briefingConversation}
-            selectedChoice={briefingSelectedChoice}
-            choiceResponse={briefingChoiceResponse}
-            onSelectChoice={selectBriefingChoice}
-            onResetChoice={resetBriefingChoice}
-            onAskQuestion={askBriefingQuestion}
             onComplete={() => void actions.handleBriefingComplete()}
             loading={briefingLoading}
-            onClose={() => void actions.handleBriefingComplete()}
+            error={briefingError}
+            onClose={actions.handleBriefingDismiss}
           />
         </Modal>
       )}
@@ -412,9 +591,12 @@ function InvestigationView({
             secretsRevealed={witnessState.secretsRevealed}
             discoveredEvidence={discoveredEvidenceWithNames}
             loading={witnessState.loading}
+            slowWarning={witnessState.slowWarning}
             error={witnessState.error}
             onAskQuestion={askQuestion}
             onPresentEvidence={presentEvidenceToWitness}
+            onRetryFailed={retryFailedConversation}
+            onDismissFailed={dismissFailedConversation}
           />
         </Modal>
       )}
@@ -427,7 +609,6 @@ function InvestigationView({
           actions.handleEvidenceModalClose();
           modals.setEvidenceListModalOpen(true);
         }}
-        loading={actions.evidenceLoading}
         error={actions.evidenceError}
       />
 
@@ -446,6 +627,7 @@ function InvestigationView({
         isOpen={modals.evidenceListModalOpen}
         onClose={() => modals.setEvidenceListModalOpen(false)}
         evidence={[...(state?.discovered_evidence ?? [])]}
+        evidenceNames={evidenceNames}
         caseId={caseId}
         onEvidenceClick={(id) => void actions.handleEvidenceClick(id)}
       />
@@ -484,7 +666,7 @@ function InvestigationView({
                 isOpen={true}
                 onClose={actions.handleCloseVerdictModal}
                 variant="terminal"
-                title="Moody's Feedback"
+                title="Graves's Feedback"
               >
                 <MentorFeedback
                   feedback={verdictState.feedback}
@@ -551,7 +733,7 @@ function InvestigationView({
         onSettings={actions.handleMenuSettings}
         onExitToMainMenu={() => {
           modals.setMenuOpen(false);
-          modals.setShowExitConfirm(true);
+          onExitToMainMenu();
         }}
         loading={actions.restartLoading}
       />
@@ -564,6 +746,13 @@ function InvestigationView({
         playerId={playerId}
         narratorVerbosity={state?.narrator_verbosity ?? 'storyteller'}
         onVerbosityChange={setNarratorVerbosity}
+        assistanceMode={state?.assistance_mode ?? 'normal'}
+        onAssistanceModeChange={setAssistanceMode}
+        language={(state?.language ?? 'en') as import('./components/SettingsModal').GameLanguage}
+        onLanguageChange={(value) => {
+          setLanguage(value);
+          setLocationLanguage(value);
+        }}
         hintsEnabled={actions.hintsEnabled}
         onHintsChange={actions.handleHintsChange}
       />
@@ -616,21 +805,8 @@ function InvestigationView({
         onCancel={() => modals.setShowRestartConfirm(false)}
       />
 
-      {/* Exit to Main Menu Confirmation Dialog (Phase 5.3.1) */}
-      <ConfirmDialog
-        open={modals.showExitConfirm}
-        title="Exit to Main Menu"
-        message="Return to main menu? Any unsaved progress will be lost."
-        confirmText="Exit"
-        cancelText="Cancel"
-        destructive={true}
-        onConfirm={() => {
-          modals.setShowExitConfirm(false);
-          onExitToMainMenu();
-        }}
-        onCancel={() => modals.setShowExitConfirm(false)}
-      />
-
+      </>
+      )}
     </div>
   );
 }

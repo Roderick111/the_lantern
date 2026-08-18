@@ -18,6 +18,7 @@ interface EvidenceListModalProps {
   isOpen: boolean;
   onClose: () => void;
   evidence: string[];
+  evidenceNames?: Record<string, string>;
   caseId: string;
   onEvidenceClick: (id: string) => void;
 }
@@ -30,6 +31,7 @@ export function EvidenceListModal({
   isOpen,
   onClose,
   evidence,
+  evidenceNames,
   caseId,
   onEvidenceClick,
 }: EvidenceListModalProps) {
@@ -48,6 +50,7 @@ export function EvidenceListModal({
     >
       <EvidenceBoard
         evidence={evidence}
+        evidenceNames={evidenceNames}
         caseId={caseId}
         onEvidenceClick={handleEvidenceClick}
         collapsible={false}

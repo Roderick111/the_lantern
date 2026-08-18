@@ -34,7 +34,7 @@ export function formatZodError(error: z.ZodError): string {
  */
 const ConversationMessageSchema = z
   .object({
-    type: z.enum(['player', 'narrator', 'tom']),
+    type: z.enum(['player', 'narrator', 'matthew', 'tom']),
     text: z.string(),
     timestamp: z.number(),
   })
@@ -46,6 +46,19 @@ const ConversationMessageSchema = z
 // ============================================
 
 /**
+ * Lightweight player-state slice returned in investigate/SSE done payloads.
+ */
+export const StateDeltaSchema = z
+  .object({
+    case_id: z.string(),
+    current_location: z.string(),
+    discovered_evidence: z.array(z.string()),
+    visited_locations: z.array(z.string()),
+    save_revision: z.number(),
+  })
+  .strict();
+
+/**
  * Schema for InvestigateResponse
  * Runtime validation for POST /api/investigate
  */
@@ -55,7 +68,8 @@ export const InvestigateResponseSchema = z
     new_evidence: z.array(z.string()),
     evidence_names: z.record(z.string(), z.string()).optional(),
     already_discovered: z.boolean(),
-    updated_state: z.record(z.string(), z.unknown()).optional(),
+    location_changed: z.string().optional(),
+    updated_state: StateDeltaSchema.optional(),
   })
   .strict();
 
@@ -84,6 +98,8 @@ export const LoadResponseSchema = z
     visited_locations: z.array(z.string()),
     conversation_history: z.array(ConversationMessageSchema).nullish(),
     narrator_verbosity: z.enum(['concise', 'storyteller', 'atmospheric']).optional(),
+    assistance_mode: z.enum(['normal', 'easy']).optional(),
+    language: z.string().optional(),
   })
   .strict();
 
@@ -175,7 +191,7 @@ export const InterrogateResponseSchema = z
     trust_delta: z.number(),
     secrets_revealed: z.array(z.string()),
     secret_texts: z.record(z.string(), z.string()),
-    updated_state: z.record(z.string(), z.unknown()).optional(),
+    updated_state: StateDeltaSchema.optional(),
   })
   .strict();
 
@@ -191,7 +207,7 @@ export const PresentEvidenceResponseSchema = z
     trust_delta: z.number(),
     secrets_revealed: z.array(z.string()),
     secret_texts: z.record(z.string(), z.string()),
-    updated_state: z.record(z.string(), z.unknown()).optional(),
+    updated_state: StateDeltaSchema.optional(),
   })
   .strict();
 
@@ -347,22 +363,25 @@ export const BriefingQuestionResponseSchema = z
 /**
  * Schema for BriefingCompleteResponse
  * Runtime validation for POST /api/briefing/{case_id}/complete
+ *
+ * Backend returns {success, updated_state} after persisting briefing_completed flag.
  */
 export const BriefingCompleteResponseSchema = z
   .object({
     success: z.boolean(),
+    updated_state: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 
 
 // ============================================
-// Phase 4: Tom's Inner Voice Schemas
+// Phase 4: Matthew spirit companion schemas
 // ============================================
 
 /**
- * Schema for TomTriggerType
+ * Schema for MatthewTriggerType
  */
-const TomTriggerTypeSchema = z.enum([
+const MatthewTriggerTypeSchema = z.enum([
   'helpful',
   'misleading',
   'self_aware',
@@ -371,24 +390,24 @@ const TomTriggerTypeSchema = z.enum([
 ]);
 
 /**
- * Schema for InnerVoiceTrigger
- * Runtime validation for POST /api/case/{case_id}/inner-voice/check
+ * Schema for MatthewTrigger
+ * Runtime validation for POST /api/case/{case_id}/matthew/triggers/check
  */
-export const InnerVoiceTriggerSchema = z
+export const MatthewTriggerSchema = z
   .object({
     id: z.string(),
     text: z.string(),
-    type: TomTriggerTypeSchema,
+    type: MatthewTriggerTypeSchema,
     tier: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   })
   .strict();
 
 
 /**
- * Schema for TomResponse
- * Runtime validation for Tom LLM endpoints (auto-comment and direct chat)
+ * Schema for MatthewResponse
+ * Runtime validation for Matthew LLM endpoints (auto-comment and direct chat)
  */
-export const TomResponseSchema = z
+export const MatthewResponseSchema = z
   .object({
     text: z.string(),
     mode: z.string(),
@@ -527,6 +546,22 @@ export const CaseListResponseSchema = z
 
 
 // ============================================
+// Settings Schemas
+// ============================================
+
+/**
+ * Schema for UpdateSettingsResponse
+ * Runtime validation for POST /api/settings/update
+ */
+export const UpdateSettingsResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+  })
+  .strict();
+
+
+// ============================================
 // Phase 3: Reset Case Response Schema
 // ============================================
 
@@ -540,4 +575,3 @@ export const ResetResponseSchema = z
     message: z.string(),
   })
   .strict();
-

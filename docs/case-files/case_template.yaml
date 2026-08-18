@@ -1,5 +1,5 @@
 # ============================================================================
-# CASE TEMPLATE - Harry Potter Investigation Game
+# CASE TEMPLATE - Victorian occult detective Investigation Game
 # ============================================================================
 #
 # HOW TO CREATE A NEW CASE:
@@ -12,7 +12,7 @@
 #
 # NAMING RULES:
 # - case_id must be lowercase with underscores only (e.g., case_002, case_dragon_egg)
-# - witness/evidence IDs: lowercase with underscores (e.g., hermione, hidden_note)
+# - witness/evidence IDs: lowercase with underscores (e.g., elena, hidden_note)
 # - location IDs: lowercase with underscores (e.g., library, great_hall)
 #
 # VALIDATION:
@@ -41,27 +41,28 @@ case:
   # -------------------------------------------------------------------------
   # WORLD CONTEXT [OPTIONAL but recommended]
   # Injected into narrator prompt for atmospheric grounding.
-  # Establishes era, school atmosphere, character ages, social dynamics.
+  # All cases are LIVE 1890s investigations — not training sims or historical replays.
   # The narrator weaves this naturally — it is NOT dumped verbatim.
   # -------------------------------------------------------------------------
   world_context: |
-    Describe the era and atmosphere. What year are students in? What larger events are happening at Hogwarts? What is the social/political climate?
+    Open with active investigation status (Bureau on scene, witnesses available, stakes now).
 
-    Include: student ages, ongoing threats or tensions, relevant power dynamics, anything that makes the world feel alive beyond the case itself.
+    Describe 1890s atmosphere: location tensions, social dynamics, ongoing threats at the site.
+    Include student/witness ages, power dynamics, anything that makes the world feel alive.
 
-    Example: "It is the students' second year. The Chamber of Secrets has been opened. Muggle-born students live in fear. Petrification is on everyone's mind."
+    Example: "Active Bureau investigation at Blackwood Collegiate, autumn 1890. The Sealed Stacks are under guard. Three nights ago someone breached the eastern ward. The college wants a quiet resolution; the Order wants the truth."
 
   # -------------------------------------------------------------------------
   # VICTIM [OPTIONAL but recommended for complete cases]
   # -------------------------------------------------------------------------
   victim:
     name: "VICTIM_NAME" # [REQUIRED if victim section present] Full name (e.g., "Helena Blackwood")
-    age: "AGE_DESCRIPTOR" # [REQUIRED if victim section present] Age descriptor (e.g., "Fourth-year Ravenclaw")
+    age: "AGE_DESCRIPTOR" # [REQUIRED if victim section present] Age descriptor (e.g., "Fourth-year Candlewick")
     humanization: | # [REQUIRED if victim section present] 2-3 sentence emotional hook
       Describe who they were. What made them memorable? What did they lose?
       Make the player care about solving this case.
 
-      Example: "You remember her from the library—always buried in wandlore
+      Example: "You remember her from the library—always buried in focuslore
       texts. Someone silenced that brilliant mind permanently."
 
     memorable_trait: "DISTINCTIVE_TRAIT" # [OPTIONAL] One memorable detail (e.g., "Always hummed while studying")
@@ -75,7 +76,7 @@ case:
     # Example location - copy and modify for additional locations
     LOCATION_ID: # [REQUIRED] Unique location ID (e.g., "library")
       id: "LOCATION_ID" # [REQUIRED] Must match the key above
-      name: "LOCATION_NAME" # [REQUIRED] Display name (e.g., "Hogwarts Library - Crime Scene")
+      name: "LOCATION_NAME" # [REQUIRED] Display name (e.g., "Blackwood Collegiate Library - Crime Scene")
       type: "micro" # [OPTIONAL] Location type (default: "micro")
 
       description: | # [REQUIRED] Multi-line location description
@@ -91,14 +92,14 @@ case:
       witnesses_present: # [OPTIONAL] List of witness IDs present here
         - "WITNESS_ID"
 
-      # Phase 4.5: Spell contexts for magic system [OPTIONAL]
+      # Phase 4.5: Spell contexts for rite system [OPTIONAL]
       spell_contexts:
         available_spells: # Spells that work in this location
-          - "revelio"
-          - "lumos"
-          - "prior_incantato"
+          - "unveil"
+          - "raise_the_lamp"
+          - "echo_reading"
         special_interactions: # What spells reveal
-          revelio:
+          unveil:
             targets:
               - "desk"
               - "shelves"
@@ -112,7 +113,7 @@ case:
           name: "EVIDENCE_NAME" # [REQUIRED] Display name
           location_found: "LOCATION_ID" # [REQUIRED] Must match parent location
           type: "physical" # [REQUIRED] One of: "physical", "magical", "testimonial", "documentary"
-          discovery_guidance: "Revealed when player searches the desk, examines papers, or uses Revelio on the desk area." # [REQUIRED] Semantic description of how player discovers this. The LLM uses this to decide when to reveal.
+          discovery_guidance: "Revealed when player searches the desk, examines papers, or uses Unveil on the desk area." # [REQUIRED] Semantic description of how player discovers this. The LLM uses this to decide when to reveal.
           description: | # [REQUIRED] What player discovers — RAW DATA only, no interpretations
             Detailed description of the evidence.
             Present facts only. Let witnesses interpret.
@@ -142,9 +143,9 @@ case:
           discovery_guidance: "Revealed when player examines the notice board, searches administrative records, etc."
           description: |
             World-building content — school records, staff notes, student complaints,
-            patrol schedules, administrative trivia. Things that make Hogwarts feel
-            like a real, lived-in place. May reference ongoing events (Chamber attacks,
-            Quidditch season, upcoming exams) without directly advancing the case.
+            patrol schedules, administrative trivia. Things that make Blackwood Collegiate feel
+            like a real, lived-in place. May reference ongoing events (Hollow Below attacks,
+            sky-hunt season, upcoming exams) without directly advancing the case.
           tag: "[EVIDENCE: ATMOSPHERIC_EVIDENCE_ID]"
           significance: "World context. Does not directly implicate any suspect."
           strength: 10  # Very low — world-building, not case-critical
@@ -183,11 +184,11 @@ case:
         What makes them human, not just a witness?
 
         Example: "Hannah saw something important but doesn't want to
-        betray Marcus, who helped her pass Potions. She's torn between
+        betray Marcus, who helped her pass Alchemy. She's torn between
         loyalty and truth."
 
       base_trust: 50 # [OPTIONAL] Starting trust level 0-100 (default: 50)
-      occlumency_skill: 0 # [OPTIONAL] 0-100, affects Legilimency detection
+      mind_shield_skill: 0 # [OPTIONAL] 0-100, affects Mnemonic Delving detection
 
       knowledge: # [REQUIRED] What they know (will share freely)
         - "First piece of knowledge"
@@ -285,13 +286,13 @@ case:
   # -------------------------------------------------------------------------
   wrong_suspects:
     WITNESS_ID_1:
-      moody_response: >
-        Moody's in-character response when player wrongly accuses this suspect.
+      graves_response: >
+        Graves's in-character response when player wrongly accuses this suspect.
         Explain where they went wrong without revealing the real culprit.
       why_innocent: "Brief explanation of why they're not guilty"
       exonerating_evidence: ["EVIDENCE_ID"]
     WITNESS_ID_2:
-      moody_response: >
+      graves_response: >
         Another wrong suspect response.
 
   # -------------------------------------------------------------------------
@@ -300,7 +301,7 @@ case:
   post_verdict:
     correct:
       confrontation: # Dialogue when player is correct
-        - speaker: "moody"
+        - speaker: "graves"
           text: >
             Well done, recruit. The evidence was clear. You followed the trail
             where it led, not where your assumptions wanted it to go.
@@ -345,15 +346,15 @@ case:
     case_id: "CASE_ID_HERE" # [REQUIRED] Must match case.id above
 
     dossier: # [REQUIRED] Structured case summary
-      title: "CASE_TITLE" # [REQUIRED] Case title (e.g., "The Restricted Section")
-      victim: "VICTIM_NAME_AND_ROLE" # [REQUIRED] e.g., "Severus Snape (Potions Master)"
-      location: "LOCATION_NAME" # [REQUIRED] e.g., "Hogwarts Library - Restricted Section"
+      title: "CASE_TITLE" # [REQUIRED] Case title (e.g., "The Sealed Stacks")
+      victim: "VICTIM_NAME_AND_ROLE" # [REQUIRED] e.g., "Professor Aldric Vane (Alchemy Master)"
+      location: "LOCATION_NAME" # [REQUIRED] e.g., "Blackwood Collegiate Library - Sealed Stacks"
       time: "TIME_FOUND" # [REQUIRED] e.g., "22:00 (Found)"
-      status: "CURRENT_STATUS" # [REQUIRED] e.g., "Petrified / St. Mungo's"
+      status: "CURRENT_STATUS" # [REQUIRED] e.g., "Held in stillness / St. Mungo's"
       synopsis: | # [REQUIRED] Case summary + in-character gameplay hints
         Brief description of the case. What happened? Who are the suspects?
 
-        **How to investigate:** Type what you want to do — *"examine the desk"*, *"cast Revelio on the floor"*. Be specific.
+        **How to investigate:** Type what you want to do — *"examine the desk"*, *"cast Unveil on the floor"*. Be specific.
 
         **Talk to witnesses** by selecting them from the sidebar. Ask questions, build trust, and **present evidence** to see how they react.
 
@@ -366,7 +367,7 @@ case:
         - id: "choice_a"
           text: "First answer option"
           response: |
-            Moody's response to this choice.
+            Graves's response to this choice.
         - id: "choice_b"
           text: "Second answer option (correct)"
           response: |
@@ -380,17 +381,17 @@ case:
     concept_description: "Brief description of the concept being taught." # [REQUIRED]
 
     transition: | # [OPTIONAL] Text after briefing, before investigation
-      *Mad-Eye Moody's magical eye spins*
+      *Inspector Graves's magical eye spins*
 
-      CONSTANT VIGILANCE, recruit. Now investigate.
+      TRUST NOTHING UNSEEN, recruit. Now investigate.
 
   # -------------------------------------------------------------------------
-  # BRIEFING CONTEXT [OPTIONAL - for LLM Moody responses]
+  # BRIEFING CONTEXT [OPTIONAL - for LLM Graves responses]
   # -------------------------------------------------------------------------
   briefing_context:
     witnesses:
       - name: "WITNESS_NAME"
-        personality: "Brief personality for Moody to reference."
+        personality: "Brief personality for Graves to reference."
         background: "Brief background."
         general_knowledge:
           - "What this witness knows publicly"
@@ -403,4 +404,4 @@ case:
       name: "LOCATION_NAME"
       description: "Brief location description."
 
-    case_overview: "2-3 sentence case summary for Moody's reference."
+    case_overview: "2-3 sentence case summary for Graves's reference."

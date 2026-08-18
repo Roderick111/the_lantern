@@ -1,4 +1,4 @@
-# Case 001: The Restricted Section - Technical Specification
+# Case 001: The Sealed Stacks - Technical Specification
 
 **Version**: 1.0
 **Date**: 2026-01-06
@@ -14,27 +14,27 @@
 ```yaml
 case:
   id: "case_001_restricted_section"
-  title: "The Restricted Section"
+  title: "The Sealed Stacks"
   crime_type: "murder"
   difficulty: "beginner"
 
-  hook: "Brilliant Ravenclaw found dead under collapsed bookshelf in Restricted Section"
-  twist: "Killer never touched victim - used Wingardium Leviosa to stage accident"
+  hook: "Brilliant Candlewick found dead under collapsed bookshelf in Sealed Stacks"
+  twist: "Killer never touched victim - used Levitation Cantrip to stage accident"
 
   rationality_lesson: "Base rates and confirmation bias"
   tutorial_focus:
-    - "Revelio (find hidden evidence)"
-    - "Prior Incantato (wand analysis)"
-    - "Homenum Revelio (detect hidden persons)"
-    - "Specialis Revelio (identify substances)"
+    - "Unveil (find hidden evidence)"
+    - "Echo Reading (focus analysis)"
+    - "Sense Presence (detect hidden persons)"
+    - "Identify Substance (identify substances)"
 ```
 
 ### Setting
 
-**Location**: Hogwarts Library (Restricted Section)
+**Location**: Blackwood Collegiate Library (Sealed Stacks)
 **Time of Death**: 10:05 PM (approximately)
-**Time Discovered**: 10:30 PM (officially by Filch + Madam Pince)
-**Years Ago**: 3 years before player's training
+**Time Discovered**: 10:30 PM (officially by Mr. Crankshaw + Miss Hawthorne)
+**When**: Autumn 1890 (active investigation)
 
 ---
 
@@ -45,24 +45,24 @@ case:
 ```yaml
 victim:
   name: "Helena Blackwood"
-  age: "Fourth-year Ravenclaw"
+  age: "Fourth-year Candlewick"
   status: "deceased"
 
   humanization: |
-    Fourth-year Ravenclaw. You remember her from the library—always
-    buried in wandlore texts, muttering about core resonance frequencies.
+    Fourth-year Candlewick. You remember her from the library—always
+    buried in focuslore texts, muttering about core resonance frequencies.
     Brilliant, obsessive, the kind of student who'd sneak into the Restricted
     Section for research long after curfew. Someone silenced that curious
     mind permanently.
 
   connection: "classmate"
-  memorable_trait: "Wandlore obsessive, talked to herself while researching"
+  memorable_trait: "Focuslore obsessive, talked to herself while researching"
 
   background:
-    - "Top of her year in Charms and Transfiguration"
-    - "Known for asking uncomfortable questions in Defense Against Dark Arts"
-    - "Recently became interested in dark magic detection theory"
-    - "Had public argument with Marcus Flint two days ago about 'Slytherin cheating'"
+    - "Top of her year in Cantrips and Transmutation"
+    - "Known for asking uncomfortable questions in Warding Against the Unseen"
+    - "Recently became interested in forbidden craft detection theory"
+    - "Had public argument with Marcus Sterling two days ago about 'Iron Lodge cheating'"
 
   time_of_death: "10:05 PM (approximately, based on evidence)"
   cause_of_death: "Blunt force trauma from bookshelf collapse (staged as accident)"
@@ -78,30 +78,30 @@ victim:
 library_main_hall:
   id: "library_main_hall"
   type: "macro"
-  name: "Hogwarts Library - Main Hall"
+  name: "Blackwood Collegiate Library - Main Hall"
 
   description: |
     The library's main hall stretches before you, towering shelves casting
     long shadows in the lamplight. Students' desks dot the space, most
-    abandoned at this late hour. Madam Pince's desk sits empty near the
+    abandoned at this late hour. Miss Hawthorne's desk sits empty near the
     entrance, her usual vigilance absent.
 
-    The Restricted Section lies beyond a roped barrier to your left, its
+    The Sealed Stacks lies beyond a roped barrier to your left, its
     iron gate slightly ajar. Deeper in the main hall, study alcoves provide
     privacy for focused research.
 
   surface_elements:
     - "Towering bookshelves casting shadows"
     - "Scattered student desks (mostly abandoned)"
-    - "Madam Pince's empty desk near entrance"
-    - "Roped barrier leading to Restricted Section"
-    - "Iron gate to Restricted Section (slightly ajar)"
+    - "Miss Hawthorne's empty desk near entrance"
+    - "Roped barrier leading to Sealed Stacks"
+    - "Iron gate to Sealed Stacks (slightly ajar)"
     - "Study alcoves deeper in main hall"
 
   exits:
     - "restricted_section"
     - "study_alcove"
-    - "madam_pince_office"
+    - "miss_hawthorne_office"
 
   hidden_evidence:
     - id: "wet_quill"
@@ -122,27 +122,27 @@ library_main_hall:
   witnesses_present: []
 ```
 
-### 2. Restricted Section (Micro - Crime Scene)
+### 2. Sealed Stacks (Micro - Crime Scene)
 
 ```yaml
 restricted_section:
   id: "restricted_section"
   type: "micro"
-  name: "Hogwarts Library - Restricted Section"
+  name: "Blackwood Collegiate Library - Sealed Stacks"
 
   crime_scene: true
 
   description: |
-    Past the iron gate, the Restricted Section feels different. Colder.
+    Past the iron gate, the Sealed Stacks feels different. Colder.
     Darker books line these shelves—grimoires, forbidden texts, dangerous
     knowledge. The air itself feels heavy with old magic.
 
-    Near the back, between shelves on Advanced Transfiguration and Dark
-    Creature Defenses, you find her: Helena Blackwood, fourth-year Ravenclaw.
+    Near the back, between shelves on Advanced Transmutation and Dark
+    Creature Defenses, you find her: Helena Blackwood, fourth-year Candlewick.
     She lies crumpled beneath a toppled bookshelf, ancient tomes scattered
     around her body. Her eyes stare at nothing, brilliant mind gone silent.
 
-    You remember her from the library—always buried in wandlore texts,
+    You remember her from the library—always buried in focuslore texts,
     muttering about core resonance frequencies. Someone silenced that
     curiosity permanently.
 
@@ -155,22 +155,22 @@ restricted_section:
     - "Heavy oak bookshelf lying across victim's torso"
 
   hidden_evidence:
-    - id: "missing_wand_defensive_posture"
+    - id: "missing_focus_defensive_posture"
       type: "physical"
       triggers:
         - "examine victim closely"
         - "check helena"
         - "inspect body"
         - "examine hands"
-        - "check for wand"
+        - "check for focus"
       description: |
         Her right hand is outstretched, fingers curled as if grasping for
-        something. Her wand is missing. Defensive bruises on her forearm—
+        something. Her focus is missing. Defensive bruises on her forearm—
         she raised her arm to shield herself from the falling shelf.
-      tag: "[EVIDENCE: Missing Wand & Defensive Posture]"
-      significance: "**CRITICAL** - Helena saw attack coming, tried to defend. Wand taken by killer."
+      tag: "[EVIDENCE: Missing Focus & Defensive Posture]"
+      significance: "**CRITICAL** - Helena saw attack coming, tried to defend. Focus taken by killer."
       strength: 90
-      points_to: ["professor_vector"]
+      points_to: ["professor_morraine"]
       contradicts: ["accident_theory"]
 
     - id: "shelf_moved_deliberately"
@@ -195,18 +195,18 @@ restricted_section:
       triggers:
         - "look up"
         - "examine ceiling"
-        - "revelio"
-        - "cast revelio on ceiling"
+        - "unveil"
+        - "cast unveil on ceiling"
         - "check above shelf"
       description: |
-        You cast Revelio upward. Faint scorch marks on the ceiling beam
-        above where the shelf stood. The mark pattern—Wingardium Leviosa,
+        You cast Unveil upward. Faint scorch marks on the ceiling beam
+        above where the shelf stood. The mark pattern—Levitation Cantrip,
         powerful enough to lift several hundred pounds.
       tag: "[EVIDENCE: Levitation Scorch Marks]"
-      significance: "**CRITICAL** - Proves Wingardium Leviosa used. High power = eliminates weak casters (Adrian). Filch can't cast magic."
+      significance: "**CRITICAL** - Proves Levitation Cantrip used. High power = eliminates weak casters (Adrian). Mr. Crankshaw can't cast magic."
       strength: 100
-      points_to: ["professor_vector", "marcus_flint"]
-      contradicts: ["filch_guilty", "adrian_guilty", "accident_theory"]
+      points_to: ["professor_morraine", "marcus_sterling"]
+      contradicts: ["crankshaw_guilty", "adrian_guilty", "accident_theory"]
 
     - id: "helena_research_notes"
       type: "documentary"
@@ -216,16 +216,16 @@ restricted_section:
         - "read notes"
         - "look at research"
       description: |
-        Her notes cover wandcore resonance theory. The last entry, written
-        minutes before death: "Argus claims Mrs. Norris detected 'dark magic'
-        in Restricted Section last week. Investigating. Dragon heartstring
+        Her notes cover focuscore resonance theory. The last entry, written
+        minutes before death: "Argus claims Morrigan detected 'forbidden craft'
+        in Sealed Stacks last week. Investigating. Dragon heartstring
         cores show unusual reaction to—"
 
         The sentence cuts off mid-thought.
       tag: "[EVIDENCE: Helena's Research Notes]"
       significance: "Shows Helena was investigating something (potentially threatening to someone)"
       strength: 60
-      points_to: ["argus_filch"]
+      points_to: ["argus_crankshaw"]
 
   not_present:
     - triggers:
@@ -238,18 +238,18 @@ restricted_section:
         - "secret passage"
         - "hidden door"
         - "escape route"
-      response: "The Restricted Section walls are solid stone. No hidden passages here."
+      response: "The Sealed Stacks walls are solid stone. No hidden passages here."
 
   witnesses_present: []
 ```
 
-### 3. Study Alcove (Micro - Marcus Flint Evidence)
+### 3. Study Alcove (Micro - Marcus Sterling Evidence)
 
 ```yaml
 study_alcove:
   id: "study_alcove"
   type: "micro"
-  name: "Hogwarts Library - Study Alcove"
+  name: "Blackwood Collegiate Library - Study Alcove"
 
   description: |
     A private study alcove between shelves. A desk, chair, and small lamp.
@@ -261,20 +261,20 @@ study_alcove:
     - "Bookshelves on three sides"
 
   hidden_evidence:
-    - id: "flints_scarf"
+    - id: "sterling_scarf"
       type: "physical"
       triggers:
         - "search alcove"
         - "examine desk"
-        - "revelio"
+        - "unveil"
         - "check behind desk"
       description: |
-        Behind the desk, a green Slytherin scarf, hastily shoved out of sight.
-        The silver embroidery shows the initials "M.F."—Marcus Flint.
-      tag: "[EVIDENCE: Flint's Scarf]"
+        Behind the desk, a green Iron Lodge scarf, hastily shoved out of sight.
+        The silver embroidery shows the initials "M.S."—Marcus Sterling.
+      tag: "[EVIDENCE: Sterling's Scarf]"
       significance: "Proves Marcus was in library, but timing unclear (RED HERRING - he left before murder)"
       strength: 70
-      points_to: ["marcus_flint"]
+      points_to: ["marcus_sterling"]
       complication: true
       appears_after_evidence_count: 4
       teaches: "Presence ≠ guilt. Need timeline, not just opportunity."
@@ -287,27 +287,27 @@ study_alcove:
         - "check walls"
         - "alcove position"
       description: |
-        You realize this alcove is adjacent to the Restricted Section wall.
+        You realize this alcove is adjacent to the Sealed Stacks wall.
         Someone sitting here could hear conversations through the shelves.
       tag: "[EVIDENCE: Alcove Proximity to Crime Scene]"
-      significance: "Whoever was here could eavesdrop on Restricted Section conversations"
+      significance: "Whoever was here could eavesdrop on Sealed Stacks conversations"
       strength: 40
-      points_to: ["marcus_flint"]
+      points_to: ["marcus_sterling"]
 
   witnesses_present: []
 ```
 
-### 4. Madam Pince's Office (Micro - Documentary Evidence)
+### 4. Miss Hawthorne's Office (Micro - Documentary Evidence)
 
 ```yaml
-madam_pince_office:
-  id: "madam_pince_office"
+miss_hawthorne_office:
+  id: "miss_hawthorne_office"
   type: "micro"
-  name: "Hogwarts Library - Madam Pince's Office"
+  name: "Blackwood Collegiate Library - Miss Hawthorne's Office"
 
   description: |
-    Madam Pince's small office behind the main desk. Meticulously organized,
-    every book catalogued, every quill in place. She's not here—Moody
+    Miss Hawthorne's small office behind the main desk. Meticulously organized,
+    every book catalogued, every quill in place. She's not here—Graves
     mentioned she's being interviewed separately.
 
   surface_elements:
@@ -326,18 +326,18 @@ madam_pince_office:
         - "checkout log"
         - "sign-in sheet"
       description: |
-        The checkout log shows Helena signed in to Restricted Section at
+        The checkout log shows Helena signed in to Sealed Stacks at
         9:47 PM (requires prefect permission).
 
-        Argus Filch's patrol log: last walked past library at 9:30 PM.
+        Argus Crankshaw's patrol log: last walked past library at 9:30 PM.
 
         No other official entries, but—you notice eraser marks on 10:15 PM
         line. Someone removed an entry.
       tag: "[EVIDENCE: Erased Log Entry]"
-      significance: "**CRITICAL** - Someone was in Restricted Section at 10:15 PM and covered it up. Only Vector had motive + access."
+      significance: "**CRITICAL** - Someone was in Sealed Stacks at 10:15 PM and covered it up. Only Morraine had motive + access."
       strength: 100
-      points_to: ["professor_vector"]
-      contradicts: ["flint_guilty_10pm"]
+      points_to: ["professor_morraine"]
+      contradicts: ["sterling_guilty_10pm"]
 
     - id: "checkout_log"
       type: "documentary"
@@ -348,9 +348,9 @@ madam_pince_office:
       description: |
         Checkout log details:
         - Helena Blackwood: 9:47 PM (signed in, prefect permission: Adrian Clearmont)
-        - Argus Filch patrol: 9:30 PM (passed library entrance)
+        - Argus Crankshaw patrol: 9:30 PM (passed library entrance)
         - [ERASED ENTRY]: 10:15 PM (visible eraser marks)
-        - Discovery: 10:30 PM (Filch + Madam Pince)
+        - Discovery: 10:30 PM (Mr. Crankshaw + Miss Hawthorne)
       tag: "[EVIDENCE: Full Checkout Log]"
       significance: "Establishes timeline and erased entry timing"
       strength: 70
@@ -362,43 +362,43 @@ madam_pince_office:
 
 ## Suspects
 
-### 1. Marcus Flint (RED HERRING)
+### 1. Marcus Sterling (RED HERRING)
 
 ```yaml
-suspect_marcus_flint:
-  id: "marcus_flint"
-  name: "Marcus Flint"
-  role: "Seventh-year Slytherin, Quidditch Captain"
+suspect_marcus_sterling:
+  id: "marcus_sterling"
+  name: "Marcus Sterling"
+  role: "Seventh-year Iron Lodge, sky-hunt Captain"
   age: 17
   is_guilty: false
 
   personality: "Aggressive, competitive, defensive about house reputation"
-  wants: "Protect Slytherin house honor, win Quidditch Cup"
+  wants: "Protect Iron Lodge house honor, win sky-hunt Cup"
   fears: "Being expelled so close to graduation, father's disappointment"
 
   moral_complexity: |
     Marcus has a temper and makes poor choices, but he's not a killer.
     He's terrified of authority and genuinely believes following rules
     (even unfair ones) is how you survive. The confrontation with Helena
-    was public and stupid, but he'd never risk Azkaban over an insult.
+    was public and stupid, but he'd never risk Dreadmoor Penitentiary over an insult.
 
   means_motive_opportunity:
     means:
-      has_wand: true
-      knows_spells: "Wingardium Leviosa (powerful enough for heavy objects)"
+      has_focus: true
+      knows_spells: "Levitation Cantrip (powerful enough for heavy objects)"
       capable: true
 
     motive:
-      apparent: "Helena publicly accused him of cheating in Potions (house points deducted)"
+      apparent: "Helena publicly accused him of cheating in Alchemy (house points deducted)"
       actual: "Argument was serious to him, but not murder-worthy. Was being blackmailed by Helena."
 
     opportunity:
-      alibi: "Claims Slytherin common room 9-11 PM"
+      alibi: "Claims Iron Lodge common room 9-11 PM"
       alibi_strength: "weak"
       alibi_details: "Other students asleep, can't confirm"
 
   evidence_against:
-    - "flints_scarf (in study alcove)"
+    - "sterling_scarf (in study alcove)"
     - "public_argument_motive"
     - "knows_wingardium_leviosa"
 
@@ -412,11 +412,11 @@ suspect_marcus_flint:
     knowledge:
       knows:
         - "Had argument with Helena two days ago (public, in Great Hall)"
-        - "Helena accused him of using Felix Felicis in Potions class"
+        - "Helena accused him of using Fortune's Draught in Alchemy class"
         - "He WAS in library earlier (7-8 PM) but left before curfew"
         - "Lost his scarf somewhere in library, couldn't find it"
       doesnt_know:
-        - "Helena was researching dark magic detection"
+        - "Helena was researching forbidden craft detection"
         - "Who actually killed her"
         - "About erased log entry"
 
@@ -424,9 +424,9 @@ suspect_marcus_flint:
       - id: "was_being_blackmailed"
         trigger: "show evidence of potion cheating OR press about Helena's accusations"
         reveals: |
-          "Fine! YES, I used Felix Felicis in Potions. Once. ONCE. My father
+          "Fine! YES, I used Fortune's Draught in Alchemy. Once. ONCE. My father
           expects perfection and I was failing. Helena saw me, threatened to
-          report me unless I threw the next Quidditch match.
+          report me unless I threw the next sky-hunt match.
 
           I went to the library that night to BEG her not to ruin my life.
           But she wasn't there when I arrived—or I couldn't find her. I left
@@ -444,36 +444,36 @@ suspect_marcus_flint:
     exoneration: "Timeline proves he left before 10 PM murder. Scarf shows earlier presence only."
 ```
 
-### 2. Argus Filch (RED HERRING - No Magical Means)
+### 2. Argus Crankshaw (RED HERRING - No Magical Means)
 
 ```yaml
-suspect_argus_filch:
-  id: "argus_filch"
-  name: "Argus Filch"
-  role: "Hogwarts Caretaker (Squib)"
+suspect_argus_crankshaw:
+  id: "argus_crankshaw"
+  name: "Argus Crankshaw"
+  role: "Blackwood Collegiate Caretaker (Null-blooded)"
   age: "~60s"
   is_guilty: false
 
   personality: "Bitter, resentful, petty, obsessed with catching rule-breakers"
   wants: "Punish students who flaunt their magic, maintain order HIS way"
-  fears: "Being seen as useless, losing job (his only power), wizards' contempt"
+  fears: "Being seen as useless, losing job (his only power), initiates' contempt"
 
   moral_complexity: |
-    Filch has spent decades watching magical children learn what he can
+    Mr. Crankshaw has spent decades watching magical children learn what he can
     never do. That kind of resentment festers. He HATES students in the
-    Restricted Section after hours—it's everything he can't have, being
+    Sealed Stacks after hours—it's everything he can't have, being
     flaunted. But he's not a murderer. He's a small, mean man who lives
-    for petty authority. Killing would make him the monster wizards already
+    for petty authority. Killing would make him the monster initiates already
     think he is.
 
   means_motive_opportunity:
     means:
-      has_wand: false
-      knows_spells: "NO MAGICAL ABILITY (squib)"
-      physical_capability: "Could stage accident physically, but can't cast Wingardium Leviosa"
+      has_focus: false
+      knows_spells: "NO MAGICAL ABILITY (null-blooded)"
+      physical_capability: "Could stage accident physically, but can't cast Levitation Cantrip"
 
     motive:
-      apparent: "Helena caught him trying to read Restricted books (humiliating for a squib)"
+      apparent: "Helena caught him trying to read Restricted books (humiliating for a null-blooded)"
       actual: "Humiliation and resentment, but not murderous"
 
     opportunity:
@@ -491,13 +491,13 @@ suspect_argus_filch:
     - "fear_of_being_blamed (explains suspicious behavior)"
 
   interrogation:
-    initial_demeanor: "Hostile, defensive, assumes he's being blamed because he's a squib"
+    initial_demeanor: "Hostile, defensive, assumes he's being blamed because he's a null-blooded"
 
     knowledge:
       knows:
-        - "Helena was in Restricted Section frequently (against rules)"
-        - "Saw her enter Restricted Section at 9:47 PM (from doorway)"
-        - "Mrs. Norris detected 'something wrong' in library last week (unusual behavior)"
+        - "Helena was in Sealed Stacks frequently (against rules)"
+        - "Saw her enter Sealed Stacks at 9:47 PM (from doorway)"
+        - "Morrigan detected 'something wrong' in library last week (unusual behavior)"
         - "Heard raised voices from inside around 10 PM but didn't investigate"
       doesnt_know:
         - "Who else was in library"
@@ -510,20 +510,20 @@ suspect_argus_filch:
         reveals: |
           "Fine. I heard a CRASH around 10:05. Went inside and found her.
           Bookshelf on top of her, clearly dead. I KNEW how it would look—
-          squib caretaker, dead magical student, Restricted Section. They'd
+          null-blooded caretaker, dead magical student, Sealed Stacks. They'd
           blame ME.
 
-          So I left. Came back at 10:30 with Madam Pince, 'discovered' the
+          So I left. Came back at 10:30 with Miss Hawthorne, 'discovered' the
           body together. Let HER report it. I'm not stupid. This school's
           been waiting for an excuse to get rid of me for years."
         emotional_cost: "Bitter, angry, but also afraid"
         implicates: []
 
       - id: "tried_to_read_restricted_books"
-        trigger: "ask about Mrs. Norris behavior OR why he cares about Restricted Section"
+        trigger: "ask about Morrigan behavior OR why he cares about Sealed Stacks"
         reveals: |
           "Last week I... I was in there. Late night. Trying to read about
-          squib reversal treatments. Mrs. Norris started yowling—someone
+          null-blooded reversal treatments. Morrigan started yowling—someone
           was coming. I left fast.
 
           Next day, Helena approached me. Said she saw me. Said she was
@@ -541,7 +541,7 @@ suspect_argus_filch:
 
   if_innocent:
     why_suspicious: "Found body first, suspicious behavior, motive (humiliation)"
-    exoneration: "Levitation scorch marks prove magic was used. Filch is a squib—cannot cast Wingardium Leviosa."
+    exoneration: "Levitation scorch marks prove magic was used. Mr. Crankshaw is a null-blooded—cannot cast Levitation Cantrip."
 ```
 
 ### 3. Adrian Clearmont (RED HERRING - Too Weak + Fled Before Murder)
@@ -550,16 +550,16 @@ suspect_argus_filch:
 suspect_adrian_clearmont:
   id: "adrian_clearmont"
   name: "Adrian Clearmont"
-  role: "Sixth-year Ravenclaw Prefect"
+  role: "Sixth-year Candlewick Prefect"
   age: 16
   is_guilty: false
 
   personality: "Brilliant but insecure, compulsively competitive, perfectionist"
-  wants: "Be recognized as brightest in Ravenclaw, earn Outstanding in all N.E.W.T.s, secure Ministry Honors Program placement"
+  wants: "Be recognized as brightest in Candlewick, earn Outstanding in all Final Examinations, secure Ministry Honors Program placement"
   fears: "Being outshined by younger students, losing prefect status, disappointing parents"
 
   moral_complexity: |
-    Adrian has spent six years being the smartest Ravenclaw. It defines him.
+    Adrian has spent six years being the smartest Candlewick. It defines him.
     Then Helena—two years younger—starts asking questions he can't answer,
     solving problems faster than him, making HIM look average.
 
@@ -570,8 +570,8 @@ suspect_adrian_clearmont:
 
   means_motive_opportunity:
     means:
-      has_wand: true
-      knows_spells: "Knows Wingardium Leviosa, but NOT POWERFUL ENOUGH for bookshelf (established as weaker caster)"
+      has_focus: true
+      knows_spells: "Knows Levitation Cantrip, but NOT POWERFUL ENOUGH for bookshelf (established as weaker caster)"
       capable: false
 
     motive:
@@ -579,12 +579,12 @@ suspect_adrian_clearmont:
       actual: "Felt threatened, but responded with theft (stole her notes), not murder"
 
     opportunity:
-      alibi: "Claims Ravenclaw common room studying 9 PM - 11 PM"
+      alibi: "Claims Candlewick common room studying 9 PM - 11 PM"
       alibi_strength: "moderate"
       alibi_details: "Other students saw him, but left briefly around 10 PM"
 
   evidence_against:
-    - "gave_helena_permission (to enter Restricted Section)"
+    - "gave_helena_permission (to enter Sealed Stacks)"
     - "followed_her (10 PM)"
     - "stole_research_notes (motive)"
     - "guilty_behavior"
@@ -599,14 +599,14 @@ suspect_adrian_clearmont:
 
     knowledge:
       knows:
-        - "Signed Helena's permission slip to enter Restricted Section at 9:45 PM"
-        - "Helena was researching wandlore resonance (he'd been researching same topic)"
+        - "Signed Helena's permission slip to enter Sealed Stacks at 9:45 PM"
+        - "Helena was researching focuslore resonance (he'd been researching same topic)"
         - "She'd recently asked him for help, then surpassed his understanding"
         - "Heard about her death the next morning, felt immediate guilt"
       doesnt_know:
         - "Who actually killed Helena"
         - "About the levitation scorch marks"
-        - "About Vector's jealousy or Filch finding the body"
+        - "About Morraine's jealousy or Mr. Crankshaw finding the body"
 
     secrets:
       - id: "followed_helena"
@@ -647,7 +647,7 @@ suspect_adrian_clearmont:
     lies:
       - claim: "Never left common room that night"
         truth: "Followed Helena to library around 10 PM, fled after crash"
-        exposed_by: "Another Ravenclaw mentions he left briefly"
+        exposed_by: "Another Candlewick mentions he left briefly"
 
       - claim: "Didn't know what Helena was researching specifically"
         truth: "Had stolen her notes the week before, knew exactly what she was working on"
@@ -658,12 +658,12 @@ suspect_adrian_clearmont:
     exoneration: "Heard adult voice arguing with Helena. Fled when crash happened (BEFORE murder, not after). Levitation scorch marks show high power—Adrian's magic too weak for that shelf."
 ```
 
-### 4. Professor Septima Vector (GUILTY)
+### 4. Professor Celia Morraine (GUILTY)
 
 ```yaml
-suspect_professor_vector:
-  id: "professor_vector"
-  name: "Professor Septima Vector"
+suspect_professor_morraine:
+  id: "professor_morraine"
+  name: "Professor Celia Morraine"
   role: "Arithmancy Professor"
   age: "~40s"
   is_guilty: true
@@ -673,9 +673,9 @@ suspect_professor_vector:
   fears: "Being intellectually surpassed, her research being stolen"
 
   moral_complexity: |
-    Vector is brilliant and knows it. She saw Helena's potential and felt
-    THREATENED. A fourth-year asking questions Vector couldn't answer?
-    Intolerable. But Vector is also a professor—she has other ways to
+    Morraine is brilliant and knows it. She saw Helena's potential and felt
+    THREATENED. A fourth-year asking questions Morraine couldn't answer?
+    Intolerable. But Morraine is also a professor—she has other ways to
     destroy talented students. Harsh grades, denial of recommendations,
     academic sabotage. Murder is beneath her. She fights with equations,
     not violence.
@@ -685,13 +685,13 @@ suspect_professor_vector:
 
   means_motive_opportunity:
     means:
-      has_wand: true
-      knows_spells: "Powerful witch, expert at Arithmancy and Transfiguration. High-power Wingardium Leviosa capable."
+      has_focus: true
+      knows_spells: "Powerful scholar, expert at Arithmancy and Transmutation. High-power Levitation Cantrip capable."
       capable: true
 
     motive:
       apparent: "None (professor, no known conflict)"
-      actual: "Helena's wandlore research was approaching breakthrough that would eclipse Vector's 15-year career work"
+      actual: "Helena's focuslore research was approaching breakthrough that would eclipse Morraine's 15-year career work"
 
     opportunity:
       alibi: "Claims grading papers in her office 8 PM - midnight"
@@ -700,8 +700,8 @@ suspect_professor_vector:
 
   evidence_against:
     - "erased_log_entry (proves presence at 10:15 PM)"
-    - "levitation_scorch_marks (high power - Vector capable)"
-    - "missing_wand (Vector took it to hide defensive magic evidence)"
+    - "levitation_scorch_marks (high power - Morraine capable)"
+    - "missing_focus (Morraine took it to hide defensive magic evidence)"
     - "academic_jealousy_motive"
 
   evidence_for: []
@@ -711,20 +711,20 @@ suspect_professor_vector:
 
     knowledge:
       knows:
-        - "Helena was researching wandcore resonance (impressive for her year)"
-        - "Helena asked Vector for permission to access specific Restricted books"
-        - "Vector DENIED the request (thought Helena wasn't ready)"
-        - "Helena got prefect permission instead (went around Vector)"
+        - "Helena was researching focuscore resonance (impressive for her year)"
+        - "Helena asked Morraine for permission to access specific Restricted books"
+        - "Morraine DENIED the request (thought Helena wasn't ready)"
+        - "Helena got prefect permission instead (went around Morraine)"
       doesnt_know:
         - "Helena was in library that specific night (LIES - she knew)"
         - "Details of Helena's recent discoveries (LIES - she went to check)"
-        - "About the confrontation with Flint"
+        - "About the confrontation with Sterling"
 
     secrets:
       - id: "erased_log_entry_admission"
         trigger: "confront with erased log OR show checkout evidence"
         reveals: |
-          "Yes, I was in the Restricted Section that night. I signed in at
+          "Yes, I was in the Sealed Stacks that night. I signed in at
           10:15 PM—after Helena, obviously. I wanted to see what books she'd
           requested. Academic curiosity.
 
@@ -732,42 +732,42 @@ suspect_professor_vector:
           how it would appear: jealous professor, dead talented student. So I
           erased my entry and left.
 
-          Cowardly? Perhaps. Murder? Absolutely not. Check my wand if you
+          Cowardly? Perhaps. Murder? Absolutely not. Check my focus if you
           don't believe me."
         emotional_cost: "Admits fear, maintains cold composure"
         implicates: []
 
     lies:
       - claim: "Didn't know Helena was researching that night"
-        truth: "Went to Restricted Section specifically to see Helena's progress"
+        truth: "Went to Sealed Stacks specifically to see Helena's progress"
         exposed_by: "Erased log entry at 10:15 PM"
 
       - claim: "Found body already dead when arrived"
         truth: "Killed Helena, then staged scene"
-        exposed_by: "Timeline + missing wand + levitation evidence"
+        exposed_by: "Timeline + missing focus + levitation evidence"
 
   if_guilty:
     actual_events: |
-      Helena made a breakthrough in wandcore resonance theory that would
-      revolutionize Arithmancy applications. Vector realized this when Helena
-      asked for specific books—books Vector had consulted for her own research.
+      Helena made a breakthrough in focuscore resonance theory that would
+      revolutionize Arithmancy applications. Morraine realized this when Helena
+      asked for specific books—books Morraine had consulted for her own research.
 
-      Vector went to Restricted Section at 10:15 PM to confront Helena, demand
+      Morraine went to Sealed Stacks at 10:15 PM to confront Helena, demand
       to see her notes, possibly threaten her academically to slow her down.
       They argued. Helena refused to share her discovery.
 
       In a moment of rage and panic—seeing her life's work about to be eclipsed
-      by a CHILD—Vector used Wingardium Leviosa to lift the heavy bookshelf
+      by a CHILD—Morraine used Levitation Cantrip to lift the heavy bookshelf
       and dropped it on Helena. The "accident" would be believable: student
-      alone in Restricted Section, shelf collapsed, tragic but explainable.
+      alone in Sealed Stacks, shelf collapsed, tragic but explainable.
 
-      Vector then took Helena's wand (to prevent Prior Incantato revealing
-      Helena had her wand out defensively), erased the library log entry,
-      and left. The wand is hidden in Vector's office.
+      Morraine then took Helena's focus (to prevent Echo Reading revealing
+      Helena had her focus out defensively), erased the library log entry,
+      and left. The focus is hidden in Morraine's office.
 
     motive_revealed: |
       "She was a child. A FOURTH-YEAR. And she was about to publish a
-      breakthrough in wandcore resonance that I've been researching for
+      breakthrough in focuscore resonance that I've been researching for
       FIFTEEN YEARS.
 
       Do you understand what that would mean? My career, my reputation,
@@ -790,15 +790,15 @@ suspect_professor_vector:
 ```yaml
 evidence:
   # PHYSICAL EVIDENCE
-  missing_wand_defensive_posture:
-    id: "missing_wand_defensive_posture"
+  missing_focus_defensive_posture:
+    id: "missing_focus_defensive_posture"
     type: "physical"
     location: "restricted_section"
-    name: "Missing Wand & Defensive Posture"
-    description: "Victim's wand missing; hand outstretched, defensive bruises on forearm"
-    significance: "**CRITICAL** - Helena saw attack coming, tried to defend. Wand taken by killer to hide defensive magic evidence."
+    name: "Missing Focus & Defensive Posture"
+    description: "Victim's focus missing; hand outstretched, defensive bruises on forearm"
+    significance: "**CRITICAL** - Helena saw attack coming, tried to defend. Focus taken by killer to hide defensive magic evidence."
     strength: 90
-    points_to: ["professor_vector"]
+    points_to: ["professor_morraine"]
     contradicts: ["accident_theory"]
 
   shelf_moved_deliberately:
@@ -812,15 +812,15 @@ evidence:
     points_to: ["all_suspects"]
     contradicts: ["accident_theory"]
 
-  flints_scarf:
-    id: "flints_scarf"
+  sterling_scarf:
+    id: "sterling_scarf"
     type: "physical"
     location: "study_alcove"
-    name: "Marcus Flint's Scarf"
-    description: "Green Slytherin scarf with 'M.F.' initials in study alcove"
+    name: "Marcus Sterling's Scarf"
+    description: "Green Iron Lodge scarf with 'M.S.' initials in study alcove"
     significance: "Proves Marcus was in library, but timing unclear (RED HERRING - he left before murder)"
     strength: 70
-    points_to: ["marcus_flint"]
+    points_to: ["marcus_sterling"]
     complication: true
     appears_after_evidence_count: 4
     teaches: "Presence ≠ guilt. Need timeline, not just opportunity."
@@ -841,41 +841,41 @@ evidence:
     type: "magical"
     location: "restricted_section"
     name: "Levitation Scorch Marks"
-    description: "Scorch marks on ceiling beam above shelf - Wingardium Leviosa pattern (high power)"
-    significance: "**CRITICAL** - Proves shelf was levitated magically, not pushed. High power = eliminates weak casters (Adrian). Filch can't cast magic."
+    description: "Scorch marks on ceiling beam above shelf - Levitation Cantrip pattern (high power)"
+    significance: "**CRITICAL** - Proves shelf was levitated magically, not pushed. High power = eliminates weak casters (Adrian). Mr. Crankshaw can't cast magic."
     strength: 100
-    points_to: ["professor_vector", "marcus_flint"]
-    contradicts: ["filch_guilty", "adrian_guilty", "accident_theory"]
-    trigger_spell: "Revelio on ceiling"
+    points_to: ["professor_morraine", "marcus_sterling"]
+    contradicts: ["crankshaw_guilty", "adrian_guilty", "accident_theory"]
+    trigger_spell: "Unveil on ceiling"
 
   helena_research_notes:
     id: "helena_research_notes"
     type: "documentary"
     location: "restricted_section"
     name: "Helena's Research Notes"
-    description: "Notes on wandcore resonance, mentions Filch and 'dark magic' claim, cuts off mid-sentence"
+    description: "Notes on focuscore resonance, mentions Mr. Crankshaw and 'forbidden craft' claim, cuts off mid-sentence"
     significance: "Shows Helena was investigating something (potentially threatening to someone)"
     strength: 60
-    points_to: ["argus_filch"]
+    points_to: ["argus_crankshaw"]
 
   # DOCUMENTARY EVIDENCE
   erased_log_entry:
     id: "erased_log_entry"
     type: "documentary"
-    location: "madam_pince_office"
+    location: "miss_hawthorne_office"
     name: "Erased Library Log Entry"
     description: "Library checkout log shows eraser marks at 10:15 PM entry"
-    significance: "**CRITICAL** - Someone was in Restricted Section at 10:15 PM and covered it up. Only Vector had motive + access."
+    significance: "**CRITICAL** - Someone was in Sealed Stacks at 10:15 PM and covered it up. Only Morraine had motive + access."
     strength: 100
-    points_to: ["professor_vector"]
-    contradicts: ["flint_guilty_10pm"]
+    points_to: ["professor_morraine"]
+    contradicts: ["sterling_guilty_10pm"]
 
   checkout_log:
     id: "checkout_log"
     type: "documentary"
-    location: "madam_pince_office"
+    location: "miss_hawthorne_office"
     name: "Full Checkout Log"
-    description: "Helena signed in 9:47 PM (prefect permission: Adrian). Filch patrol 9:30 PM. Erased entry 10:15 PM. Discovery 10:30 PM."
+    description: "Helena signed in 9:47 PM (prefect permission: Adrian). Mr. Crankshaw patrol 9:30 PM. Erased entry 10:15 PM. Discovery 10:30 PM."
     significance: "Establishes timeline and erased entry timing"
     strength: 70
 
@@ -883,11 +883,11 @@ evidence:
     id: "alcove_proximity"
     type: "physical"
     location: "study_alcove"
-    name: "Alcove Proximity to Restricted Section"
-    description: "Study alcove is adjacent to Restricted Section wall (eavesdropping position)"
-    significance: "Whoever was in alcove could hear Restricted Section conversations"
+    name: "Alcove Proximity to Sealed Stacks"
+    description: "Study alcove is adjacent to Sealed Stacks wall (eavesdropping position)"
+    significance: "Whoever was in alcove could hear Sealed Stacks conversations"
     strength: 40
-    points_to: ["marcus_flint"]
+    points_to: ["marcus_sterling"]
 ```
 
 ---
@@ -897,28 +897,28 @@ evidence:
 ```yaml
 timeline:
   - time: "9:30 PM"
-    event: "Filch patrols past library entrance"
-    witnesses: ["argus_filch"]
+    event: "Mr. Crankshaw patrols past library entrance"
+    witnesses: ["argus_crankshaw"]
     evidence: ["checkout_log"]
 
   - time: "9:45 PM"
-    event: "Adrian Clearmont signs Helena's permission slip for Restricted Section"
+    event: "Adrian Clearmont signs Helena's permission slip for Sealed Stacks"
     witnesses: ["adrian_clearmont"]
     evidence: []
 
   - time: "9:47 PM"
-    event: "Helena enters Restricted Section (logged)"
-    witnesses: ["argus_filch (saw from doorway)"]
+    event: "Helena enters Sealed Stacks (logged)"
+    witnesses: ["argus_crankshaw (saw from doorway)"]
     evidence: ["checkout_log"]
 
   - time: "~10:00 PM"
-    event: "Adrian follows Helena to library, listens outside Restricted Section gate"
+    event: "Adrian follows Helena to library, listens outside Sealed Stacks gate"
     witnesses: ["adrian_clearmont"]
     evidence: []
 
   - time: "~10:00 PM"
-    event: "Filch hears voices inside (Helena arguing with someone)"
-    witnesses: ["argus_filch"]
+    event: "Mr. Crankshaw hears voices inside (Helena arguing with someone)"
+    witnesses: ["argus_crankshaw"]
     evidence: []
 
   - time: "~10:00 PM"
@@ -927,7 +927,7 @@ timeline:
     evidence: []
 
   - time: "10:05 PM"
-    event: "**MURDER** - Bookshelf falls, Helena killed (Vector used Wingardium Leviosa)"
+    event: "**MURDER** - Bookshelf falls, Helena killed (Morraine used Levitation Cantrip)"
     witnesses: []
     evidence: ["levitation_scorch_marks", "shelf_moved_deliberately"]
 
@@ -937,23 +937,23 @@ timeline:
     evidence: ["wet_quill"]
 
   - time: "10:05-10:10 PM"
-    event: "Filch enters library, finds body, panics and leaves"
-    witnesses: ["argus_filch"]
+    event: "Mr. Crankshaw enters library, finds body, panics and leaves"
+    witnesses: ["argus_crankshaw"]
     evidence: []
 
   - time: "10:15 PM"
-    event: "Vector enters Restricted Section (erased from log)"
+    event: "Morraine enters Sealed Stacks (erased from log)"
     witnesses: []
     evidence: ["erased_log_entry"]
 
   - time: "10:15-10:20 PM"
-    event: "Vector stages scene, takes Helena's wand, erases log entry"
+    event: "Morraine stages scene, takes Helena's focus, erases log entry"
     witnesses: []
-    evidence: ["missing_wand_defensive_posture", "erased_log_entry"]
+    evidence: ["missing_focus_defensive_posture", "erased_log_entry"]
 
   - time: "10:30 PM"
-    event: "Filch returns with Madam Pince, 'discovers' body officially"
-    witnesses: ["argus_filch"]
+    event: "Mr. Crankshaw returns with Miss Hawthorne, 'discovers' body officially"
+    witnesses: ["argus_crankshaw"]
     evidence: ["checkout_log"]
 ```
 
@@ -963,65 +963,65 @@ timeline:
 
 ```yaml
 solution:
-  culprit: "professor_vector"
+  culprit: "professor_morraine"
 
-  method: "Wingardium Leviosa to lift bookshelf, drop on Helena (staged as accident)"
+  method: "Levitation Cantrip to lift bookshelf, drop on Helena (staged as accident)"
 
-  motive: "Academic jealousy - Helena's wandlore breakthrough would eclipse Vector's 15-year research career"
+  motive: "Academic jealousy - Helena's focuslore breakthrough would eclipse Morraine's 15-year research career"
 
   timeline:
-    - "9:47 PM: Helena enters Restricted Section"
-    - "10:05 PM: Vector confronts Helena, argument, kills with levitated bookshelf"
-    - "10:15 PM: Vector returns, stages scene, takes wand, erases log"
+    - "9:47 PM: Helena enters Sealed Stacks"
+    - "10:05 PM: Morraine confronts Helena, argument, kills with levitated bookshelf"
+    - "10:15 PM: Morraine returns, stages scene, takes focus, erases log"
     - "10:30 PM: Body discovered officially"
 
   key_evidence:
     - id: "levitation_scorch_marks"
-      why: "Proves Wingardium Leviosa used at high power (eliminates Adrian/Filch, implicates Vector/Flint)"
+      why: "Proves Levitation Cantrip used at high power (eliminates Adrian/Mr. Crankshaw, implicates Morraine/Sterling)"
     - id: "erased_log_entry"
-      why: "Proves Vector was there at 10:15 PM and covered it up"
-    - id: "missing_wand_defensive_posture"
-      why: "Proves Helena saw attack coming, Vector took wand to hide defensive magic evidence"
+      why: "Proves Morraine was there at 10:15 PM and covered it up"
+    - id: "missing_focus_defensive_posture"
+      why: "Proves Helena saw attack coming, Morraine took focus to hide defensive magic evidence"
     - id: "adrian_heard_adult_voice"
       why: "From Adrian's testimony - proves Helena argued with adult, not peer (eliminates students)"
 
   deductions_required:
-    - "Levitation scorch marks = high-power Wingardium Leviosa (Filch can't cast, Adrian too weak)"
-    - "Erased log entry connects to Vector's presence at 10:15 PM"
-    - "Missing wand = taken by killer to prevent Prior Incantato revealing defensive magic"
-    - "Timeline eliminates Flint (left before 9 PM, scarf proves earlier presence only)"
+    - "Levitation scorch marks = high-power Levitation Cantrip (Mr. Crankshaw can't cast, Adrian too weak)"
+    - "Erased log entry connects to Morraine's presence at 10:15 PM"
+    - "Missing focus = taken by killer to prevent Echo Reading revealing defensive magic"
+    - "Timeline eliminates Sterling (left before 9 PM, scarf proves earlier presence only)"
     - "Adrian fled BEFORE crash (heard it, ran) = not the killer"
-    - "Filch is squib = cannot cast Wingardium Leviosa"
-    - "Vector's academic jealousy = professional threat (stronger motive than peer rivalry)"
+    - "Mr. Crankshaw is null-blooded = cannot cast Levitation Cantrip"
+    - "Morraine's academic jealousy = professional threat (stronger motive than peer rivalry)"
 
   correct_reasoning_requires:
-    - "Recognize scorch marks = Wingardium Leviosa at HIGH POWER (not physical push)"
-    - "Connect erased log entry to Vector (only she had motive AND was in area)"
-    - "Eliminate Flint (left before 9 PM, scarf proves earlier presence only)"
-    - "Eliminate Filch (no magical ability for Wingardium Leviosa)"
+    - "Recognize scorch marks = Levitation Cantrip at HIGH POWER (not physical push)"
+    - "Connect erased log entry to Morraine (only she had motive AND was in area)"
+    - "Eliminate Sterling (left before 9 PM, scarf proves earlier presence only)"
+    - "Eliminate Mr. Crankshaw (no magical ability for Levitation Cantrip)"
     - "Eliminate Adrian (heard adult voice, his power level too weak for that shelf, fled before murder)"
-    - "Understand Vector's academic jealousy as motive (professional threat, not peer rivalry)"
+    - "Understand Morraine's academic jealousy as motive (professional threat, not peer rivalry)"
 
   common_mistakes:
-    - error: "Accuse Flint"
+    - error: "Accuse Sterling"
       reason: "Obvious suspect, strong motive, scarf at scene"
       why_wrong: "Timeline wrong - left before 9 PM, scarf proves earlier presence only"
-    - error: "Accuse Filch"
+    - error: "Accuse Mr. Crankshaw"
       reason: "Found body first, suspicious behavior, motive (humiliation)"
-      why_wrong: "Squib - cannot cast Wingardium Leviosa (levitation scorch marks prove magic)"
+      why_wrong: "Null-blooded - cannot cast Levitation Cantrip (levitation scorch marks prove magic)"
     - error: "Accuse Adrian"
       reason: "Guilty behavior, followed her, stole notes, gave permission"
       why_wrong: "Fled BEFORE murder (heard crash, ran). Power level too weak for bookshelf. Heard adult voice (Helena argued with adult, not him)."
     - error: "Miss levitation evidence"
       reason: "Assumes physical shelf collapse, not magical"
-      why_wrong: "Scorch marks prove Wingardium Leviosa used"
+      why_wrong: "Scorch marks prove Levitation Cantrip used"
     - error: "Ignore erased log entry"
       reason: "Focuses on suspects with obvious motives"
-      why_wrong: "Erased entry is key proof of Vector's presence and cover-up"
+      why_wrong: "Erased entry is key proof of Morraine's presence and cover-up"
 
   fallacies_to_catch:
     - fallacy: "Confirmation bias"
-      example: "Player locks onto Flint (obvious suspect) and ignores timeline evidence"
+      example: "Player locks onto Sterling (obvious suspect) and ignores timeline evidence"
     - fallacy: "Appeal to authority"
       example: "Player assumes professor couldn't be guilty (authority figure bias)"
     - fallacy: "Correlation ≠ causation"
@@ -1035,24 +1035,24 @@ solution:
 ### Wrong Suspect: Adrian Clearmont
 
 ```yaml
-moody_response: |
-  MOODY: "Clearmont? The PREFECT? Let me guess: he followed her, stole
+graves_response: |
+  GRAVES: "Clearmont? The PREFECT? Let me guess: he followed her, stole
   her notes, acted guilty. So he must be the killer, right?
 
   Wrong. He heard an ADULT voice arguing with Helena. He RAN when he
   heard the crash—before the murder, not after. And check the scorch
-  marks: that level of Wingardium Leviosa? Adrian couldn't lift a
+  marks: that level of Levitation Cantrip? Adrian couldn't lift a
   CHAIR that high, let alone a bookshelf.
 
   Guilt doesn't equal murder, recruit. He's guilty of being a coward
   and a cheat. Not a killer. Think harder. {attempts_remaining}/10."
 ```
 
-### Wrong Suspect: Marcus Flint
+### Wrong Suspect: Marcus Sterling
 
 ```yaml
-moody_response: |
-  MOODY: "FLINT? You're accusing a student of MURDER based on a scarf
+graves_response: |
+  GRAVES: "STERLING? You're accusing a student of MURDER based on a scarf
   and an argument? Did you check the TIMELINE, recruit?
 
   His scarf proves he was there EARLIER. That's it. The shelf fell at
@@ -1064,44 +1064,44 @@ moody_response: |
   Back to the evidence. {attempts_remaining}/10 attempts remaining."
 ```
 
-### Wrong Suspect: Argus Filch
+### Wrong Suspect: Argus Crankshaw
 
 ```yaml
-moody_response: |
-  MOODY: "Filch. You're accusing a SQUIB of a magical murder. Think about
+graves_response: |
+  GRAVES: "Mr. Crankshaw. You're accusing a NULL-BLOODED of a magical murder. Think about
   that for a second.
 
-  Wingardium Leviosa powerful enough to lift a bookshelf? Filch can't
+  Levitation Cantrip powerful enough to lift a bookshelf? Mr. Crankshaw can't
   even light a candle with magic. Yes, he behaved suspiciously—because
   he was TERRIFIED of being blamed. Fear isn't guilt.
 
   Use your HEAD. Check the magical evidence. {attempts_remaining}/10."
 ```
 
-### Correct Suspect: Professor Vector
+### Correct Suspect: Professor Morraine
 
 ```yaml
 confrontation:
-  setting: "Professor Vector's office, Moody escorts you"
+  setting: "Professor Morraine's office, Graves escorts you"
 
   dialogue:
-    - speaker: "moody"
+    - speaker: "graves"
       line: |
-        [Bursts into office] "Professor Vector. We need to discuss what
-        happened in the Restricted Section three nights ago."
+        [Bursts into office] "Professor Morraine. We need to discuss what
+        happened in the Sealed Stacks three nights ago."
 
-    - speaker: "vector"
+    - speaker: "morraine"
       line: "[Looks up from papers, cool] Tragic accident. I've already given my statement."
 
     - speaker: "player_presents_evidence"
-      line: "[Show levitation scorch marks, erased log entry, missing wand]"
+      line: "[Show levitation scorch marks, erased log entry, missing focus]"
 
-    - speaker: "vector"
+    - speaker: "morraine"
       line: |
         [Long pause. Composure cracks slightly]
 
         "She was a child. A FOURTH-YEAR. And she was about to publish a
-        breakthrough in wandcore resonance that I've been researching for
+        breakthrough in focuscore resonance that I've been researching for
         FIFTEEN YEARS.
 
         Do you understand what that would mean? My career, my reputation,
@@ -1114,66 +1114,66 @@ confrontation:
         I just wanted her to WAIT. To give me time. But she wouldn't listen,
         and I... I panicked."
 
-    - speaker: "moody"
+    - speaker: "graves"
       line: |
         "Panicked. You MURDERED a student and you call it panic?"
 
-    - speaker: "vector"
+    - speaker: "morraine"
       line: |
         [Quiet, hollow]
-        "I took her wand. I thought if there was no evidence of defensive
+        "I took her focus. I thought if there was no evidence of defensive
         magic... it would look like an accident. Just a shelf that fell.
 
         But you found the scorch marks. I should have known. Arithmancy
         never lies. The equations are always there, if you know where to look."
 
-    - speaker: "moody"
+    - speaker: "graves"
       line: |
         [To player] "Good work, recruit. Take her to holding."
 
-        [To Vector] "Fifteen years of research. And you threw it all away
+        [To Morraine] "Fifteen years of research. And you threw it all away
         because you couldn't stand a student being smarter than you.
         Pathetic."
 
   aftermath:
     outcome: |
-      Professor Vector is arrested and held for trial at the Wizengamot.
+      Professor Morraine is arrested and held for trial at the Occult Bench.
       Helena's research notes are turned over to the Department of Magical
-      Research, where they credit her posthumously with advancing wandlore
+      Research, where they credit her posthumously with advancing focuslore
       theory by a decade.
 
-      The Restricted Section is closed for a week while new safety measures
+      The Sealed Stacks is closed for a week while new safety measures
       are implemented. Students hold a candlelight vigil for Helena in the
-      library—Ravenclaws turn out in full, and even some Slytherins attend.
+      library—Candlewicks turn out in full, and even some Iron Lodges attend.
 
-      Marcus Flint writes you a short note: "Thanks for not assuming I did it."
+      Marcus Sterling writes you a short note: "Thanks for not assuming I did it."
 
-      Filch nods at you in the corridor the next day. For him, that's practically
+      Mr. Crankshaw nods at you in the corridor the next day. For him, that's practically
       a thank-you speech.
 
-    moody_final_word: |
-      MOODY: "Case closed. {attempts_remaining}/10 attempts remaining.
+    graves_final_word: |
+      GRAVES: "Case closed. {attempts_remaining}/10 attempts remaining.
 
       You identified the levitation evidence, traced the timeline, and didn't
       fall for the obvious suspect. That's acceptable work.
 
       But you hesitated when it came to a PROFESSOR. Remember: authority
-      doesn't make someone innocent. Question everyone. CONSTANT VIGILANCE."
+      doesn't make someone innocent. Question everyone. TRUST NOTHING UNSEEN."
 ```
 
 ---
 
 ## Intro Briefing Content
 
-### Moody's Rationality Lesson (Case 1)
+### Graves's Rationality Lesson (Case 1)
 
 ```yaml
 briefing:
-  moody_teaches: |
-    MOODY: "Right. Before you even LOOK at the specific evidence in this
+  graves_teaches: |
+    GRAVES: "Right. Before you even LOOK at the specific evidence in this
     case, answer me this—
 
-    Out of 100 student deaths at Hogwarts ruled 'accidents,' how many
+    Out of 100 student deaths at Blackwood Collegiate ruled 'accidents,' how many
     actually ARE accidents? Not murders in disguise. Just... accidents."
 
   player_guess:
@@ -1184,14 +1184,14 @@ briefing:
       - "80-90% (Most are genuine accidents)"
       - "I don't know"
 
-  moody_response_correct: |
+  graves_response_correct: |
     "85%. Not bad. You're thinking."
 
-  moody_response_wrong_low: |
+  graves_response_wrong_low: |
     "10%? You've been reading too many mystery novels, recruit."
 
-  moody_all_paths_continue: |
-    "85%. Eighty-five percent. Hogwarts is DANGEROUS. Moving staircases.
+  graves_all_paths_continue: |
+    "85%. Eighty-five percent. Blackwood Collegiate is DANGEROUS. Moving staircases.
     Cursed artifacts. Students experimenting with magic they barely
     understand. Forbidden Forest full of things that want to eat them.
 
@@ -1212,15 +1212,15 @@ briefing:
     That's the first rule. Remember it."
 
   tutorial_briefing: |
-    MOODY: "Right. Investigation fundamentals. Pay attention.
+    GRAVES: "Right. Investigation fundamentals. Pay attention.
 
     EXPLORATION: You can go anywhere in the crime scene. Examine anything.
     Ask about anything. Type what you want to investigate—I'm not holding
     your hand with a list of 'correct' actions.
 
-    SPELLS: You have basic investigation spells. I'll teach you as needed.
-    Start with REVELIO—reveals hidden objects and magical traces. Point your
-    wand, say 'Revelio,' and pay attention to what it shows you.
+    SPELLS: You have basic investigation rites. I'll teach you as needed.
+    Start with UNVEIL—reveals hidden objects and magical traces. Point your
+    focus, say 'Unveil,' and pay attention to what it shows you.
 
     EVIDENCE: When you find something important, you'll know. It gets logged
     automatically. Check your evidence board anytime to review what you've found.
@@ -1240,92 +1240,92 @@ briefing:
 
 ---
 
-## Magic System Tutorial Contexts
+## Rite System Tutorial Contexts
 
 ```yaml
 spell_contexts:
-  revelio:
+  unveil:
     restricted_section_ceiling:
       works: true
       reveals: "levitation_scorch_marks"
       narration: |
-        You cast Revelio upward. The spell illuminates faint scorch marks
-        on the ceiling beam—the unmistakable pattern of Wingardium Leviosa
+        You cast Unveil upward. The spell illuminates faint scorch marks
+        on the ceiling beam—the unmistakable pattern of Levitation Cantrip
         at high power. Someone lifted something HEAVY here.
 
-        MOODY: "Good instinct. Always check what's NOT at eye level."
+        GRAVES: "Good instinct. Always check what's NOT at eye level."
 
       tutorial_moment: |
-        MOODY: "Revelio reveals hidden objects and magical residue. Point
-        your wand and say 'Revelio.' Works on areas or specific objects.
+        GRAVES: "Unveil reveals hidden objects and magical residue. Point
+        your focus and say 'Unveil.' Works on areas or specific objects.
 
-        Remember: magic leaves traces. CONSTANT VIGILANCE."
+        Remember: magic leaves traces. TRUST NOTHING UNSEEN."
 
     study_alcove:
       works: true
-      reveals: "flints_scarf"
+      reveals: "sterling_scarf"
       narration: |
-        Your wand movement reveals a shimmer behind the desk. You pull out
-        a green Slytherin scarf, hastily shoved out of sight. Silver embroidery:
-        'M.F.'—Marcus Flint.
+        Your focus movement reveals a shimmer behind the desk. You pull out
+        a green Iron Lodge scarf, hastily shoved out of sight. Silver embroidery:
+        'M.S.'—Marcus Sterling.
 
-  prior_incantato:
-    helena_wand_attempt:
+  echo_reading:
+    helena_focus_attempt:
       works: false
-      reason: "Wand is missing (taken by killer)"
+      reason: "Focus is missing (taken by killer)"
       narration: |
-        You search Helena's robes, her hands, the surrounding area. Her wand
-        isn't here. That's... unusual. Students don't drop their wands, especially
-        not in the Restricted Section where they need light.
+        You search Helena's robes, her hands, the surrounding area. Her focus
+        isn't here. That's... unusual. Students don't drop their focuses, especially
+        not in the Sealed Stacks where they need light.
 
-        TOM: "Missing wand. Taken by killer? Or did it fall somewhere?"
+        TOM: "Missing focus. Taken by killer? Or did it fall somewhere?"
 
       tutorial_moment: |
-        MOODY: "Prior Incantato shows a wand's last spells. But you need the
-        PHYSICAL WAND. Can't cast it on thin air, recruit."
+        GRAVES: "Echo Reading shows a focus's last spells. But you need the
+        PHYSICAL FOCUS. Can't cast it on thin air, recruit."
 
-    suspect_wands_later:
-      available_after: "Case progression, can request to examine suspect wands"
-      flints_wand_result: "Lumos, Alohomora, Lumos (nothing suspicious)"
-      vectors_wand_result: "Wingardium Leviosa (very powerful), Obliviate (minor), Lumos"
-      filch_has_no_wand: "He's a squib - reinforces he couldn't have cast Wingardium Leviosa"
+    suspect_focuses_later:
+      available_after: "Case progression, can request to examine suspect focuses"
+      sterlings_focus_result: "Raise the Lamp, Lock Whisper, Raise the Lamp (nothing suspicious)"
+      morraines_focus_result: "Levitation Cantrip (very powerful), Memory Veil (minor), Raise the Lamp"
+      crankshaw_has_no_focus: "He's null-blooded - reinforces he couldn't have cast Levitation Cantrip"
 
-  homenum_revelio:
+  sense_presence:
     library_sweep:
       works: true
       reveals: "No one currently hiding in library"
       narration: |
-        You cast Homenum Revelio, the detection spell spreading through the
+        You cast Sense Presence, the detection spell spreading through the
         library. The spell returns empty—whoever was here is long gone.
 
-        MOODY: "Homenum Revelio detects hidden persons. Useful for searching
+        GRAVES: "Sense Presence detects hidden persons. Useful for searching
         large areas. But it only shows you WHO'S HERE NOW. Doesn't tell you
         who WAS here."
 
       tutorial_moment: |
-        MOODY: "Homenum Revelio—detects living humans in the area. Won't find
+        GRAVES: "Sense Presence—detects living humans in the area. Won't find
         ghosts, portraits, or animals. And it's NOW, not the past. Remember that."
 
-  specialis_revelio:
+  identify_substance:
     broken_lantern_oil:
       works: true
       reveals: "Standard lamp oil, nothing suspicious"
       narration: |
-        You point your wand at the spilled oil. "Specialis Revelio."
+        You point your focus at the spilled oil. "Identify Substance."
 
         The spell identifies it: standard lamp oil, no poisons, no magical
         enhancement. The lantern broke when the shelf fell—collateral damage,
         not evidence.
 
       tutorial_moment: |
-        MOODY: "Specialis Revelio identifies potions and substances. Useful
+        GRAVES: "Identify Substance identifies potions and substances. Useful
         for poisons, unknown liquids, or checking if something's been tampered
         with. Doesn't work on people—only substances."
 
   general_guidelines:
     wards_present: false
-    legal_status: "full_access (Hogwarts investigation, Headmaster authorized)"
-    legilimency_forbidden: "Case 1 - Moody will NOT authorize, forbids attempts"
+    legal_status: "full_access (Blackwood Collegiate investigation, Headmaster authorized)"
+    mnemonic_delving_forbidden: "Case 1 - Graves will NOT authorize, forbids attempts"
 ```
 
 ---

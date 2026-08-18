@@ -47,68 +47,50 @@ export function EvidenceModal({
 }: EvidenceModalProps) {
   const { theme } = useTheme();
 
-  // Loading state
-  if (loading) {
-    return (
-      <Modal isOpen={true} onClose={onClose} title="EVIDENCE DETAILS" variant="terminal" maxWidth="max-w-2xl">
+  const isOpen = loading || !!error || !!evidence;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="EVIDENCE DETAILS" variant="terminal" maxWidth="max-w-lg">
+      {loading ? (
         <div className="flex items-center justify-center py-8">
           <div className={`animate-pulse ${theme.colors.state.success.text}`}>
             Loading evidence details...
           </div>
         </div>
-      </Modal>
-    );
-  }
-
-  // Error state
-  if (error) {
-    const errorTheme = theme.colors.state.error;
-    return (
-      <Modal isOpen={true} onClose={onClose} title="EVIDENCE DETAILS" variant="terminal" maxWidth="max-w-2xl">
-        <div className={`p-4 ${errorTheme.bg} border ${errorTheme.border} rounded-sm ${errorTheme.text} text-sm`}>
+      ) : error ? (
+        <div className={`p-4 ${theme.colors.state.error.bg} border ${theme.colors.state.error.border} rounded-sm ${theme.colors.state.error.text} text-sm`}>
           <span className="font-bold">{theme.messages.error('')}</span> {error}
         </div>
-      </Modal>
-    );
-  }
+      ) : evidence ? (
+        <div className="space-y-5">
+          <div className="text-center">
+            <h3 className={`${theme.fonts.narrative} text-lg ${theme.colors.text.primary} font-semibold`}>
+              {evidence.name}
+            </h3>
+            <p className={`text-xs ${theme.colors.text.muted} uppercase tracking-widest mt-1 ${theme.fonts.ui}`}>
+              Found in {formatLocationName(evidence.location_found)}
+            </p>
+          </div>
 
-  // No evidence selected
-  if (!evidence) return null;
+          <div className={`border-t ${theme.colors.border.default}`} />
 
-  return (
-    <Modal isOpen={true} onClose={onClose} title="EVIDENCE DETAILS" variant="terminal" maxWidth="max-w-lg">
-      <div className="space-y-5">
-        {/* Evidence name as title */}
-        <div className="text-center">
-          <h3 className={`${theme.fonts.narrative} text-lg ${theme.colors.text.primary} font-semibold`}>
-            {evidence.name}
-          </h3>
-          <p className={`text-xs ${theme.colors.text.muted} uppercase tracking-widest mt-1 ${theme.fonts.ui}`}>
-            Found in {formatLocationName(evidence.location_found)}
+          <p className={`${theme.fonts.ui} text-sm ${theme.colors.text.secondary} leading-relaxed text-justify`}>
+            {renderInlineMarkdown(evidence.description)}
           </p>
+
+          {onBack && (
+            <>
+              <div className={`border-t ${theme.colors.border.default}`} />
+              <button
+                onClick={onBack}
+                className={`w-full text-center text-sm ${theme.colors.text.muted} ${theme.fonts.ui} uppercase tracking-widest py-1 hover:${theme.colors.text.primary} transition-colors`}
+              >
+                ← Back to Evidence
+              </button>
+            </>
+          )}
         </div>
-
-        {/* Divider */}
-        <div className={`border-t ${theme.colors.border.default}`} />
-
-        {/* Description as narrative prose */}
-        <p className={`${theme.fonts.narrative} text-base ${theme.colors.text.secondary} leading-[28px] tracking-[0.1px] text-justify`}>
-          {renderInlineMarkdown(evidence.description)}
-        </p>
-
-        {/* Back to evidence list */}
-        {onBack && (
-          <>
-            <div className={`border-t ${theme.colors.border.default}`} />
-            <button
-              onClick={onBack}
-              className={`w-full text-center text-sm ${theme.colors.text.muted} ${theme.fonts.ui} uppercase tracking-widest py-1 hover:${theme.colors.text.primary} transition-colors`}
-            >
-              ← Back to Evidence
-            </button>
-          </>
-        )}
-      </div>
+      ) : null}
     </Modal>
   );
 }

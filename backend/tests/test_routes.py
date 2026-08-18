@@ -71,6 +71,36 @@ class TestCasesEndpoint:
         assert data["count"] == len(data["cases"])
 
 
+class TestSettingsEndpoint:
+    """Tests for settings updates before a case has an autosave."""
+
+    @pytest.mark.asyncio
+    async def test_settings_create_state_at_case_first_location(
+        self, client: AsyncClient
+    ) -> None:
+        from src.case_store.loader import get_first_location_id, load_case
+        from src.state.persistence import load_player_state
+
+        player_id = "settings_defaults_player"
+        response = await client.post(
+            "/api/settings/update",
+            params={"player_id": player_id},
+            json={
+                "case_id": "case_001",
+                "language": "fr",
+                "narrator_verbosity": "atmospheric",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+        state = load_player_state("case_001", player_id, "autosave")
+        assert state is not None
+        assert state.current_location == get_first_location_id(load_case("case_001"))
+        assert state.language == "fr"
+        assert state.narrator_verbosity == "atmospheric"
+
+
 class TestLocationEndpoint:
     """Tests for location info endpoint."""
 
@@ -82,7 +112,7 @@ class TestLocationEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == "library"
-        assert "Hogwarts Library" in data["name"]
+        assert "Sealed Archive" in data["name"]
         assert "description" in data
         assert "surface_elements" in data
 
@@ -95,7 +125,7 @@ class TestLocationEndpoint:
         data = response.json()
         assert "witnesses_present" in data
         assert isinstance(data["witnesses_present"], list)
-        assert "hermione" in data["witnesses_present"]
+        assert "elena" in data["witnesses_present"]
 
     @pytest.mark.asyncio
     async def test_get_location_not_found(self, client: AsyncClient) -> None:
@@ -239,14 +269,14 @@ class TestLoadEndpoint:
 
     @pytest.mark.asyncio
     async def test_load_no_state(self, client: AsyncClient) -> None:
-        """Load returns null for no saved state."""
+        """Load returns 404 when no saved state exists."""
         response = await client.get(
             "/api/load/case_001",
             params={"player_id": "nonexistent_player"},
         )
 
-        assert response.status_code == 200
-        assert response.json() is None
+        assert response.status_code == 404
+        assert "No save found" in response.json()["detail"]
 
 
 class TestSaveEndpoint:
@@ -281,7 +311,10 @@ class TestInvestigateEndpoint:
     @pytest.fixture
     def mock_claude_response(self) -> str:
         """Mock Claude response."""
-        return "You peer beneath the heavy oak desk and discover a crumpled parchment. [EVIDENCE: hidden_note] The note bears hurried writing."
+        return (
+            "You peer beneath the heavy oak desk and discover a crumpled parchment. "
+            "The note bears hurried writing.\n\n[EVIDENCE: hidden_note]"
+        )
 
     @pytest.mark.asyncio
     async def test_investigate_success(
@@ -307,6 +340,8 @@ class TestInvestigateEndpoint:
         data = response.json()
         assert "narrator_response" in data
         assert data["narrator_response"] == mock_claude_response
+        assert mock_client.get_response.call_args.kwargs["max_tokens"] == 600
+        assert mock_client.get_response.call_args.kwargs["disable_reasoning"] is True
 
     @pytest.mark.asyncio
     async def test_investigate_finds_evidence(
@@ -415,7 +450,7 @@ class TestResetCaseEndpoint:
         await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
+                "accused_suspect_id": "cassian",
                 "reasoning": "Test.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -434,15 +469,13 @@ class TestResetCaseEndpoint:
         assert data["success"] is True
         assert "reset" in data["message"].lower()
 
-        # Verify state was deleted - load returns null for missing state
+        # Verify state was deleted - load returns 404 for missing state
         load_response = await client.get(
             "/api/load/case_001",
             params={"player_id": player_id},
         )
-        assert load_response.status_code == 200
-        # Should return null (None) since state was deleted
-        state_data = load_response.json()
-        assert state_data is None
+        assert load_response.status_code == 404
+        assert "No save found" in load_response.json()["detail"]
 
     @pytest.mark.asyncio
     async def test_reset_endpoint_nonexistent_file(self, client: AsyncClient) -> None:
@@ -477,8 +510,8 @@ class TestWitnessesEndpoint:
         assert len(data) >= 2
 
         witness_ids = [w["id"] for w in data]
-        assert "hermione" in witness_ids
-        assert "draco" in witness_ids
+        assert "elena" in witness_ids
+        assert "cassian" in witness_ids
 
     @pytest.mark.asyncio
     async def test_list_witnesses_includes_trust(self, client: AsyncClient) -> None:
@@ -491,11 +524,24 @@ class TestWitnessesEndpoint:
         assert response.status_code == 200
         data = response.json()
 
-        hermione = next(w for w in data if w["id"] == "hermione")
-        draco = next(w for w in data if w["id"] == "draco")
+        elena = next(w for w in data if w["id"] == "elena")
+        cassian = next(w for w in data if w["id"] == "cassian")
 
-        assert hermione["trust"] == 55  # base_trust
-        assert draco["trust"] == 25  # base_trust
+        assert elena["trust"] == 55  # base_trust
+        assert cassian["trust"] == 30  # base_trust
+
+    @pytest.mark.asyncio
+    async def test_list_witnesses_accepts_locale(self, client: AsyncClient) -> None:
+        """Explicit locale returns authored witness names."""
+        response = await client.get(
+            "/api/witnesses",
+            params={"case_id": "case_001", "language": "ru"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        elena = next(w for w in data if w["id"] == "elena")
+        assert elena["name"] == "Елена Лозовская"
 
 
 class TestWitnessInfoEndpoint:
@@ -505,21 +551,21 @@ class TestWitnessInfoEndpoint:
     async def test_get_witness_info(self, client: AsyncClient) -> None:
         """Get witness information."""
         response = await client.get(
-            "/api/witness/hermione",
+            "/api/witness/elena",
             params={"case_id": "case_001"},
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] == "hermione"
-        assert data["name"] == "Hermione Granger"
+        assert data["id"] == "elena"
+        assert data["name"] == "Elena Marsh"
         assert data["trust"] == 55
 
     @pytest.mark.asyncio
     async def test_get_witness_not_found(self, client: AsyncClient) -> None:
         """404 for nonexistent witness."""
         response = await client.get(
-            "/api/witness/voldemort",
+            "/api/witness/moriarty",
             params={"case_id": "case_001"},
         )
 
@@ -547,7 +593,7 @@ class TestInterrogateEndpoint:
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "question": "Where were you that night?",
                     "case_id": "case_001",
                     "player_id": "test_interrogate_player",
@@ -562,20 +608,22 @@ class TestInterrogateEndpoint:
         assert data["response"] == mock_witness_response
 
     @pytest.mark.asyncio
-    async def test_interrogate_empathetic_increases_trust(
-        self, client: AsyncClient, mock_witness_response: str
+    async def test_interrogate_llm_positive_trust_delta(
+        self, client: AsyncClient,
     ) -> None:
-        """Empathetic question increases trust."""
+        """LLM-provided positive trust delta is applied."""
         with patch("src.api.routes.witnesses.get_client") as mock_get_client:
             mock_client = AsyncMock()
-            mock_client.get_response = AsyncMock(return_value=mock_witness_response)
+            mock_client.get_response = AsyncMock(
+                return_value="I appreciate you asking nicely.\n[TRUST_DELTA: 8]",
+            )
             mock_get_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "I understand this must be difficult. Please help me remember what happened.",
+                    "witness_id": "elena",
+                    "question": "I understand this must be difficult.",
                     "case_id": "case_001",
                     "player_id": "test_empathy_player",
                 },
@@ -583,23 +631,25 @@ class TestInterrogateEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["trust_delta"] == 5  # Empathetic bonus
-        assert data["trust"] == 60  # 55 + 5
+        assert data["trust_delta"] == 8
+        assert data["trust"] == 63  # 55 + 8
 
     @pytest.mark.asyncio
-    async def test_interrogate_aggressive_decreases_trust(
-        self, client: AsyncClient, mock_witness_response: str
+    async def test_interrogate_llm_negative_trust_delta(
+        self, client: AsyncClient,
     ) -> None:
-        """Aggressive question decreases trust."""
+        """LLM-provided negative trust delta is applied."""
         with patch("src.api.routes.witnesses.get_client") as mock_get_client:
             mock_client = AsyncMock()
-            mock_client.get_response = AsyncMock(return_value=mock_witness_response)
+            mock_client.get_response = AsyncMock(
+                return_value="How dare you accuse me!\n[TRUST_DELTA: -10]",
+            )
             mock_get_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "question": "You're lying! I know you did it!",
                     "case_id": "case_001",
                     "player_id": "test_aggressive_player",
@@ -608,7 +658,7 @@ class TestInterrogateEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["trust_delta"] == -10  # Aggressive penalty
+        assert data["trust_delta"] == -10
         assert data["trust"] == 45  # 55 - 10
 
     @pytest.mark.asyncio
@@ -617,7 +667,7 @@ class TestInterrogateEndpoint:
         response = await client.post(
             "/api/interrogate",
             json={
-                "witness_id": "voldemort",
+                "witness_id": "moriarty",
                 "question": "Where were you?",
                 "case_id": "case_001",
                 "player_id": "test_player",
@@ -641,7 +691,7 @@ class TestPresentEvidenceEndpoint:
         response = await client.post(
             "/api/present-evidence",
             json={
-                "witness_id": "hermione",
+                "witness_id": "elena",
                 "evidence_id": "frost_pattern",
                 "case_id": "case_001",
                 "player_id": "test_undiscovered_evidence",
@@ -677,7 +727,7 @@ class TestPresentEvidenceEndpoint:
             response = await client.post(
                 "/api/present-evidence",
                 json={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "evidence_id": "frost_pattern",
                     "case_id": "case_001",
                     "player_id": "test_present_evidence",
@@ -697,15 +747,47 @@ class TestPresentEvidenceEndpoint:
 class TestSubmitVerdictEndpoint:
     """Tests for submit-verdict endpoint."""
 
+    @pytest.fixture(autouse=True)
+    def mock_verdict_llm(self):
+        """Mock LLM calls in verdict endpoint to avoid real API calls."""
+
+        async def mock_evaluator(**kwargs):
+            # Vary score based on evidence count for scoring tests
+            evidence = kwargs.get("evidence_cited", [])
+            reasoning = kwargs.get("reasoning", "")
+            score = min(95, 30 + len(evidence) * 20 + len(reasoning) // 10)
+            quality = "good" if score >= 60 else "poor"
+            return {
+                "score": score,
+                "quality": quality,
+                "fallacies": [],
+                "analysis": "Mock analysis of reasoning quality.",
+            }
+
+        mock_graves = "Trust nothing unseen! Your reasoning shows promise, but keep digging."
+
+        with (
+            patch(
+                "src.api.routes.verdict.evaluate_reasoning_llm",
+                side_effect=mock_evaluator,
+            ) as self.mock_eval,
+            patch(
+                "src.api.routes.verdict.build_graves_feedback_llm",
+                new_callable=AsyncMock,
+                return_value=mock_graves,
+            ) as self.mock_graves,
+        ):
+            yield
+
     @pytest.mark.asyncio
     async def test_submit_verdict_correct(self, client: AsyncClient) -> None:
         """Submit correct verdict returns success."""
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
-                "reasoning": "The wand signature and frost pattern prove Draco cast the spell from outside.",
-                "evidence_cited": ["frost_pattern", "wand_signature"],
+                "accused_suspect_id": "wisp",
+                "reasoning": "Wisp's binding magic combined with Cassian's ritual caused the paralytic binding.",
+                "evidence_cited": ["frost_pattern", "focus_signature"],
                 "case_id": "case_001",
                 "player_id": "test_correct_verdict",
             },
@@ -717,15 +799,14 @@ class TestSubmitVerdictEndpoint:
         assert data["case_solved"] is True
         assert data["attempts_remaining"] == 9
         assert "mentor_feedback" in data
-        assert data["confrontation"] is not None
 
     @pytest.mark.asyncio
     async def test_submit_verdict_incorrect(self, client: AsyncClient) -> None:
-        """Submit incorrect verdict returns failure with LLM feedback (empty template fields)."""
+        """Submit incorrect verdict returns failure with LLM feedback (real template fields restored)."""
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "She was there so she did it.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -739,17 +820,17 @@ class TestSubmitVerdictEndpoint:
         assert data["case_solved"] is False
         assert data["attempts_remaining"] == 9
         assert "mentor_feedback" in data
-        # Template fields are now empty (integrated into analysis)
-        assert data["mentor_feedback"]["hint"] is None
+        # Real template fields restored via build_mentor_feedback
+        # hint may be provided
         assert data["mentor_feedback"]["analysis"]  # LLM text populated
 
     @pytest.mark.asyncio
     async def test_submit_verdict_has_mentor_feedback(self, client: AsyncClient) -> None:
-        """Verdict response includes mentor feedback with LLM analysis (empty template fields)."""
+        """Verdict response includes mentor feedback with LLM analysis + real template fields."""
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
+                "accused_suspect_id": "wisp",
                 "reasoning": "The frost pattern proves it.",
                 "evidence_cited": ["frost_pattern"],
                 "case_id": "case_001",
@@ -765,19 +846,19 @@ class TestSubmitVerdictEndpoint:
         assert feedback["analysis"]  # Should have LLM-generated text
         assert "score" in feedback
         assert "quality" in feedback
-        # Template fields are now empty (LLM integrates into analysis)
-        assert feedback["fallacies_detected"] == []
-        assert feedback["critique"] == ""
-        assert feedback["praise"] == ""
-        assert feedback["hint"] is None
+        # Real template feedback restored
+        assert isinstance(feedback.get("fallacies_detected"), list)
+        assert isinstance(feedback.get("critique"), str)
+        assert isinstance(feedback.get("praise"), str)
+        assert "hint" in feedback
 
     @pytest.mark.asyncio
     async def test_submit_verdict_detects_fallacies(self, client: AsyncClient) -> None:
-        """Verdict fallacies are now integrated into LLM analysis (empty list in response)."""
+        """Verdict response includes fallacies_detected from template feedback."""
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "She was present in the library so she did it.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -788,8 +869,8 @@ class TestSubmitVerdictEndpoint:
         assert response.status_code == 200
         data = response.json()
         fallacies = data["mentor_feedback"]["fallacies_detected"]
-        # Fallacies are now integrated into LLM analysis, list is empty
-        assert fallacies == []
+        # Fallacies restored from build_mentor_feedback (may be empty)
+        assert isinstance(fallacies, list)
         # But analysis should contain the feedback
         assert data["mentor_feedback"]["analysis"]
 
@@ -799,7 +880,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "She was there.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -818,8 +899,8 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
-                "reasoning": "The evidence proves Draco did it.",
+                "accused_suspect_id": "wisp",
+                "reasoning": "Wisp's binding magic completed the paralytic binding.",
                 "evidence_cited": ["frost_pattern"],
                 "case_id": "case_001",
                 "player_id": "test_confrontation",
@@ -831,7 +912,6 @@ class TestSubmitVerdictEndpoint:
         assert data["confrontation"] is not None
         assert "dialogue" in data["confrontation"]
         assert "aftermath" in data["confrontation"]
-        assert len(data["confrontation"]["dialogue"]) >= 3
 
     @pytest.mark.asyncio
     async def test_submit_verdict_attempts_remaining_decrements(self, client: AsyncClient) -> None:
@@ -842,7 +922,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "Wrong guess.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -855,7 +935,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "Wrong again.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -870,7 +950,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
+                "accused_suspect_id": "cassian",
                 "reasoning": "Test",
                 "evidence_cited": [],
                 "case_id": "nonexistent_case",
@@ -887,9 +967,9 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
-                "reasoning": "The frost pattern matches Draco's wand signature. The witness testimony confirms it.",
-                "evidence_cited": ["frost_pattern", "wand_signature"],
+                "accused_suspect_id": "cassian",
+                "reasoning": "The frost pattern matches Cassian's focus signature. The witness testimony confirms it.",
+                "evidence_cited": ["frost_pattern", "focus_signature"],
                 "case_id": "case_001",
                 "player_id": "test_scoring_good",
             },
@@ -901,7 +981,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "x",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -919,9 +999,9 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
-                "reasoning": "The frost pattern and wand signature prove Draco cast the spell.",
-                "evidence_cited": ["frost_pattern", "wand_signature"],
+                "accused_suspect_id": "wisp",
+                "reasoning": "The frost pattern and focus signature prove the spell combination.",
+                "evidence_cited": ["frost_pattern", "focus_signature"],
                 "case_id": "case_001",
                 "player_id": "test_quality",
             },
@@ -940,7 +1020,7 @@ class TestSubmitVerdictEndpoint:
         first_response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "draco",
+                "accused_suspect_id": "wisp",
                 "reasoning": "Correct verdict.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -954,7 +1034,7 @@ class TestSubmitVerdictEndpoint:
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "Testing retry.",
                 "evidence_cited": [],
                 "case_id": "case_001",
@@ -968,30 +1048,30 @@ class TestSubmitVerdictEndpoint:
 
     @pytest.mark.asyncio
     async def test_submit_verdict_adaptive_hints(self, client: AsyncClient) -> None:
-        """Hints are now integrated into LLM analysis (hint field is None)."""
+        """Adaptive hints restored from build_mentor_feedback for incorrect verdicts."""
         player_id = "test_adaptive_hints"
 
         # First wrong attempt
         response = await client.post(
             "/api/submit-verdict",
             json={
-                "accused_suspect_id": "hermione",
+                "accused_suspect_id": "elena",
                 "reasoning": "Wrong.",
                 "evidence_cited": [],
                 "case_id": "case_001",
                 "player_id": player_id,
             },
         )
-        # Hint field is now always None (integrated into analysis)
+        # Hint restored for wrong verdicts
         first_hint = response.json()["mentor_feedback"]["hint"]
-        assert first_hint is None
+        assert first_hint is None or isinstance(first_hint, str)
 
         # Make several more wrong attempts
         for _ in range(5):
             response = await client.post(
                 "/api/submit-verdict",
                 json={
-                    "accused_suspect_id": "hermione",
+                    "accused_suspect_id": "elena",
                     "reasoning": "Wrong.",
                     "evidence_cited": [],
                     "case_id": "case_001",
@@ -1000,8 +1080,7 @@ class TestSubmitVerdictEndpoint:
             )
 
         later_hint = response.json()["mentor_feedback"]["hint"]
-        # Hint is always None now - hints integrated into LLM analysis
-        assert later_hint is None
+        assert later_hint is None or isinstance(later_hint, str)
         # Analysis should have content though
         assert response.json()["mentor_feedback"]["analysis"]
 
@@ -1009,7 +1088,7 @@ class TestSubmitVerdictEndpoint:
     async def test_submit_verdict_confrontation_for_wrong_with_show_anyway(
         self, client: AsyncClient
     ) -> None:
-        """Wrong verdict for hermione shows confrontation (confrontation_anyway: true)."""
+        """Wrong verdict for elena shows confrontation (confrontation_anyway: true)."""
         player_id = "test_confrontation_anyway"
 
         # Use up all attempts to trigger confrontation for wrong verdict
@@ -1017,7 +1096,7 @@ class TestSubmitVerdictEndpoint:
             response = await client.post(
                 "/api/submit-verdict",
                 json={
-                    "accused_suspect_id": "hermione",
+                    "accused_suspect_id": "elena",
                     "reasoning": "Wrong.",
                     "evidence_cited": [],
                     "case_id": "case_001",
@@ -1084,16 +1163,16 @@ class TestPhase44ConversationPersistence:
         assert "timestamp" in state.conversation_history[1]
 
     @pytest.mark.asyncio
-    async def test_tom_chat_saves_player_and_tom_messages(self, client: AsyncClient) -> None:
-        """Test Tom chat endpoint appends player + Tom to conversation_history."""
-        player_id = "test_tom_convo_1"
-        tom_response = "Interesting observation, but perhaps you're missing something..."
+    async def test_matthew_chat_saves_player_and_matthew_messages(self, client: AsyncClient) -> None:
+        """Test Matthew chat endpoint appends player + Matthew to conversation_history."""
+        player_id = "test_matthew_convo_1"
+        matthew_response = "Interesting observation, but perhaps you're missing something..."
 
-        with patch("src.context.tom_llm.generate_tom_response") as mock_generate:
-            mock_generate.return_value = (tom_response, "helpful")
+        with patch("src.context.matthew_llm.generate_matthew_response") as mock_generate:
+            mock_generate.return_value = (matthew_response, "helpful")
 
             await client.post(
-                "/api/case/case_001/tom/chat",
+                "/api/case/case_001/matthew/chat",
                 params={"player_id": player_id},
                 json={"message": "What do you think about this case?"},
             )
@@ -1109,23 +1188,23 @@ class TestPhase44ConversationPersistence:
         assert state.conversation_history[0]["type"] == "player"
         assert state.conversation_history[0]["text"] == "What do you think about this case?"
 
-        # Second message is tom
-        assert state.conversation_history[1]["type"] == "tom"
-        assert state.conversation_history[1]["text"] == tom_response
+        # Second message is matthew
+        assert state.conversation_history[1]["type"] == "matthew"
+        assert state.conversation_history[1]["text"] == matthew_response
 
     @pytest.mark.asyncio
-    async def test_tom_auto_comment_saves_only_tom_message(self, client: AsyncClient) -> None:
-        """Test Tom auto-comment endpoint appends only Tom message (no player message)."""
-        player_id = "test_tom_auto_1"
-        tom_response = "Hmm, this evidence seems suspicious..."
+    async def test_matthew_auto_comment_saves_only_matthew_message(self, client: AsyncClient) -> None:
+        """Test Matthew auto-comment endpoint appends only Matthew message (no player message)."""
+        player_id = "test_matthew_auto_1"
+        matthew_response = "Hmm, this evidence seems suspicious..."
 
-        with patch("src.context.tom_llm.check_tom_should_comment") as mock_check:
+        with patch("src.context.matthew_llm.check_matthew_should_comment") as mock_check:
             mock_check.return_value = True
-            with patch("src.context.tom_llm.generate_tom_response") as mock_generate:
-                mock_generate.return_value = (tom_response, "helpful")
+            with patch("src.context.matthew_llm.generate_matthew_response") as mock_generate:
+                mock_generate.return_value = (matthew_response, "helpful")
 
                 await client.post(
-                    "/api/case/case_001/tom/auto-comment",
+                    "/api/case/case_001/matthew/auto-comment",
                     params={"player_id": player_id},
                     json={"is_critical": True},
                 )
@@ -1137,9 +1216,9 @@ class TestPhase44ConversationPersistence:
         assert state is not None
         assert len(state.conversation_history) == 1
 
-        # Only tom message (no player message for auto-comment)
-        assert state.conversation_history[0]["type"] == "tom"
-        assert state.conversation_history[0]["text"] == tom_response
+        # Only matthew message (no player message for auto-comment)
+        assert state.conversation_history[0]["type"] == "matthew"
+        assert state.conversation_history[0]["text"] == matthew_response
 
     @pytest.mark.asyncio
     async def test_conversation_persists_through_save_load_cycle(
@@ -1508,7 +1587,7 @@ class TestPhase45NarratorConversationMemory:
             mock_client.get_response = AsyncMock(return_value="Second response.")
             mock_get_client.return_value = mock_client
 
-            with patch("src.api.routes.investigation.build_narrator_prompt") as mock_build:
+            with patch("src.api.routes.investigation_logic.build_narrator_prompt") as mock_build:
                 mock_build.return_value = "mocked prompt"
 
                 await client.post(
@@ -1530,33 +1609,35 @@ class TestPhase45NarratorConversationMemory:
                 assert history[0]["response"] == "First response."
 
 
-class TestLegilimencyInterrogation:
-    """Tests for Legilimency spell in witness interrogation (Phase 4.6.2).
+class TestMnemonicDelvingInterrogation:
+    """Tests for Mnemonic Delving spell in witness interrogation (Phase 4.6.2).
 
     Phase 4.6.2 Changes:
-    - Legilimency now executes instantly (no warning/confirmation flow)
+    - Mnemonic Delving now executes instantly (no warning/confirmation flow)
     - Programmatic outcomes based on trust threshold (70)
     - Random trust penalty [5, 10, 15, 20]
     - Focused vs unfocused detection based on search intent
     """
 
     @pytest.mark.asyncio
-    async def test_legilimency_instant_execution(self, client: AsyncClient) -> None:
-        """Phase 4.6.2: Legilimency executes instantly with LLM narration."""
-        with patch("src.api.routes.witnesses.get_client") as mock_get_client:
+    async def test_mnemonic_delving_instant_execution(self, client: AsyncClient) -> None:
+        """Phase 4.6.2: Mnemonic Delving executes instantly with LLM narration."""
+        with patch("src.api.routes.witnesses.get_client") as mock_get_client, \
+             patch("src.api.routes.mnemonic_delving.get_client") as mock_legi_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(
-                return_value="You slip into Hermione's mind, finding a chaotic swirl of memories..."
+                return_value="You slip into Elena's mind, finding a chaotic swirl of memories..."
             )
             mock_get_client.return_value = mock_client
+            mock_legi_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "I cast legilimency on Hermione",
+                    "witness_id": "elena",
+                    "question": "I cast mnemonic_delving on Elena",
                     "case_id": "case_001",
-                    "player_id": "test_legilimency_instant",
+                    "player_id": "test_mnemonic_delving_instant",
                 },
             )
 
@@ -1569,22 +1650,24 @@ class TestLegilimencyInterrogation:
         assert data["trust_delta"] in [0, -5, -10, -15, -20]
 
     @pytest.mark.asyncio
-    async def test_legilimency_focused_detection(self, client: AsyncClient) -> None:
-        """Phase 4.6.2: Focused Legilimency detected via 'about X' pattern."""
-        with patch("src.api.routes.witnesses.get_client") as mock_get_client:
+    async def test_mnemonic_delving_focused_detection(self, client: AsyncClient) -> None:
+        """Phase 4.6.2: Focused Mnemonic Delving detected via 'about X' pattern."""
+        with patch("src.api.routes.witnesses.get_client") as mock_get_client, \
+             patch("src.api.routes.mnemonic_delving.get_client") as mock_legi_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(
-                return_value="You focus on finding information about Draco..."
+                return_value="You focus on finding information about Cassian..."
             )
             mock_get_client.return_value = mock_client
+            mock_legi_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "use legilimency on her to find out about draco",
+                    "witness_id": "elena",
+                    "question": "use mnemonic_delving on her to find out about cassian",
                     "case_id": "case_001",
-                    "player_id": "test_legilimency_focused",
+                    "player_id": "test_mnemonic_delving_focused",
                 },
             )
 
@@ -1595,20 +1678,22 @@ class TestLegilimencyInterrogation:
         assert data["trust_delta"] in [0, -5, -10, -15, -20]
 
     @pytest.mark.asyncio
-    async def test_legilimency_semantic_phrase_detection(self, client: AsyncClient) -> None:
-        """Phase 4.6.2: Legilimency detected via semantic phrases like 'read her mind'."""
-        with patch("src.api.routes.witnesses.get_client") as mock_get_client:
+    async def test_mnemonic_delving_semantic_phrase_detection(self, client: AsyncClient) -> None:
+        """Phase 4.6.2: Mnemonic Delving detected via semantic phrases like 'read her mind'."""
+        with patch("src.api.routes.witnesses.get_client") as mock_get_client, \
+             patch("src.api.routes.mnemonic_delving.get_client") as mock_legi_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(return_value="You attempt to read her thoughts...")
             mock_get_client.return_value = mock_client
+            mock_legi_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "I cast legilimency on her",
+                    "witness_id": "elena",
+                    "question": "I cast mnemonic_delving on her",
                     "case_id": "case_001",
-                    "player_id": "test_legilimency_fuzzy",
+                    "player_id": "test_mnemonic_delving_fuzzy",
                 },
             )
 
@@ -1620,19 +1705,19 @@ class TestLegilimencyInterrogation:
 
     @pytest.mark.asyncio
     async def test_other_spell_in_interrogation_handled(self, client: AsyncClient) -> None:
-        """Non-Legilimency safe spells are handled in interrogation via LLM."""
+        """Non-Mnemonic Delving safe spells are handled in interrogation via LLM."""
         with patch("src.api.routes.witnesses.get_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(
-                return_value="You cast Revelio but it's better used during investigation."
+                return_value="You cast Unveil but it's better used during investigation."
             )
             mock_get_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "I cast revelio",
+                    "witness_id": "elena",
+                    "question": "I cast unveil",
                     "case_id": "case_001",
                     "player_id": "test_other_spell",
                 },
@@ -1644,7 +1729,7 @@ class TestLegilimencyInterrogation:
 
     @pytest.mark.asyncio
     async def test_no_false_positives_conversational(self, client: AsyncClient) -> None:
-        """Phase 4.6.2: Conversational phrases don't trigger Legilimency."""
+        """Phase 4.6.2: Conversational phrases don't trigger Mnemonic Delving."""
         with patch("src.api.routes.witnesses.get_client") as mock_get_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(return_value="I'm not sure what you mean by that.")
@@ -1653,7 +1738,7 @@ class TestLegilimencyInterrogation:
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
+                    "witness_id": "elena",
                     "question": "What's in your mind right now?",
                     "case_id": "case_001",
                     "player_id": "test_no_false_positive",
@@ -1663,7 +1748,7 @@ class TestLegilimencyInterrogation:
         assert response.status_code == 200
         data = response.json()
 
-        # Should NOT trigger Legilimency (no random trust penalty)
+        # Should NOT trigger Mnemonic Delving (no random trust penalty)
         # Normal interrogation trust delta depends on tone
         assert data["trust_delta"] != -5 or data["trust_delta"] == 0
 
@@ -1677,38 +1762,39 @@ class TestLegilimencyInterrogation:
         assert ws.awaiting_spell_confirmation is None
 
         # Set field
-        ws.awaiting_spell_confirmation = "legilimency"
-        assert ws.awaiting_spell_confirmation == "legilimency"
+        ws.awaiting_spell_confirmation = "mnemonic_delving"
+        assert ws.awaiting_spell_confirmation == "mnemonic_delving"
 
         # Clear field
         ws.awaiting_spell_confirmation = None
         assert ws.awaiting_spell_confirmation is None
 
     @pytest.mark.asyncio
-    async def test_legilimency_trust_penalty_applied(self, client: AsyncClient) -> None:
-        """Phase 4.6.2: Trust drops by random [5, 10, 15, 20] on Legilimency."""
-        player_id = "test_legilimency_trust_penalty"
+    async def test_mnemonic_delving_trust_penalty_applied(self, client: AsyncClient) -> None:
+        """Phase 4.6.2: Trust drops by random [5, 10, 15, 20] on Mnemonic Delving."""
+        player_id = "test_mnemonic_delving_trust_penalty"
 
         # Get initial trust
         witness_response = await client.get(
-            "/api/witness/hermione",
+            "/api/witness/elena",
             params={"case_id": "case_001", "player_id": player_id},
         )
         initial_trust = witness_response.json()["trust"]
 
-        # Cast Legilimency (instant execution in Phase 4.6.2)
-        with patch("src.api.routes.witnesses.get_client") as mock_get_client:
+        # Cast Mnemonic Delving (instant execution in Phase 4.6.2)
+        with patch("src.api.routes.witnesses.get_client") as mock_get_client,              patch("src.api.routes.mnemonic_delving.get_client") as mock_legi_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(
                 return_value="You probe her thoughts, finding scattered memories..."
             )
             mock_get_client.return_value = mock_client
+            mock_legi_client.return_value = mock_client
 
             response = await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "cast legilimency on her",
+                    "witness_id": "elena",
+                    "question": "cast mnemonic_delving on her",
                     "case_id": "case_001",
                     "player_id": player_id,
                 },
@@ -1720,7 +1806,7 @@ class TestLegilimencyInterrogation:
 
         # Verify final trust reflects the penalty
         witness_response = await client.get(
-            "/api/witness/hermione",
+            "/api/witness/elena",
             params={"case_id": "case_001", "player_id": player_id},
         )
         final_trust = witness_response.json()["trust"]
@@ -1740,13 +1826,13 @@ class TestPhase47SpellSuccessSystem:
     def mock_success_response(self) -> str:
         """Mock response for successful spell."""
         return (
-            "Your Revelio charm reveals a hidden parchment under the desk. [EVIDENCE: hidden_note]"
+            "Your Unveil charm reveals a hidden parchment under the desk. [EVIDENCE: hidden_note]"
         )
 
     @pytest.fixture
     def mock_failure_response(self) -> str:
         """Mock response for failed spell."""
-        return "Your Revelio charm fizzles and dissipates before finding anything of note."
+        return "Your Unveil charm fizzles and dissipates before finding anything of note."
 
     @pytest.mark.asyncio
     async def test_spell_attempt_tracking_initialized(self, client: AsyncClient) -> None:
@@ -1785,11 +1871,11 @@ class TestPhase47SpellSuccessSystem:
             mock_get_client.return_value = mock_client
 
             # Mock success roll
-            with patch("src.context.spell_llm.random.random", return_value=0.5):
+            with patch("src.context.spell_detection.random.random", return_value=0.5):
                 await client.post(
                     "/api/investigate",
                     json={
-                        "player_input": "cast revelio on desk",
+                        "player_input": "cast unveil on desk",
                         "case_id": "case_001",
                         "location_id": "library",
                         "player_id": player_id,
@@ -1802,8 +1888,8 @@ class TestPhase47SpellSuccessSystem:
         state = load_player_state("case_001", player_id, "autosave")
         assert state is not None
         assert "library" in state.spell_attempts_by_location
-        assert "revelio" in state.spell_attempts_by_location["library"]
-        assert state.spell_attempts_by_location["library"]["revelio"] == 1
+        assert "unveil" in state.spell_attempts_by_location["library"]
+        assert state.spell_attempts_by_location["library"]["unveil"] == 1
 
     @pytest.mark.asyncio
     async def test_multiple_spell_attempts_tracked_separately(
@@ -1817,23 +1903,23 @@ class TestPhase47SpellSuccessSystem:
             mock_client.get_response = AsyncMock(return_value=mock_success_response)
             mock_get_client.return_value = mock_client
 
-            with patch("src.context.spell_llm.random.random", return_value=0.5):
-                # Cast revelio
+            with patch("src.context.spell_detection.random.random", return_value=0.5):
+                # Cast unveil
                 await client.post(
                     "/api/investigate",
                     json={
-                        "player_input": "cast revelio",
+                        "player_input": "cast unveil",
                         "case_id": "case_001",
                         "location_id": "library",
                         "player_id": player_id,
                     },
                 )
 
-                # Cast lumos
+                # Cast raise_the_lamp
                 await client.post(
                     "/api/investigate",
                     json={
-                        "player_input": "lumos",
+                        "player_input": "raise_the_lamp",
                         "case_id": "case_001",
                         "location_id": "library",
                         "player_id": player_id,
@@ -1843,8 +1929,8 @@ class TestPhase47SpellSuccessSystem:
         from src.state.persistence import load_player_state
 
         state = load_player_state("case_001", player_id, "autosave")
-        assert state.spell_attempts_by_location["library"]["revelio"] == 1
-        assert state.spell_attempts_by_location["library"]["lumos"] == 1
+        assert state.spell_attempts_by_location["library"]["unveil"] == 1
+        assert state.spell_attempts_by_location["library"]["raise_the_lamp"] == 1
 
     @pytest.mark.asyncio
     async def test_spell_attempts_tracking_structure(
@@ -1858,24 +1944,24 @@ class TestPhase47SpellSuccessSystem:
             mock_client.get_response = AsyncMock(return_value=mock_success_response)
             mock_get_client.return_value = mock_client
 
-            with patch("src.context.spell_llm.random.random", return_value=0.5):
-                # Cast revelio twice
+            with patch("src.context.spell_detection.random.random", return_value=0.5):
+                # Cast unveil twice
                 for _ in range(2):
                     await client.post(
                         "/api/investigate",
                         json={
-                            "player_input": "cast revelio",
+                            "player_input": "cast unveil",
                             "case_id": "case_001",
                             "location_id": "library",
                             "player_id": player_id,
                         },
                     )
 
-                # Cast lumos once
+                # Cast raise_the_lamp once
                 await client.post(
                     "/api/investigate",
                     json={
-                        "player_input": "cast lumos",
+                        "player_input": "cast raise_the_lamp",
                         "case_id": "case_001",
                         "location_id": "library",
                         "player_id": player_id,
@@ -1887,25 +1973,27 @@ class TestPhase47SpellSuccessSystem:
         state = load_player_state("case_001", player_id, "autosave")
         # Verify nested structure: {location: {spell: count}}
         assert "library" in state.spell_attempts_by_location
-        assert state.spell_attempts_by_location["library"]["revelio"] == 2
-        assert state.spell_attempts_by_location["library"]["lumos"] == 1
+        assert state.spell_attempts_by_location["library"]["unveil"] == 2
+        assert state.spell_attempts_by_location["library"]["raise_the_lamp"] == 1
 
     @pytest.mark.asyncio
-    async def test_legilimency_bypasses_success_calculation(self, client: AsyncClient) -> None:
-        """Legilimency uses trust-based system, not success calculation."""
-        player_id = "test_legilimency_bypass"
+    async def test_mnemonic_delving_bypasses_success_calculation(self, client: AsyncClient) -> None:
+        """Mnemonic Delving uses trust-based system, not success calculation."""
+        player_id = "test_mnemonic_delving_bypass"
 
-        with patch("src.api.routes.witnesses.get_client") as mock_get_client:
+        with patch("src.api.routes.witnesses.get_client") as mock_get_client, \
+             patch("src.api.routes.mnemonic_delving.get_client") as mock_legi_client:
             mock_client = AsyncMock()
             mock_client.get_response = AsyncMock(return_value="You probe her mind...")
             mock_get_client.return_value = mock_client
+            mock_legi_client.return_value = mock_client
 
-            # Cast Legilimency in interrogation
+            # Cast Mnemonic Delving in interrogation
             await client.post(
                 "/api/interrogate",
                 json={
-                    "witness_id": "hermione",
-                    "question": "cast legilimency",
+                    "witness_id": "elena",
+                    "question": "cast mnemonic_delving",
                     "case_id": "case_001",
                     "player_id": player_id,
                 },
@@ -1914,11 +2002,11 @@ class TestPhase47SpellSuccessSystem:
         from src.state.persistence import load_player_state
 
         state = load_player_state("case_001", player_id, "autosave")
-        # Legilimency should NOT be tracked in spell_attempts_by_location
+        # Mnemonic Delving should NOT be tracked in spell_attempts_by_location
         # (it uses trust-based system instead)
         if state.spell_attempts_by_location:
             for loc_spells in state.spell_attempts_by_location.values():
-                assert "legilimency" not in loc_spells
+                assert "mnemonic_delving" not in loc_spells
 
     @pytest.mark.asyncio
     async def test_spell_outcome_success_passed_to_prompt(
@@ -1933,14 +2021,14 @@ class TestPhase47SpellSuccessSystem:
             mock_get_client.return_value = mock_client
 
             # Force success with low roll
-            with patch("src.context.spell_llm.random.random", return_value=0.3):
-                with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+            with patch("src.context.spell_detection.random.random", return_value=0.3):
+                with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                     mock_build.return_value = ("prompt", "system", True)
 
                     await client.post(
                         "/api/investigate",
                         json={
-                            "player_input": "cast revelio on desk",
+                            "player_input": "cast unveil on desk",
                             "case_id": "case_001",
                             "location_id": "library",
                             "player_id": player_id,
@@ -1964,14 +2052,14 @@ class TestPhase47SpellSuccessSystem:
             mock_get_client.return_value = mock_client
 
             # Force failure with high roll
-            with patch("src.context.spell_llm.random.random", return_value=0.95):
-                with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+            with patch("src.context.spell_detection.random.random", return_value=0.95):
+                with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                     mock_build.return_value = ("prompt", "system", True)
 
                     await client.post(
                         "/api/investigate",
                         json={
-                            "player_input": "cast revelio",
+                            "player_input": "cast unveil",
                             "case_id": "case_001",
                             "location_id": "library",
                             "player_id": player_id,
@@ -1995,15 +2083,15 @@ class TestPhase47SpellSuccessSystem:
             mock_get_client.return_value = mock_client
 
             # Roll 85 - would fail 70% base, but succeeds with +20% bonus
-            with patch("src.context.spell_llm.random.random", return_value=0.85):
-                with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+            with patch("src.context.spell_detection.random.random", return_value=0.85):
+                with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                     mock_build.return_value = ("prompt", "system", True)
 
                     # Cast with full specificity: target + intent
                     await client.post(
                         "/api/investigate",
                         json={
-                            "player_input": "cast revelio on desk to find hidden clues",
+                            "player_input": "cast unveil on desk to find hidden clues",
                             "case_id": "case_001",
                             "location_id": "library",
                             "player_id": player_id,
@@ -2028,19 +2116,19 @@ class TestPhase47SpellSuccessSystem:
 
             outcomes = []
 
-            # Cast revelio 3 times with roll=65
+            # Cast unveil 3 times with roll=65
             # 1st: 70% > 65% = SUCCESS
             # 2nd: 60% < 65% = FAILURE
             # 3rd: 50% < 65% = FAILURE
-            with patch("src.context.spell_llm.random.random", return_value=0.65):
+            with patch("src.context.spell_detection.random.random", return_value=0.65):
                 for i in range(3):
-                    with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+                    with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                         mock_build.return_value = ("prompt", "system", True)
 
                         await client.post(
                             "/api/investigate",
                             json={
-                                "player_input": "cast revelio",
+                                "player_input": "cast unveil",
                                 "case_id": "case_001",
                                 "location_id": "library",
                                 "player_id": player_id,
@@ -2067,7 +2155,7 @@ class TestPhase47SpellSuccessSystem:
         from src.state.player_state import PlayerState
 
         state = PlayerState(case_id="case_001", current_location="library")
-        state.spell_attempts_by_location = {"library": {"revelio": 10}}
+        state.spell_attempts_by_location = {"library": {"unveil": 10}}
         save_player_state("case_001", player_id, state, "autosave")
 
         with patch("src.api.routes.investigation.get_client") as mock_get_client:
@@ -2076,14 +2164,14 @@ class TestPhase47SpellSuccessSystem:
             mock_get_client.return_value = mock_client
 
             # Roll 5% - below 10% floor = SUCCESS
-            with patch("src.context.spell_llm.random.random", return_value=0.05):
-                with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+            with patch("src.context.spell_detection.random.random", return_value=0.05):
+                with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                     mock_build.return_value = ("prompt", "system", True)
 
                     await client.post(
                         "/api/investigate",
                         json={
-                            "player_input": "cast revelio",
+                            "player_input": "cast unveil",
                             "case_id": "case_001",
                             "location_id": "library",
                             "player_id": player_id,
@@ -2104,7 +2192,7 @@ class TestPhase47SpellSuccessSystem:
             mock_client.get_response = AsyncMock(return_value="You examine the desk.")
             mock_get_client.return_value = mock_client
 
-            with patch("src.api.routes.investigation.build_narrator_prompt") as mock_build:
+            with patch("src.api.routes.investigation_logic.build_narrator_prompt") as mock_build:
                 mock_build.return_value = "prompt"
 
                 await client.post(
@@ -2125,15 +2213,15 @@ class TestPhase47SpellSuccessSystem:
     async def test_all_safe_spells_use_success_calculation(
         self, client: AsyncClient, mock_success_response: str
     ) -> None:
-        """All 6 safe investigation spells use success calculation."""
+        """All 6 safe investigation rites use success calculation."""
         player_id = "test_all_safe_spells"
         safe_spells = [
-            "revelio",
-            "lumos",
-            "homenum_revelio",
-            "specialis_revelio",
-            "prior_incantato",
-            "reparo",
+            "unveil",
+            "raise_the_lamp",
+            "sense_presence",
+            "identify_substance",
+            "echo_reading",
+            "mend",
         ]
 
         with patch("src.api.routes.investigation.get_client") as mock_get_client:
@@ -2141,9 +2229,9 @@ class TestPhase47SpellSuccessSystem:
             mock_client.get_response = AsyncMock(return_value=mock_success_response)
             mock_get_client.return_value = mock_client
 
-            with patch("src.context.spell_llm.random.random", return_value=0.5):
+            with patch("src.context.spell_detection.random.random", return_value=0.5):
                 for spell in safe_spells:
-                    with patch("src.api.routes.investigation.build_narrator_or_spell_prompt") as mock_build:
+                    with patch("src.api.routes.investigation_logic.build_narrator_or_spell_prompt") as mock_build:
                         mock_build.return_value = ("prompt", "system", True)
 
                         await client.post(

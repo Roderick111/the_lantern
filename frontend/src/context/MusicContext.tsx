@@ -3,7 +3,7 @@
  *
  * Provides music state management for background audio playback.
  * Persists volume/mute preferences to localStorage.
- * Supports track switching with manifest-based track list.
+ * Supports track selecting with manifest-based track list.
  *
  * @module context/MusicContext
  * @since Phase 6.5 (Music Ambience)
@@ -17,18 +17,18 @@ import {
   useRef,
   type ReactNode,
   type MutableRefObject,
-} from 'react';
+} from "react";
 
 // ============================================
 // Constants
 // ============================================
 
-const STORAGE_KEY_VOLUME = 'hp-detective-music-volume';
-const STORAGE_KEY_MUTED = 'hp-detective-music-muted';
-const STORAGE_KEY_ENABLED = 'hp-detective-music-enabled';
-const STORAGE_KEY_TRACK_PREFIX = 'hp-detective-music-track-';
+const STORAGE_KEY_VOLUME = "lantern-music-volume";
+const STORAGE_KEY_MUTED = "lantern-music-muted";
+const STORAGE_KEY_ENABLED = "lantern-music-enabled";
+const STORAGE_KEY_TRACK_PREFIX = "lantern-music-track-";
 
-const DEFAULT_VOLUME = 25;
+const DEFAULT_VOLUME = 15;
 
 // ============================================
 // Types
@@ -117,7 +117,7 @@ const MusicContext = createContext<MusicContextValue | null>(null);
 
 /** Get initial volume from localStorage or default */
 function getInitialVolume(): number {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     const stored = localStorage.getItem(STORAGE_KEY_VOLUME);
     if (stored !== null) {
       const parsed = parseInt(stored, 10);
@@ -131,26 +131,26 @@ function getInitialVolume(): number {
 
 /** Get initial muted state from localStorage or default */
 function getInitialMuted(): boolean {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     const stored = localStorage.getItem(STORAGE_KEY_MUTED);
-    return stored === 'true';
+    return stored === "true";
   }
   return false;
 }
 
 /** Get initial enabled state from localStorage or default */
 function getInitialEnabled(): boolean {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     const stored = localStorage.getItem(STORAGE_KEY_ENABLED);
     // Default to true if not set
-    return stored !== 'false';
+    return stored !== "false";
   }
   return true;
 }
 
 /** Get saved track ID for a case from localStorage */
 function getSavedTrackId(caseId: string): string | null {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     return localStorage.getItem(`${STORAGE_KEY_TRACK_PREFIX}${caseId}`);
   }
   return null;
@@ -158,7 +158,7 @@ function getSavedTrackId(caseId: string): string | null {
 
 /** Save track ID for a case to localStorage */
 function saveTrackId(caseId: string, trackId: string): void {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     localStorage.setItem(`${STORAGE_KEY_TRACK_PREFIX}${caseId}`, trackId);
   }
 }
@@ -182,22 +182,26 @@ export function MusicProvider({ children }: MusicProviderProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Derive current track name from tracks and index
-  const currentTrackName = tracks.length > 0 && currentTrackIndex < tracks.length
-    ? tracks[currentTrackIndex].name
-    : 'No track loaded';
+  const currentTrackName =
+    tracks.length > 0 && currentTrackIndex < tracks.length
+      ? tracks[currentTrackIndex].name
+      : "No track loaded";
 
   // Load manifest from server
   const loadManifest = useCallback(async () => {
     try {
-      const response = await fetch('/music/manifest.json');
+      const response = await fetch("/music/manifest.json");
       if (!response.ok) {
-        console.warn('[MusicContext] Failed to load manifest:', response.status);
+        console.warn(
+          "[MusicContext] Failed to load manifest:",
+          response.status,
+        );
         return;
       }
-      const manifest: MusicManifest = await response.json() as MusicManifest;
+      const manifest: MusicManifest = (await response.json()) as MusicManifest;
       setTracks(manifest.tracks);
     } catch (error) {
-      console.warn('[MusicContext] Error loading manifest:', error);
+      console.warn("[MusicContext] Error loading manifest:", error);
     }
   }, []);
 
@@ -207,31 +211,34 @@ export function MusicProvider({ children }: MusicProviderProps) {
   }, []);
 
   // Select track by index and update audio
-  const selectTrack = useCallback((index: number, caseId: string) => {
-    if (tracks.length === 0 || index < 0 || index >= tracks.length) return;
+  const selectTrack = useCallback(
+    (index: number, caseId: string) => {
+      if (tracks.length === 0 || index < 0 || index >= tracks.length) return;
 
-    const track = tracks[index];
-    const trackPath = `/music/${track.file}`;
+      const track = tracks[index];
+      const trackPath = `/music/${track.file}`;
 
-    setCurrentTrackIndex(index);
-    setCurrentTrack(trackPath);
+      setCurrentTrackIndex(index);
+      setCurrentTrack(trackPath);
 
-    // Save selection for this case
-    saveTrackId(caseId, track.id);
+      // Save selection for this case
+      saveTrackId(caseId, track.id);
 
-    // Update audio source and play if was playing
-    const audio = audioRef.current;
-    if (audio) {
-      const wasPlaying = !audio.paused;
-      audio.src = trackPath;
-      audio.load();
-      if (wasPlaying && enabled) {
-        audio.play().catch(() => {
-          setIsPlaying(false);
-        });
+      // Update audio source and play if was playing
+      const audio = audioRef.current;
+      if (audio) {
+        const wasPlaying = !audio.paused;
+        audio.src = trackPath;
+        audio.load();
+        if (wasPlaying && enabled) {
+          audio.play().catch(() => {
+            setIsPlaying(false);
+          });
+        }
       }
-    }
-  }, [tracks, enabled]);
+    },
+    [tracks, enabled],
+  );
 
   // Go to next track
   const nextTrack = useCallback(() => {
@@ -254,21 +261,21 @@ export function MusicProvider({ children }: MusicProviderProps) {
 
   // Persist volume to localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_VOLUME, String(volume));
     }
   }, [volume]);
 
   // Persist muted to localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_MUTED, String(muted));
     }
   }, [muted]);
 
   // Persist enabled to localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY_ENABLED, String(enabled));
     }
   }, [enabled]);
@@ -314,13 +321,14 @@ export function MusicProvider({ children }: MusicProviderProps) {
     // within a user gesture context, not in a useEffect callback
     const audio = audioRef.current;
     if (audio?.src) {
-      audio.play()
+      audio
+        .play()
         .then(() => {
           setIsPlaying(true);
         })
         .catch((error) => {
           // Playback blocked (shouldn't happen with user gesture)
-          console.error('[MusicContext] audio.play() FAILED:', error);
+          console.error("[MusicContext] audio.play() FAILED:", error);
           setIsPlaying(false);
         });
     }
@@ -342,7 +350,6 @@ export function MusicProvider({ children }: MusicProviderProps) {
       play();
     }
   }, [isPlaying, play, pause]);
-
 
   const value: MusicContextValue = {
     volume,
@@ -374,9 +381,7 @@ export function MusicProvider({ children }: MusicProviderProps) {
   };
 
   return (
-    <MusicContext.Provider value={value}>
-      {children}
-    </MusicContext.Provider>
+    <MusicContext.Provider value={value}>{children}</MusicContext.Provider>
   );
 }
 

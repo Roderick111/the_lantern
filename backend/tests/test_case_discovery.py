@@ -460,9 +460,9 @@ class TestListCasesWithMetadata:
 
         # case_001 should have correct metadata
         case_001 = next(c for c in cases if c.id == "case_001")
-        assert case_001.title == "The Restricted Section"
+        assert case_001.title == "The Sealed Archive"
         assert case_001.difficulty == "beginner"
-        assert "petrified" in case_001.description.lower()
+        assert "lies frozen" in case_001.description.lower()
 
 
 # ============================================================================
@@ -506,7 +506,7 @@ class TestGetCasesEndpoint:
         assert "case_001" in case_ids
 
         case_001 = next(c for c in data["cases"] if c["id"] == "case_001")
-        assert case_001["title"] == "The Restricted Section"
+        assert case_001["title"] == "The Sealed Archive"
         assert case_001["difficulty"] == "beginner"
         assert "description" in case_001
 

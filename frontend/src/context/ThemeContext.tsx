@@ -1,7 +1,7 @@
 /**
  * ThemeContext
  *
- * Provides theme state management for dark/light mode switching.
+ * Provides theme state management for dark/light mode selecting.
  * Persists preference to localStorage and respects system preference.
  *
  * @module context/ThemeContext
@@ -25,7 +25,7 @@ import {
 // Constants
 // ============================================
 
-const STORAGE_KEY = 'hp-detective-theme';
+const STORAGE_KEY = 'lantern-theme';
 
 // ============================================
 // Types

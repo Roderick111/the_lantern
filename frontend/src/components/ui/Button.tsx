@@ -14,8 +14,8 @@ interface ButtonProps {
 }
 
 const sizeStyles = {
-  sm: 'px-3 py-1.5 text-xs',
-  md: 'px-6 py-2.5 text-sm',
+  sm: 'px-3 py-2.5 text-sm md:py-1.5 md:text-xs',
+  md: 'px-6 py-3 text-sm md:py-2.5',
   lg: 'px-8 py-4 text-base',
 };
 
@@ -56,7 +56,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled}
         title={title}
         className={`
-          transition-colors duration-100
+          transition-colors duration-100 min-h-[44px] md:min-h-0
+          active:scale-[0.97] active:transition-transform
           ${variantStyles[variant]}
           ${sizeStyles[size]}
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}

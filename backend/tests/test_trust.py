@@ -1,48 +1,28 @@
 """Tests for trust mechanics module."""
 
 from src.utils.trust import (
-    AGGRESSIVE_PENALTY,
-    EMPATHETIC_BONUS,
-    adjust_trust,
+    NATURAL_WARMING_MAX,
+    NATURAL_WARMING_MIN,
     check_secret_triggers,
     clamp_trust,
-    detect_evidence_presentation,
+    detect_evidence_in_message,
+    extract_trust_delta,
     get_available_secrets,
+    natural_warming,
     parse_trigger_condition,
     should_lie,
+    strip_trust_tag,
 )
 
 
-class TestAdjustTrust:
-    """Tests for adjust_trust function (Phase 5.5+ cleaned keywords)."""
+class TestNaturalWarming:
+    """Tests for natural_warming fallback."""
 
-    def test_aggressive_question_decreases_trust(self) -> None:
-        """Aggressive keywords reduce trust."""
-        assert adjust_trust("You're lying!") == AGGRESSIVE_PENALTY
-        assert adjust_trust("You're a liar") == AGGRESSIVE_PENALTY
-        assert adjust_trust("You're obviously lying") == AGGRESSIVE_PENALTY
-        assert adjust_trust("You're guilty and I know it") == AGGRESSIVE_PENALTY
-
-    def test_empathetic_question_increases_trust(self) -> None:
-        """Empathetic keywords increase trust."""
-        assert adjust_trust("I understand this is difficult") == EMPATHETIC_BONUS
-        assert adjust_trust("Please tell me what happened") == EMPATHETIC_BONUS
-        assert adjust_trust("I'm sorry you had to see that") == EMPATHETIC_BONUS
-        assert adjust_trust("Thank you for talking to me") == EMPATHETIC_BONUS
-
-    def test_neutral_question_no_change(self) -> None:
-        """Neutral questions don't change trust."""
-        assert adjust_trust("Where were you at 9pm?") == 0
-        assert adjust_trust("What did you see?") == 0
-        assert adjust_trust("Describe the scene") == 0
-        # Removed ambiguous terms no longer trigger
-        assert adjust_trust("Can you remember anything?") == 0  # "remember" removed
-        assert adjust_trust("I accuse you of the crime") == 0  # "accuse" removed
-
-    def test_case_insensitive(self) -> None:
-        """Trust adjustment is case-insensitive."""
-        assert adjust_trust("YOU'RE LYING!") == AGGRESSIVE_PENALTY
-        assert adjust_trust("Please TELL ME") == EMPATHETIC_BONUS
+    def test_warming_in_range(self) -> None:
+        """Natural warming returns value in [0, 5]."""
+        for _ in range(50):
+            val = natural_warming()
+            assert NATURAL_WARMING_MIN <= val <= NATURAL_WARMING_MAX
 
 
 class TestClampTrust:
@@ -220,8 +200,8 @@ class TestShouldLie:
             "lies": [
                 {
                     "condition": "trust<30",
-                    "topics": ["draco", "malfoy"],
-                    "response": "I didn't see Draco.",
+                    "topics": ["cassian", "thorne"],
+                    "response": "I didn't see Cassian.",
                 }
             ]
         }
@@ -230,30 +210,239 @@ class TestShouldLie:
         assert lie is None
 
 
-class TestDetectEvidencePresentation:
-    """Tests for detect_evidence_presentation function."""
+class TestDetectEvidenceInMessage:
+    """Tests for detect_evidence_in_message function."""
 
-    def test_detect_show_pattern(self) -> None:
-        """Detect 'show X' pattern."""
-        assert detect_evidence_presentation("I show the note to you") == "note"
-        assert detect_evidence_presentation("show frost_pattern") == "frost_pattern"
+    # Shared test fixture: case data with diverse evidence
+    CASE_DATA = {
+        "locations": {
+            "library": {
+                "hidden_evidence": [
+                    {"id": "hidden_note", "name": "Crumpled Apology Note"},
+                    {"id": "focus_signature", "name": "Professor Vane's Focus Signature"},
+                    {"id": "frost_pattern", "name": "Frost Pattern"},
+                ]
+            },
+            "kitchen": {
+                "hidden_evidence": [
+                    {"id": "kitchen_log", "name": "Kitchen Duty Log"},
+                    {"id": "wisp_frostbite", "name": "Wisp's Frostbite Marks"},
+                ]
+            },
+        }
+    }
+    ALL_IDS = ["hidden_note", "focus_signature", "frost_pattern", "kitchen_log", "wisp_frostbite"]
 
-    def test_detect_present_pattern(self) -> None:
-        """Detect 'present X' pattern."""
-        assert detect_evidence_presentation("I present the evidence") == "evidence"
-        assert detect_evidence_presentation("present wand_signature") == "wand_signature"
+    # --- Explicit verb patterns (backward compat) ---
 
-    def test_detect_with_article(self) -> None:
-        """Detect patterns with 'the' article."""
-        assert detect_evidence_presentation("show the hidden_note") == "hidden_note"
-        assert detect_evidence_presentation("present the frost_pattern") == "frost_pattern"
+    def test_show_verb_with_name(self) -> None:
+        """'show' verb + evidence name tokens triggers match."""
+        result = detect_evidence_in_message("show the apology note", self.ALL_IDS, self.CASE_DATA)
+        assert result == "hidden_note"
 
-    def test_no_evidence_presentation(self) -> None:
-        """Return None if no evidence presentation detected."""
-        assert detect_evidence_presentation("Where were you?") is None
-        assert detect_evidence_presentation("Tell me more") is None
+    def test_present_verb_with_id(self) -> None:
+        """'present' verb + exact ID triggers match."""
+        result = detect_evidence_in_message("present frost_pattern", self.ALL_IDS, self.CASE_DATA)
+        assert result == "frost_pattern"
+
+    # --- Natural language phrasings ---
+
+    def test_what_about_phrase(self) -> None:
+        """'What about X?' matches evidence."""
+        result = detect_evidence_in_message(
+            "What about the apology note?", self.ALL_IDS, self.CASE_DATA,
+        )
+        assert result == "hidden_note"
+
+    def test_what_do_you_know(self) -> None:
+        """'What do you know about X?' matches."""
+        result = detect_evidence_in_message(
+            "What do you know about Professor Vane's focus signature?", self.ALL_IDS, self.CASE_DATA,
+        )
+        assert result == "focus_signature"
+
+    def test_does_this_mean_anything(self) -> None:
+        """'Does X mean anything to you?' matches."""
+        result = detect_evidence_in_message(
+            "Does the frost pattern mean anything to you?", self.ALL_IDS, self.CASE_DATA,
+        )
+        assert result == "frost_pattern"
+
+    def test_have_you_seen(self) -> None:
+        """'Have you seen X?' matches."""
+        result = detect_evidence_in_message(
+            "Have you seen the kitchen duty log?", self.ALL_IDS, self.CASE_DATA,
+        )
+        assert result == "kitchen_log"
+
+    def test_i_found_evidence(self) -> None:
+        """'I found X' matches."""
+        result = detect_evidence_in_message(
+            "I found Wisp's frostbite marks", self.ALL_IDS, self.CASE_DATA,
+        )
+        assert result == "wisp_frostbite"
+
+    def test_id_with_spaces(self) -> None:
+        """Evidence ID with underscores matched as spaces."""
+        result = detect_evidence_in_message(
+            "Tell me about hidden note", self.ALL_IDS, self.CASE_DATA,
+        )
+        assert result == "hidden_note"
+
+    def test_exact_id_mention(self) -> None:
+        """Exact evidence ID in message triggers match."""
+        result = detect_evidence_in_message(
+            "What's focus_signature about?", self.ALL_IDS, self.CASE_DATA,
+        )
+        assert result == "focus_signature"
+
+    # --- No false positives ---
+
+    def test_no_match_unrelated_question(self) -> None:
+        """Unrelated questions don't trigger."""
+        result = detect_evidence_in_message("Where were you?", self.ALL_IDS, self.CASE_DATA)
+        assert result is None
+
+    def test_no_match_generic_words(self) -> None:
+        """Generic words don't false-positive."""
+        result = detect_evidence_in_message("Tell me more about that night", self.ALL_IDS, self.CASE_DATA)
+        assert result is None
+
+    def test_no_match_empty_discovered(self) -> None:
+        """No match when no evidence discovered."""
+        result = detect_evidence_in_message("show the hidden_note", [], self.CASE_DATA)
+        assert result is None
+
+    def test_no_match_undiscovered_evidence(self) -> None:
+        """Only matches discovered evidence."""
+        result = detect_evidence_in_message(
+            "What about the kitchen duty log?", ["hidden_note"], self.CASE_DATA,
+        )
+        assert result is None
+
+    # --- Case insensitivity ---
 
     def test_case_insensitive(self) -> None:
         """Detection is case-insensitive."""
-        assert detect_evidence_presentation("SHOW THE NOTE") == "note"
-        assert detect_evidence_presentation("Present Evidence") == "evidence"
+        result = detect_evidence_in_message(
+            "WHAT ABOUT THE FROST PATTERN?", self.ALL_IDS, self.CASE_DATA,
+        )
+        assert result == "frost_pattern"
+
+    # --- Single-word evidence names need verb or exact match ---
+
+    def test_single_word_with_verb(self) -> None:
+        """Single-word name matches with presentation verb."""
+        case = {"locations": {"a": {"hidden_evidence": [
+            {"id": "potion", "name": "Potion"},
+        ]}}}
+        result = detect_evidence_in_message("show the potion", ["potion"], case)
+        assert result == "potion"
+
+    def test_single_word_exact_token(self) -> None:
+        """Single-word name matches when token is exact."""
+        case = {"locations": {"a": {"hidden_evidence": [
+            {"id": "potion", "name": "Potion"},
+        ]}}}
+        result = detect_evidence_in_message("what about the potion?", ["potion"], case)
+        assert result == "potion"
+
+
+class TestExtractTrustDelta:
+    """Tests for extract_trust_delta function."""
+
+    def test_extract_positive(self) -> None:
+        """Extract positive trust delta."""
+        assert extract_trust_delta("Some response.\n[TRUST_DELTA: 5]") == 5
+
+    def test_extract_negative(self) -> None:
+        """Extract negative trust delta."""
+        assert extract_trust_delta("Angry response.\n[TRUST_DELTA: -10]") == -10
+
+    def test_extract_zero(self) -> None:
+        """Extract zero trust delta."""
+        assert extract_trust_delta("Neutral.\n[TRUST_DELTA: 0]") == 0
+
+    def test_extract_with_plus_sign(self) -> None:
+        """Extract with explicit plus sign."""
+        assert extract_trust_delta("Nice.\n[TRUST_DELTA: +8]") == 8
+
+    def test_clamp_too_high(self) -> None:
+        """Clamp values above max (10)."""
+        assert extract_trust_delta("[TRUST_DELTA: 50]") == 10
+
+    def test_clamp_too_low(self) -> None:
+        """Clamp values below min (-15)."""
+        assert extract_trust_delta("[TRUST_DELTA: -30]") == -15
+
+    def test_no_tag_returns_none(self) -> None:
+        """Return None when no tag present."""
+        assert extract_trust_delta("Just a normal response.") is None
+
+    def test_case_insensitive(self) -> None:
+        """Tag matching is case-insensitive."""
+        assert extract_trust_delta("[trust_delta: 3]") == 3
+
+    def test_extra_spaces(self) -> None:
+        """Handle extra spaces in tag."""
+        assert extract_trust_delta("[TRUST_DELTA:  -5 ]") == -5
+
+    def test_tag_in_middle_of_text(self) -> None:
+        """Extract tag even if not at end."""
+        assert extract_trust_delta("Response here.\n[TRUST_DELTA: 7]\nExtra text") == 7
+
+    def test_abbreviated_ta(self) -> None:
+        """Extract from LLM-abbreviated TA: tag."""
+        assert extract_trust_delta("Some response.\nTA: -12]") == -12
+
+    def test_abbreviated_td(self) -> None:
+        """Extract from LLM-abbreviated TD: tag."""
+        assert extract_trust_delta("Response.\n[TD: 5]") == 5
+
+    def test_abbreviated_with_bracket(self) -> None:
+        """Extract abbreviated tag with opening bracket."""
+        assert extract_trust_delta("Response.\n[TA: -2]") == -2
+
+
+class TestStripTrustTag:
+    """Tests for strip_trust_tag function."""
+
+    def test_strip_complete_tag(self) -> None:
+        """Strip complete trust delta tag."""
+        result = strip_trust_tag("Some response.\n[TRUST_DELTA: 5]")
+        assert result == "Some response."
+
+    def test_strip_negative_tag(self) -> None:
+        """Strip negative trust delta tag."""
+        result = strip_trust_tag("Angry response.\n[TRUST_DELTA: -10]")
+        assert result == "Angry response."
+
+    def test_no_tag_unchanged(self) -> None:
+        """Text without tag is unchanged."""
+        result = strip_trust_tag("Just a response.")
+        assert result == "Just a response."
+
+    def test_strip_partial_tag(self) -> None:
+        """Strip partial tag (during streaming)."""
+        result = strip_trust_tag("Response so far... [TRUST_DELT")
+        assert result == "Response so far..."
+
+    def test_strip_partial_tag_with_colon(self) -> None:
+        """Strip partial tag with colon."""
+        result = strip_trust_tag("Response... [TRUST_DELTA:")
+        assert result == "Response..."
+
+    def test_preserve_response_content(self) -> None:
+        """Don't strip non-tag content."""
+        result = strip_trust_tag("I trust you with this information.")
+        assert result == "I trust you with this information."
+
+    def test_strip_abbreviated_ta(self) -> None:
+        """Strip LLM-abbreviated TA: tag."""
+        result = strip_trust_tag("How dare you speak to me like that.\nTA: -12]")
+        assert result == "How dare you speak to me like that."
+
+    def test_strip_abbreviated_td(self) -> None:
+        """Strip LLM-abbreviated TD: tag."""
+        result = strip_trust_tag("Response here.\n[TD: 5]")
+        assert result == "Response here."

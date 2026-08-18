@@ -1,8 +1,20 @@
 """Pydantic request/response models for all API endpoints."""
 
-from typing import Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
+
+SaveSlotName = Literal["autosave", "slot_1", "slot_2", "slot_3"]
+
+# Opaque ASCII request id for durable clients (Telegram gateway). Optional.
+RequestId = Annotated[
+    str | None,
+    Field(
+        max_length=128,
+        pattern=r"^[\x21-\x7E]{1,128}$",
+        description="Opaque ASCII idempotency key (max 128). Omit for legacy clients.",
+    ),
+]
 
 # ============================================
 # Investigation models
@@ -30,17 +42,21 @@ class InvestigateRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_-]+$",
         description="Current location (optional, defaults to saved state or first location)",
     )
-    player_id: str = Field(
-        default="default",
-        max_length=64,
-        pattern=r"^[a-zA-Z0-9_-]+$",
-        description="Player identifier",
-    )
-    slot: str = Field(
+    slot: SaveSlotName = Field(
         default="autosave",
-        pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to load/save state from",
     )
+    request_id: RequestId = None
+
+
+class StateDeltaResponse(BaseModel):
+    """Lightweight player-state slice returned in SSE done payloads."""
+
+    case_id: str
+    current_location: str
+    discovered_evidence: list[str] = Field(default_factory=list)
+    visited_locations: list[str] = Field(default_factory=list)
+    save_revision: int = 0
 
 
 class InvestigateResponse(BaseModel):
@@ -54,7 +70,10 @@ class InvestigateResponse(BaseModel):
         default_factory=dict, description="Evidence ID → display name map"
     )
     already_discovered: bool = Field(default=False, description="Was this already found?")
-    updated_state: dict[str, Any] | None = None
+    location_changed: str | None = Field(
+        default=None, description="New location ID if player moved via natural language"
+    )
+    updated_state: StateDeltaResponse | None = None
 
 
 # ============================================
@@ -65,16 +84,9 @@ class InvestigateResponse(BaseModel):
 class SaveRequest(BaseModel):
     """Request for save endpoint."""
 
-    player_id: str = Field(
-        default="default",
-        max_length=64,
-        pattern=r"^[a-zA-Z0-9_-]+$",
-        description="Player identifier",
-    )
     state: dict[str, Any] = Field(..., description="Player state to save")
-    slot: str = Field(
+    slot: SaveSlotName = Field(
         default="autosave",
-        pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to save state to",
     )
 
@@ -96,21 +108,24 @@ class UpdateSettingsRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_-]+$",
         description="Case identifier",
     )
-    player_id: str = Field(
-        default="default",
-        max_length=64,
-        pattern=r"^[a-zA-Z0-9_-]+$",
-        description="Player identifier",
-    )
     narrator_verbosity: str | None = Field(
         default=None,
         description="Narrator style: concise | storyteller | atmospheric",
+    )
+    assistance_mode: Literal["normal", "easy"] | None = Field(
+        default=None,
+        description="Narrator assistance: normal | easy",
+    )
+    language: str | None = Field(
+        default=None,
+        description="Game language: en | ru | fr | es | de | pt | zh | ja | ko",
     )
     slot: str = Field(
         default="autosave",
         pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to load/save state from",
     )
+    request_id: RequestId = None
 
 
 class UpdateSettingsResponse(BaseModel):
@@ -129,6 +144,8 @@ class StateResponse(BaseModel):
     visited_locations: list[str]
     conversation_history: list[dict[str, Any]] = []
     narrator_verbosity: str | None = None
+    assistance_mode: str | None = None
+    language: str | None = None
 
 
 class ResetResponse(BaseModel):
@@ -222,17 +239,12 @@ class InterrogateRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_-]+$",
         description="Case identifier",
     )
-    player_id: str = Field(
-        default="default",
-        max_length=64,
-        pattern=r"^[a-zA-Z0-9_-]+$",
-        description="Player identifier",
-    )
     slot: str = Field(
         default="autosave",
         pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to load/save state from",
     )
+    request_id: RequestId = None
 
 
 class InterrogateResponse(BaseModel):
@@ -247,7 +259,7 @@ class InterrogateResponse(BaseModel):
     secret_texts: dict[str, str] = Field(
         default_factory=dict, description="Secret ID to full text description mapping"
     )
-    updated_state: dict[str, Any] | None = None
+    updated_state: StateDeltaResponse | None = None
 
 
 class PresentEvidenceRequest(BaseModel):
@@ -273,17 +285,12 @@ class PresentEvidenceRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_-]+$",
         description="Case identifier",
     )
-    player_id: str = Field(
-        default="default",
-        max_length=64,
-        pattern=r"^[a-zA-Z0-9_-]+$",
-        description="Player identifier",
-    )
     slot: str = Field(
         default="autosave",
         pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to load/save state from",
     )
+    request_id: RequestId = None
 
 
 class PresentEvidenceResponse(BaseModel):
@@ -298,7 +305,7 @@ class PresentEvidenceResponse(BaseModel):
     secret_texts: dict[str, str] = Field(
         default_factory=dict, description="Secret ID to full text description mapping"
     )
-    updated_state: dict[str, Any] | None = None
+    updated_state: StateDeltaResponse | None = None
 
 
 class WitnessInfo(BaseModel):
@@ -326,12 +333,6 @@ class SubmitVerdictRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_-]+$",
         description="Case identifier",
     )
-    player_id: str = Field(
-        default="default",
-        max_length=64,
-        pattern=r"^[a-zA-Z0-9_-]+$",
-        description="Player identifier",
-    )
     slot: str = Field(
         default="autosave",
         pattern=r"^[a-zA-Z0-9_]+$",
@@ -351,6 +352,7 @@ class SubmitVerdictRequest(BaseModel):
         description="Player's reasoning for accusation (max 2000 chars, ~500 tokens)",
     )
     evidence_cited: list[str] = Field(default_factory=list, description="Evidence IDs player cites")
+    request_id: RequestId = None
 
 
 class FallacyDetail(BaseModel):
@@ -444,13 +446,7 @@ class BriefingQuestionRequest(BaseModel):
         ...,
         min_length=1,
         max_length=1000,
-        description="Player's question for Moody (max 1000 chars, ~250 tokens)",
-    )
-    player_id: str = Field(
-        default="default",
-        max_length=64,
-        pattern=r"^[a-zA-Z0-9_-]+$",
-        description="Player identifier",
+        description="Player's question for Graves (max 1000 chars, ~250 tokens)",
     )
     slot: str = Field(
         default="autosave",
@@ -462,8 +458,19 @@ class BriefingQuestionRequest(BaseModel):
 class BriefingQuestionResponse(BaseModel):
     """Response from briefing question endpoint."""
 
-    answer: str = Field(..., description="Moody's response")
+    answer: str = Field(..., description="Graves's response")
     updated_state: dict[str, Any] | None = None
+
+
+class BriefingCompleteRequest(BaseModel):
+    """Optional body for briefing complete. Query-only calls remain valid."""
+
+    slot: str = Field(
+        default="autosave",
+        pattern=r"^[a-zA-Z0-9_]+$",
+        description="Save slot to load/save state from",
+    )
+    request_id: RequestId = None
 
 
 class BriefingCompleteResponse(BaseModel):
@@ -474,7 +481,7 @@ class BriefingCompleteResponse(BaseModel):
 
 
 # ============================================
-# Inner Voice (Tom) models
+# Spirit companion (Matthew) models
 # ============================================
 
 
@@ -488,16 +495,16 @@ class InnerVoiceTriggerResponse(BaseModel):
     """Response from inner voice check endpoint (LEGACY YAML system)."""
 
     id: str = Field(..., description="Trigger ID")
-    text: str = Field(..., description="Tom's message text")
+    text: str = Field(..., description="Matthew's message text")
     type: str = Field(..., description="Trigger type (helpful/misleading/etc.)")
     tier: int = Field(..., ge=1, le=3, description="Trigger tier (1/2/3)")
     updated_state: dict[str, Any] | None = None
 
 
-class TomAutoCommentRequest(BaseModel):
-    """Request for Tom auto-comment after evidence discovery."""
+class MatthewAutoCommentRequest(BaseModel):
+    """Request for Matthew auto-comment after evidence discovery."""
 
-    is_critical: bool = Field(default=False, description="Force Tom to comment?")
+    is_critical: bool = Field(default=False, description="Force Matthew to comment?")
     last_evidence_id: str | None = Field(
         default=None,
         max_length=64,
@@ -506,21 +513,21 @@ class TomAutoCommentRequest(BaseModel):
     )
 
 
-class TomChatRequest(BaseModel):
-    """Request for direct Tom conversation."""
+class MatthewChatRequest(BaseModel):
+    """Request for direct Matthew conversation."""
 
     message: str = Field(
         ...,
         min_length=1,
         max_length=1000,
-        description="Player's question to Tom (max 1000 chars, ~250 tokens)",
+        description="Player's question to Matthew (max 1000 chars, ~250 tokens)",
     )
 
 
-class TomResponseModel(BaseModel):
-    """Tom's response (LLM-powered)."""
+class MatthewResponseModel(BaseModel):
+    """Matthew's response (LLM-powered)."""
 
-    text: str = Field(..., description="Tom's comment/response")
+    text: str = Field(..., description="Matthew's comment/response")
     mode: str = Field(
         ..., description="Response mode: 'auto', 'direct_chat', 'helpful', 'misleading'"
     )
@@ -588,17 +595,12 @@ class ChangeLocationRequest(BaseModel):
         pattern=r"^[a-zA-Z0-9_-]+$",
         description="Target location ID",
     )
-    player_id: str = Field(
-        default="default",
-        max_length=64,
-        pattern=r"^[a-zA-Z0-9_-]+$",
-        description="Player identifier",
-    )
     slot: str = Field(
         default="autosave",
         pattern=r"^[a-zA-Z0-9_]+$",
         description="Save slot to load/save state from",
     )
+    request_id: RequestId = None
 
 
 class ChangeLocationResponse(BaseModel):
@@ -610,6 +612,58 @@ class ChangeLocationResponse(BaseModel):
 
 
 # ============================================
+# Telegram snapshot (internal gateway)
+# ============================================
+
+
+class TelegramWitnessSnapshot(BaseModel):
+    """Canonical witness id + display name for Telegram clients."""
+
+    id: str
+    name: str
+    description: str = ""
+
+
+class TelegramEvidenceSnapshot(BaseModel):
+    """Player-safe localized evidence text for Telegram casebook/buttons."""
+
+    id: str
+    name: str
+    description: str = ""
+    location_found: str = ""
+    type: str = ""
+    location_name: str = ""
+
+
+class TelegramLocationSnapshot(BaseModel):
+    """Player-safe localized location text for Telegram navigation."""
+
+    id: str
+    name: str
+    description: str = ""
+
+
+class TelegramSnapshotResponse(BaseModel):
+    """Compact case snapshot for Telegram gateway. No secrets/solution."""
+
+    case_id: str
+    case_title: str = ""
+    case_description: str = ""
+    current_location: str
+    current_location_view: TelegramLocationSnapshot | None = None
+    available_locations: list[TelegramLocationSnapshot] = Field(default_factory=list)
+    visited_locations: list[str] = Field(default_factory=list)
+    discovered_evidence: list[str] = Field(default_factory=list)
+    evidence_details: list[TelegramEvidenceSnapshot] = Field(default_factory=list)
+    briefing_completed: bool = False
+    language: str = "en"
+    save_revision: int = 0
+    available_witnesses: list[TelegramWitnessSnapshot] = Field(default_factory=list)
+    verdict_attempts_remaining: int = 10
+    case_solved: bool = False
+
+
+# ============================================
 # Telemetry models
 # ============================================
 
@@ -618,7 +672,6 @@ class TelemetryEventRequest(BaseModel):
     """Request for telemetry event endpoint."""
 
     event_type: str = Field(..., max_length=64)
-    player_id: str = Field(default="anonymous", max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
     case_id: str = Field(default="unknown", max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
     data: dict[str, Any] = Field(default_factory=dict)
 
@@ -627,7 +680,6 @@ class TelemetryErrorRequest(BaseModel):
     """Request for telemetry error endpoint."""
 
     error_type: str = Field(..., max_length=64)
-    player_id: str = Field(default="anonymous", max_length=64)
     case_id: str = Field(default="unknown", max_length=64)
     message: str = Field(..., max_length=500)
     context: dict[str, Any] = Field(default_factory=dict)

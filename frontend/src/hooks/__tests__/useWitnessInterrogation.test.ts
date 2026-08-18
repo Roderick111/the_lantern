@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+ 
 /**
  * useWitnessInterrogation Hook Tests
  *
@@ -40,22 +40,22 @@ vi.mock('../../api/client', () => ({
 
 const mockWitnesses: WitnessInfo[] = [
   {
-    id: 'hermione',
-    name: 'Hermione Granger',
+    id: 'elena',
+    name: 'Elena Marsh',
     trust: 50,
     secrets_revealed: [],
   },
   {
-    id: 'draco',
-    name: 'Draco Malfoy',
+    id: 'cassian',
+    name: 'Cassian Thorne',
     trust: 30,
     secrets_revealed: ['secret_1'],
   },
 ];
 
 const mockWitnessDetail: WitnessInfo = {
-  id: 'hermione',
-  name: 'Hermione Granger',
+  id: 'elena',
+  name: 'Elena Marsh',
   personality: 'helpful',
   trust: 55,
   conversation_history: [
@@ -73,7 +73,7 @@ const mockPresentEvidenceResponse: PresentEvidenceResponse = {
   response: 'Where did you find that note?!',
   trust: 65,
   trust_delta: 5,
-  secrets_revealed: ['secret_hermione_1'],
+  secrets_revealed: ['secret_elena_1'],
 };
 
 // ============================================
@@ -119,7 +119,7 @@ describe('useWitnessInterrogation', () => {
       }, { timeout: 2000 });
 
       expect(result.current.state.witnesses).toEqual(mockWitnesses);
-      expect(api.getWitnesses).toHaveBeenCalledWith('case_001', 'default');
+      expect(api.getWitnesses).toHaveBeenCalledWith('case_001');
     });
   });
 
@@ -199,7 +199,7 @@ describe('useWitnessInterrogation', () => {
       });
 
       await act(async () => {
-        await result.current.selectWitness('hermione');
+        await result.current.selectWitness('elena');
       });
 
       expect(result.current.state.currentWitness).toEqual(mockWitnessDetail);
@@ -254,7 +254,7 @@ describe('useWitnessInterrogation', () => {
       });
 
       await act(async () => {
-        await result.current.selectWitness('hermione');
+        await result.current.selectWitness('elena');
       });
 
       await act(async () => {
@@ -262,21 +262,19 @@ describe('useWitnessInterrogation', () => {
       });
 
       expect(api.interrogateStream).toHaveBeenCalledWith(
-        {
-          witness_id: 'hermione',
+        expect.objectContaining({
+          witness_id: 'elena',
           question: 'What did you see?',
           case_id: 'case_001',
-          player_id: 'default',
           slot: 'autosave',
-        },
+          request_id: expect.any(String),
+        }),
         expect.objectContaining({
-           
           onChunk: expect.any(Function),
-           
           onDone: expect.any(Function),
-           
           onError: expect.any(Function),
         }),
+        expect.any(AbortSignal),
       );
 
       // Check conversation updated (placeholder + streamed chunk)
@@ -326,7 +324,7 @@ describe('useWitnessInterrogation', () => {
       });
 
       await act(async () => {
-        await result.current.selectWitness('hermione');
+        await result.current.selectWitness('elena');
       });
 
       await act(async () => {
@@ -362,7 +360,7 @@ describe('useWitnessInterrogation', () => {
       });
 
       await act(async () => {
-        await result.current.selectWitness('hermione');
+        await result.current.selectWitness('elena');
       });
 
       await act(async () => {
@@ -371,13 +369,13 @@ describe('useWitnessInterrogation', () => {
 
       expect(api.presentEvidenceStream).toHaveBeenCalledWith(
         expect.objectContaining({
-          witness_id: 'hermione',
+          witness_id: 'elena',
           evidence_id: 'hidden_note',
           case_id: 'case_001',
-          player_id: 'default',
           slot: 'autosave',
         }),
-        expect.any(Object)
+        expect.any(Object),
+        expect.any(AbortSignal),
       );
 
       // Check conversation updated with evidence presentation
@@ -385,7 +383,7 @@ describe('useWitnessInterrogation', () => {
       expect(lastConversation.question).toBe('What do you know about Hidden Note?');
 
       // Check secrets revealed
-      expect(result.current.state.secretsRevealed).toContain('secret_hermione_1');
+      expect(result.current.state.secretsRevealed).toContain('secret_elena_1');
     });
 
     it('sets error when no witness selected for evidence presentation', async () => {
@@ -425,7 +423,7 @@ describe('useWitnessInterrogation', () => {
       });
 
       await act(async () => {
-        await result.current.selectWitness('hermione');
+        await result.current.selectWitness('elena');
       });
 
       expect(result.current.state.conversation.length).toBeGreaterThan(0);
@@ -458,7 +456,7 @@ describe('useWitnessInterrogation', () => {
         expect(result.current.state.witnesses.length).toBe(2);
       });
 
-      expect(api.getWitnesses).toHaveBeenCalledWith('case_002', 'player_123');
+      expect(api.getWitnesses).toHaveBeenCalledWith('case_002');
     });
   });
 });

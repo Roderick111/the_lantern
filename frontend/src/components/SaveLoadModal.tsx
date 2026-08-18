@@ -11,8 +11,11 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import { useEffect, useState, useMemo, useRef } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { backdropVariants, dialogContentVariants, reducedMotionVariants } from '../utils/modalAnimations';
 import { useTheme } from '../context/useTheme';
-import { loadGameState, saveGameState } from '../api/client';
+import { loadGameState, saveGameState, deleteSaveSlot } from '../api/client';
+import { ConfirmDialog } from './ConfirmDialog';
 import type { SaveSlotMetadata } from '../types/investigation';
 
 // ============================================
@@ -55,12 +58,15 @@ export function SaveLoadModal({
   slots,
   loading,
   caseId,
-  playerId,
+  playerId: _playerId,
   onImportSuccess,
 }: SaveLoadModalProps) {
   const { theme } = useTheme();
+  const prefersReducedMotion = useReducedMotion();
   const importInputRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [pendingDeleteSlot, setPendingDeleteSlot] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const manualSlots = useMemo(() => ['slot_1', 'slot_2', 'slot_3'], []);
   const autosaveSlot = useMemo(() => slots.find((s) => s.slot === 'autosave'), [slots]);
 
@@ -179,9 +185,9 @@ export function SaveLoadModal({
    */
   const getCaseName = (caseId: string): string => {
     const caseNames: Record<string, string> = {
-      case_001: 'The Restricted Section',
+      case_001: 'The Sealed Archive',
       case_002: 'The Poisoned Potion',
-      case_003: 'The Missing Wand',
+      case_003: 'The Missing Focus',
       case_004: 'The Forbidden Forest',
       case_005: 'The Dark Artifact',
       case_006: 'The Memory Charm',
@@ -226,17 +232,38 @@ export function SaveLoadModal({
    */
   const handleExport = async (slotId: string) => {
     try {
-      const state = await loadGameState(caseId, slotId, playerId);
+      const state = await loadGameState(caseId, slotId);
       const data = JSON.stringify(state, null, 2);
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `hp_save_${caseId}_${slotId}_${Date.now()}.json`;
+      link.download = `lantern_save_${caseId}_${slotId}_${Date.now()}.json`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error('Failed to export save:', e);
+    }
+  };
+
+  /**
+   * Confirm and execute slot deletion (manual slots only — autosave is protected).
+   * Surfaces success/failure via the same status banner used by import.
+   */
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteSlot) return;
+    const slotId = pendingDeleteSlot;
+    setDeleting(true);
+    setImportStatus(null);
+    try {
+      await deleteSaveSlot(caseId, slotId);
+      setImportStatus(`Deleted ${slotId.replace('_', ' ')}`);
+      onImportSuccess?.();
+    } catch {
+      setImportStatus(`Failed to delete ${slotId.replace('_', ' ')}`);
+    } finally {
+      setDeleting(false);
+      setPendingDeleteSlot(null);
     }
   };
 
@@ -267,7 +294,7 @@ export function SaveLoadModal({
       }
 
       const state = parsed as unknown as import('../types/investigation').InvestigationState;
-      await saveGameState(caseId, state, emptySlot, playerId);
+      await saveGameState(caseId, state, emptySlot);
       setImportStatus(`Imported to ${emptySlot.replace('_', ' ')}`);
       onImportSuccess?.();
     } catch {
@@ -282,25 +309,33 @@ export function SaveLoadModal({
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        {/* Backdrop overlay */}
-        <Dialog.Overlay className={theme.components.modal.overlay} />
+      <AnimatePresence>
+        {isOpen && (
+          <Dialog.Portal forceMount>
+            <Dialog.Overlay asChild forceMount>
+              <motion.div className={theme.components.modal.overlay}
+                variants={prefersReducedMotion ? reducedMotionVariants : backdropVariants}
+                initial="initial" animate="animate" exit="exit" />
+            </Dialog.Overlay>
 
-        {/* Modal content */}
-        <Dialog.Content
-          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-                     ${theme.colors.bg.primary} border ${theme.colors.border.default} border-t-amber-900/50
-                     w-full max-w-lg shadow-xl
-                     focus:outline-none`}
-          onEscapeKeyDown={onClose}
-        >
+            <Dialog.Content asChild forceMount onEscapeKeyDown={onClose}>
+              <motion.div
+                className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
+                           ${theme.colors.bg.primary} border ${theme.colors.border.default} border-t-amber-900/50
+                           w-[calc(100%-2rem)] max-w-lg shadow-xl max-h-[calc(100dvh-2rem)] overflow-y-auto
+                           focus:outline-none`}
+                variants={prefersReducedMotion ? reducedMotionVariants : dialogContentVariants}
+                initial="initial" animate="animate" exit="exit"
+              >
           {/* Title */}
           <div className={`border-b ${theme.colors.border.default} px-6 py-4`}>
             <Dialog.Title className={`text-sm font-bold ${theme.colors.text.primary} ${theme.fonts.ui} uppercase tracking-wider`}>
               {theme.symbols.block} {mode === 'save' ? 'SAVE GAME' : 'LOAD GAME'}
             </Dialog.Title>
-            <Dialog.Description className="sr-only">
-              {mode === 'save' ? 'Save your progress to a slot' : 'Load a saved game from a slot'}
+            <Dialog.Description className={`text-xs ${theme.colors.text.muted} mt-1`}>
+              {mode === 'save'
+                ? 'Manual slots store your latest autosave snapshot (not unsaved in-session changes until autosave runs).'
+                : 'Load a saved game from a slot'}
             </Dialog.Description>
           </div>
 
@@ -380,13 +415,24 @@ export function SaveLoadModal({
                         : `${theme.symbols.doubleArrowRight} [${index + 1}] EMPTY`}
                     </button>
                     {slotData && (
-                      <button
-                        onClick={() => void handleExport(slotId)}
-                        className={`${theme.fonts.ui} text-xs ${theme.colors.text.muted} ${theme.colors.interactive.hover} transition-colors uppercase tracking-wider`}
-                        title="Export save file"
-                      >
-                        EXPORT
-                      </button>
+                      <>
+                        <button
+                          onClick={() => void handleExport(slotId)}
+                          className={`${theme.fonts.ui} text-xs ${theme.colors.text.muted} ${theme.colors.interactive.hover} transition-colors uppercase tracking-wider`}
+                          title="Export save file"
+                        >
+                          EXPORT
+                        </button>
+                        <button
+                          onClick={() => setPendingDeleteSlot(slotId)}
+                          disabled={loading || deleting}
+                          className={`${theme.fonts.ui} text-xs text-red-400 hover:text-red-300 transition-colors uppercase tracking-wider disabled:opacity-50`}
+                          title="Delete save"
+                          aria-label={`Delete save in slot ${index + 1}`}
+                        >
+                          DELETE
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -461,7 +507,7 @@ export function SaveLoadModal({
               </label>
               {importStatus && (
                 <div className={`text-center text-xs ${theme.fonts.ui} mt-2 ${
-                  importStatus.startsWith('Import failed') ? 'text-red-400' : theme.colors.text.tertiary
+                  importStatus.startsWith('Import failed') || importStatus.startsWith('Failed') ? 'text-red-400' : theme.colors.text.tertiary
                 }`}>
                   {importStatus}
                 </div>
@@ -487,8 +533,26 @@ export function SaveLoadModal({
               {theme.symbols.closeButton}
             </button>
           </Dialog.Close>
-        </Dialog.Content>
-      </Dialog.Portal>
+              </motion.div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        )}
+      </AnimatePresence>
+
+      <ConfirmDialog
+        open={pendingDeleteSlot !== null}
+        title="Delete Save"
+        message={
+          pendingDeleteSlot
+            ? `Permanently delete the save in ${pendingDeleteSlot.replace('_', ' ')}? This cannot be undone.`
+            : ''
+        }
+        confirmText={deleting ? 'Deleting...' : 'Delete'}
+        cancelText="Cancel"
+        destructive
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => setPendingDeleteSlot(null)}
+      />
     </Dialog.Root>
   );
 }

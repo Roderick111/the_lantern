@@ -21,23 +21,25 @@ import type { StreamCallbacks } from './base';
 
 export async function getWitnesses(
   caseId = 'case_001',
-  playerId = 'default',
+  slot = 'autosave',
+  language = 'en',
 ): Promise<WitnessInfo[]> {
-  const path =
+  let path =
     `/api/witnesses?case_id=${encodeURIComponent(caseId)}` +
-    `&player_id=${encodeURIComponent(playerId)}&slot=autosave`;
+    `&slot=${encodeURIComponent(slot)}`;
+  if (language !== 'en') path += `&language=${encodeURIComponent(language)}`;
   return apiCall('GET', path, z.array(WitnessInfoSchema));
 }
 
 export async function getWitness(
   witnessId: string,
   caseId = 'case_001',
-  playerId = 'default',
+  slot = 'autosave',
 ): Promise<WitnessInfo> {
   const path =
     `/api/witness/${encodeURIComponent(witnessId)}` +
     `?case_id=${encodeURIComponent(caseId)}` +
-    `&player_id=${encodeURIComponent(playerId)}&slot=autosave`;
+    `&slot=${encodeURIComponent(slot)}`;
   return apiCall('GET', path, WitnessInfoSchema);
 }
 
@@ -50,8 +52,14 @@ export async function interrogateWitness(
 export async function interrogateStream(
   request: InterrogateRequest,
   callbacks: StreamCallbacks,
+  signal?: AbortSignal,
 ): Promise<void> {
-  await streamSSE(`${API_BASE_URL}/api/interrogate/stream`, request, callbacks);
+  await streamSSE(
+    `${API_BASE_URL}/api/interrogate/stream`,
+    request,
+    callbacks,
+    signal,
+  );
 }
 
 export async function presentEvidence(
@@ -63,6 +71,12 @@ export async function presentEvidence(
 export async function presentEvidenceStream(
   request: PresentEvidenceRequest,
   callbacks: StreamCallbacks,
+  signal?: AbortSignal,
 ): Promise<void> {
-  await streamSSE(`${API_BASE_URL}/api/present-evidence/stream`, request, callbacks);
+  await streamSSE(
+    `${API_BASE_URL}/api/present-evidence/stream`,
+    request,
+    callbacks,
+    signal,
+  );
 }

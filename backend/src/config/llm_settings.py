@@ -35,15 +35,15 @@ class LLMSettings(BaseSettings):
     GOOGLE_API_KEY: str = ""
 
     # Model selection (free tier: via OpenRouter)
-    DEFAULT_MODEL: str = "openrouter/x-ai/grok-4.1-fast"
+    DEFAULT_MODEL: str = "openrouter/deepseek/deepseek-v4-flash"
 
     # OpenRouter metadata (optional, for analytics)
-    OR_SITE_URL: str = "https://github.com/yourusername/hp-investigation-game"
+    OR_SITE_URL: str = "https://github.com/yourusername/the-lantern"
     OR_APP_NAME: str = "HP Investigation Game"
 
     # Fallback configuration
     ENABLE_FALLBACK: bool = True
-    FALLBACK_MODEL: str = "openrouter/google/gemma-4-26b-a4b-it"
+    FALLBACK_MODEL: str = "openrouter/google/gemma-4-31b-it"
 
     model_config = SettingsConfigDict(
         env_file=".env",

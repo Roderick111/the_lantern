@@ -1,4 +1,4 @@
-"""Briefing Q&A dialogue with Mad-Eye Moody.
+"""Briefing Q&A dialogue with Inspector Graves.
 
 Handles player questions during pre-investigation briefing.
 Uses Claude Haiku for dynamic responses with template fallback.
@@ -7,15 +7,17 @@ Uses Claude Haiku for dynamic responses with template fallback.
 import logging
 from typing import Any
 
+from src.config.language import get_language_instruction
+
 logger = logging.getLogger(__name__)
 
 
 # Template responses for common questions (fallback)
 TEMPLATE_RESPONSES: dict[str, str] = {
     "base_rates": (
-        "*magical eye swivels* Base rates, recruit. "
+        "*brass lantern-eye swivels* Base rates, recruit. "
         "It's the likelihood of something before you even look at specific evidence. "
-        "At Hogwarts, MOST incidents are just accidents. Start there."
+        "At Blackwood Collegiate, MOST incidents are just accidents. Start there."
     ),
     "where_start": (
         "Start with the crime scene. "
@@ -23,14 +25,14 @@ TEMPLATE_RESPONSES: dict[str, str] = {
         "Don't let assumptions blind you to what's really there."
     ),
     "default": (
-        "CONSTANT VIGILANCE, recruit. "
+        "Trust nothing unseen, recruit. "
         "You'll need sharper questions than that to survive out there. "
         "Focus on the evidence."
     ),
 }
 
 
-def build_moody_briefing_prompt(
+def build_graves_briefing_prompt(
     question: str,
     case_assignment: str,
     teaching_moment: str,
@@ -38,13 +40,14 @@ def build_moody_briefing_prompt(
     concept_description: str,
     conversation_history: list[dict[str, str]],
     briefing_context: dict[str, Any] | None = None,
+    language: str = "en",
 ) -> str:
-    """Build prompt for Moody briefing Q&A.
+    """Build prompt for Graves briefing Q&A.
 
     Args:
         question: Player's question
         case_assignment: Case details (WHO, WHERE, WHEN, WHAT)
-        teaching_moment: Moody's teaching dialogue
+        teaching_moment: Graves's teaching dialogue
         rationality_concept: Concept ID (e.g., "base_rates")
         concept_description: One-line concept summary
         conversation_history: Previous Q&A pairs [{"question": ..., "answer": ...}]
@@ -61,7 +64,7 @@ def build_moody_briefing_prompt(
         history_lines = []
         for exchange in conversation_history[-5:]:  # Last 5 exchanges
             history_lines.append(f"Recruit: {exchange['question']}")
-            history_lines.append(f"Moody: {exchange['answer']}")
+            history_lines.append(f"Graves: {exchange['answer']}")
         history_str = "\n".join(history_lines)
 
     # Build case context section
@@ -99,7 +102,7 @@ RATIONALITY PRINCIPLES (Background knowledge - reference naturally when relevant
 {get_rationality_context()}
 """
 
-    return f"""You are Alastor "Mad-Eye" Moody, veteran Auror trainer at Hogwarts.
+    return f"""You are Inspector Alastor Graves, veteran Lantern Inspector trainer at Blackwood Collegiate.
 
 You're briefing a new recruit before their first investigation.
 {context_section}
@@ -121,7 +124,7 @@ RESPONSE GUIDELINES:
 - Stay in character: gruff, paranoid, educational, GUARDED about case details
 - 2-4 sentences MAX
 - DEFAULT STANCE: Make the recruit work for details. That's YOUR job to investigate!
-- If about witnesses (general): Basic names, personalities OK. "Granger's a bookworm, Malfoy's arrogant"
+- If about witnesses (general): Basic names, personalities OK. "Marsh's a bookworm, Thorne's arrogant"
 - If about witnesses (specific): DEFLECT unless directly pressed. "That's for YOU to find out. Question them yourself!"
 - If about suspects: Names only. DO NOT reveal locations, abilities, timeline details without being pressed
 - If about rationality: Use concepts naturally, don't cite directly
@@ -133,27 +136,27 @@ RESPONSE GUIDELINES:
 
 EXAMPLES OF GUARDED RESPONSES:
 Q: "What are base rates?"
-A: *magical eye swivels* Base rates are what's LIKELY before you look at specifics. 85% of Hogwarts incidents are accidents. Start with what's probable, recruit. Don't chase dragons when it's probably just a first-year's mistake.
+A: *brass lantern-eye swivels* Base rates are what's LIKELY before you look at specifics. 85% of Blackwood Collegiate incidents are accidents. Start with what's probable, recruit. Don't chase phantom conspiracies when it's probably just a careless initiate's mistake.
 
 Q: "Where should I start?"
 A: The library. That's where the victim was found. But don't just LOOK - OBSERVE. Check everything. Let the evidence tell YOU what matters, not the other way around.
 
 Q: "Who are the witnesses?"
-A: *grumbles* Granger and Malfoy. One's a Gryffindor bookworm, the other's a Slytherin pure-blood. That's all you need to know for now. Question them yourself and figure out who's hiding what. CONSTANT VIGILANCE.
+A: *grumbles* Marsh and Thorne. One's a Scarlet Court bookworm, the other's an Iron Lodge old-blood. That's all you need to know for now. Question them yourself and figure out who's hiding what. Trust nothing unseen.
 
-Q: "Tell me about Hermione"
-A: Granger? Brilliant student, top of her year. Values logic and rules. That's the surface. What's UNDERNEATH? That's your job to find out, recruit. Talk to her, see what she's NOT saying.
+Q: "Tell me about Elena"
+A: Marsh? Brilliant student, top of her year. Values logic and rules. That's the surface. What's UNDERNEATH? That's your job to find out, recruit. Talk to her, see what she's NOT saying.
 
-Q: "What about Draco?"
-A: Malfoy's an arrogant Slytherin, son of Lucius. Pure-blood family, Ministry connections. Anything else? YOU investigate. Don't expect me to solve the case for you.
+Q: "What about Cassian?"
+A: Thorne's an arrogant Iron Lodge, son of Magnus. Old-blood family, Crown Bureau connections. Anything else? YOU investigate. Don't expect me to solve the case for you.
 
-Q: "Does Draco know any spells?"
-A: He's a THIRD-YEAR at HOGWARTS. Of course he knows spells. What KIND? What's RELEVANT? That's what YOU figure out by investigating. Ask him yourself!
+Q: "Does Cassian know any rites?"
+A: He's a THIRD-YEAR at BLACKWOOD COLLEGIATE. Of course he knows cantrips. What KIND? What's RELEVANT? That's what YOU figure out by investigating. Ask him yourself!
 
-Q: "Where was Draco that night?"
+Q: "Where was Cassian that night?"
 A: *eye narrows* That's exactly the question YOU should be asking HIM, not me. I'm not here to hand you answers on a silver platter. Get out there and investigate!
 
-Now respond to the recruit's question (2-4 sentences, Moody's voice):"""
+Now respond to the recruit's question (2-4 sentences, Graves's voice):{get_language_instruction(language)}"""
 
 
 def get_template_response(question: str, rationality_concept: str) -> str:
@@ -186,7 +189,7 @@ def get_template_response(question: str, rationality_concept: str) -> str:
     return TEMPLATE_RESPONSES["default"]
 
 
-async def ask_moody_question(
+async def ask_graves_question(
     question: str,
     case_assignment: str,
     teaching_moment: str,
@@ -196,25 +199,26 @@ async def ask_moody_question(
     briefing_context: dict[str, Any] | None = None,
     api_key: str | None = None,
     model: str | None = None,
+    language: str = "en",
 ) -> str:
-    """Ask Moody a question and get LLM response with fallback.
+    """Ask Graves a question and get LLM response with fallback.
 
     Args:
         question: Player's question
         case_assignment: Case details
-        teaching_moment: Moody's teaching dialogue
+        teaching_moment: Graves's teaching dialogue
         rationality_concept: Concept ID
         concept_description: Concept summary
         conversation_history: Prior Q&A exchanges
         briefing_context: Case context (witnesses, suspects, location, overview)
 
     Returns:
-        Moody's response (LLM or template fallback)
+        Graves's response (LLM or template fallback)
     """
     try:
         from src.api.llm_client import get_client
 
-        prompt = build_moody_briefing_prompt(
+        prompt = build_graves_briefing_prompt(
             question=question,
             case_assignment=case_assignment,
             teaching_moment=teaching_moment,
@@ -222,6 +226,7 @@ async def ask_moody_question(
             concept_description=concept_description,
             conversation_history=conversation_history,
             briefing_context=briefing_context,
+            language=language,
         )
 
         client = get_client()

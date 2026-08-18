@@ -115,7 +115,7 @@ def _check_correlation_not_causation(
 
     # Check if reasoning lacks actual causal evidence keywords
     causal_keywords = [
-        "wand",
+        "focus",
         "signature",
         "cast",
         "spell",
@@ -163,7 +163,7 @@ def _check_authority_bias(reasoning_lower: str) -> bool:
     # Check if reasoning mentions physical/magical evidence verification
     evidence_verification_keywords = [
         "evidence",
-        "wand",
+        "focus",
         "frost",
         "signature",
         "proves",
@@ -215,7 +215,7 @@ def _check_post_hoc(reasoning_lower: str) -> bool:
 
     # Check if connected to physical evidence
     evidence_keywords = [
-        "wand",
+        "focus",
         "signature",
         "physical evidence",
         "frost",

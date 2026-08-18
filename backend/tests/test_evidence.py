@@ -8,6 +8,8 @@ from src.utils.evidence import (
     extract_flags_from_response,
     find_not_present_response,
     matches_trigger,
+    normalize_rite_response,
+    validate_rite_control_result,
 )
 
 
@@ -47,8 +49,8 @@ class TestMatchesTrigger:
 
     def test_phrase_trigger(self) -> None:
         """Multi-word phrase trigger."""
-        triggers = ["prior incantato"]
-        assert matches_trigger("I cast prior incantato on the wand", triggers) is True
+        triggers = ["echo reading"]
+        assert matches_trigger("I cast echo reading on the focus", triggers) is True
 
     def test_empty_triggers(self) -> None:
         """Empty triggers list."""
@@ -137,10 +139,39 @@ class TestExtractEvidenceFromResponse:
 
     def test_tag_with_underscores(self) -> None:
         """Tag with underscores in ID."""
-        response = "[EVIDENCE: wand_last_spell_signature]"
+        response = "[EVIDENCE: focus_last_spell_signature]"
         result = extract_evidence_from_response(response)
 
-        assert result == ["wand_last_spell_signature"]
+        assert result == ["focus_last_spell_signature"]
+
+
+class TestRiteControlResult:
+    def test_accepts_canonical_underscore_marker(self) -> None:
+        response = "The frost forms a starburst.\n\n[EVIDENCE_frost_pattern]"
+
+        valid, reason = validate_rite_control_result(response, {"frost_pattern"})
+
+        assert valid is True
+        assert reason is None
+        assert extract_evidence_from_response(response) == ["frost_pattern"]
+
+    def test_rejects_unknown_canonical_id_and_normalizes_valid_result(self) -> None:
+        response = "The frost forms a starburst. [EVIDENCE_pattern]"
+
+        valid, reason = validate_rite_control_result(response, {"frost_pattern"})
+        normalized = normalize_rite_response(response, "[EVIDENCE_frost_pattern]")
+
+        assert valid is False
+        assert reason == "invalid_evidence_id"
+        assert normalized == "The frost forms a starburst.\n\n[EVIDENCE_frost_pattern]"
+
+    def test_accepts_explicit_no_evidence_result(self) -> None:
+        valid, reason = validate_rite_control_result(
+            "The rite finds nothing here.\n\n[NO_EVIDENCE]", {"frost_pattern"}
+        )
+
+        assert valid is True
+        assert reason is None
 
 
 class TestCheckAlreadyDiscovered:
@@ -155,8 +186,8 @@ class TestCheckAlreadyDiscovered:
                 "triggers": ["under desk", "search desk"],
             },
             {
-                "id": "wand_signature",
-                "triggers": ["examine wand"],
+                "id": "focus_signature",
+                "triggers": ["examine focus"],
             },
         ]
 
@@ -174,7 +205,7 @@ class TestCheckAlreadyDiscovered:
     def test_asking_about_undiscovered(self, sample_evidence: list[dict]) -> None:
         """Player asking about undiscovered evidence."""
         result = check_already_discovered(
-            "examine the wand",
+            "examine the focus",
             sample_evidence,
             discovered_ids=[],
         )

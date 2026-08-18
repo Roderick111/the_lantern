@@ -1,0 +1,80 @@
+# =============================================================================
+# Telegram gateway — multi-stage Bun build (Hono + grammY + Mini App)
+# =============================================================================
+# Context: repository root
+# Runtime: non-root, writable /app/data only
+
+# -----------------------------------------------------------------------------
+# deps
+# -----------------------------------------------------------------------------
+FROM oven/bun:1.2-alpine AS deps
+WORKDIR /app
+COPY telegram/package.json telegram/bun.lock ./
+RUN bun install --frozen-lockfile
+
+# -----------------------------------------------------------------------------
+# build server + Mini App SPA
+# -----------------------------------------------------------------------------
+FROM oven/bun:1.2-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY telegram/package.json telegram/bun.lock telegram/tsconfig.json \
+     telegram/vite.config.ts telegram/eslint.config.js ./
+COPY telegram/src ./src
+COPY telegram/app ./app
+COPY telegram/migrations ./migrations
+COPY telegram/tests ./tests
+
+RUN bun run build:server && bun run build:miniapp
+
+# -----------------------------------------------------------------------------
+# runtime
+# -----------------------------------------------------------------------------
+FROM oven/bun:1.2-alpine AS runtime
+WORKDIR /app
+
+RUN addgroup -S lantern && adduser -S lantern -G lantern \
+  && mkdir -p /app/data /app/assets/locations /app/assets/portraits \
+  && chown -R lantern:lantern /app
+
+# Production deps only (no vite)
+COPY telegram/package.json telegram/bun.lock ./
+RUN bun install --frozen-lockfile --production \
+  && chown -R lantern:lantern /app/node_modules
+
+COPY --from=build /app/dist ./dist
+COPY telegram/migrations ./migrations
+COPY telegram/package.json ./
+
+# Case 1 location + witness images only (reuse frontend assets; no full public tree)
+COPY frontend/public/locations/library.webp \
+     frontend/public/locations/iron_lodge_common_room.webp \
+     frontend/public/locations/third_floor_corridor.webp \
+     frontend/public/locations/kitchens.webp \
+     /app/assets/locations/
+COPY frontend/public/portraits/elena.webp \
+     frontend/public/portraits/cassian.webp \
+     frontend/public/portraits/whitmore.webp \
+     frontend/public/portraits/wisp.webp \
+     /app/assets/portraits/
+
+RUN chown -R lantern:lantern /app/dist /app/migrations /app/assets
+
+USER lantern
+
+ENV TELEGRAM_DB_PATH=/app/data/telegram.db \
+    TELEGRAM_MODE=webhook \
+    PORT=8080 \
+    ASSETS_PATH=/app/assets \
+    LANTERN_ENGINE_URL=http://backend:8000 \
+    TELEGRAM_PUBLIC_URL=https://bot.thelantern.institute \
+    NODE_ENV=production
+
+EXPOSE 8080
+VOLUME ["/app/data"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD bun -e "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+# Server entry: dist/index.js (build:server); Mini App at dist/app
+CMD ["bun", "run", "dist/index.js"]

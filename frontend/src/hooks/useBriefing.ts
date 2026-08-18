@@ -3,7 +3,7 @@
  *
  * Manages briefing state and API interactions:
  * - Load briefing content from backend
- * - Ask Moody questions (LLM dialogue)
+ * - Ask Graves questions (LLM dialogue)
  * - Track conversation history
  * - Handle teaching question choice selection
  * - Mark briefing as complete
@@ -42,7 +42,7 @@ export interface UseBriefingReturn {
   conversation: BriefingConversation[];
   /** Selected choice ID (null if not yet answered) */
   selectedChoice: string | null;
-  /** Moody's response to selected choice */
+  /** Graves's response to selected choice */
   choiceResponse: string | null;
   /** Whether an API call is in progress */
   loading: boolean;
@@ -56,7 +56,7 @@ export interface UseBriefingReturn {
   selectChoice: (choiceId: string, questionIndex: number) => void;
   /** Reset choice selection state */
   resetChoice: () => void;
-  /** Ask Moody a question */
+  /** Ask Graves a question */
   askQuestion: (question: string) => Promise<void>;
   /** Mark briefing as complete */
   markComplete: () => Promise<void>;
@@ -70,7 +70,6 @@ export interface UseBriefingReturn {
 
 export function useBriefing({
   caseId = 'case_001',
-  playerId = 'default',
 }: UseBriefingOptions = {}): UseBriefingReturn {
   // State
   const [briefing, setBriefing] = useState<BriefingContent | null>(null);
@@ -88,7 +87,7 @@ export function useBriefing({
     setError(null);
 
     try {
-      const content = await getBriefingAPI(caseId, playerId);
+      const content = await getBriefingAPI(caseId);
       setBriefing(content);
       // Sync local state with backend-persisted completion status
       if (content.briefing_completed) {
@@ -101,7 +100,7 @@ export function useBriefing({
     } finally {
       setLoading(false);
     }
-  }, [caseId, playerId]);
+  }, [caseId]);
 
   // Select a teaching question choice
   const selectChoice = useCallback(
@@ -126,7 +125,7 @@ export function useBriefing({
     setChoiceResponse(null);
   }, []);
 
-  // Ask Moody a question
+  // Ask Graves a question
   const askQuestion = useCallback(
     async (question: string): Promise<void> => {
       if (!question.trim()) {
@@ -137,17 +136,17 @@ export function useBriefing({
       setError(null);
 
       try {
-        const response = await askBriefingQuestionAPI(caseId, question, playerId);
+        const response = await askBriefingQuestionAPI(caseId, question);
 
         // Add to conversation history
         setConversation((prev) => [...prev, { question, answer: response.answer }]);
       } catch (err) {
-        setError(isApiError(err) ? err.message : 'Failed to get response from Moody');
+        setError(isApiError(err) ? err.message : 'Failed to get response from Graves');
       } finally {
         setLoading(false);
       }
     },
-    [caseId, playerId]
+    [caseId]
   );
 
   // Mark briefing as complete
@@ -156,7 +155,7 @@ export function useBriefing({
     setError(null);
 
     try {
-      const response = await markBriefingCompleteAPI(caseId, playerId);
+      const response = await markBriefingCompleteAPI(caseId);
       if (response.success) {
         setCompleted(true);
       }
@@ -165,7 +164,7 @@ export function useBriefing({
     } finally {
       setLoading(false);
     }
-  }, [caseId, playerId]);
+  }, [caseId]);
 
   // Clear error
   const clearError = useCallback(() => {

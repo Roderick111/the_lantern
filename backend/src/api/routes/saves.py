@@ -2,9 +2,16 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from src.api.helpers import load_slot_state, save_slot_state
+from src.api.dependencies import get_authenticated_player_id
+from src.api.helpers import (
+    invalidate_state_cache,
+    load_localized_case_or_404,
+    load_slot_state,
+    save_slot_state,
+)
+from src.api.rate_limit import SAVE_LOAD_RATE, limiter
 from src.api.schemas import (
     ChangeLocationRequest,
     ChangeLocationResponse,
@@ -19,14 +26,14 @@ from src.api.schemas import (
     UpdateSettingsRequest,
     UpdateSettingsResponse,
 )
-from src.case_store.loader import get_location, list_locations, load_case
+from src.case_store.loader import get_first_location_id, get_location, list_locations, load_case
+from src.state.exceptions import StaleStateError
+from src.state.idempotency import IdempotencyGuard
 from src.state.persistence import (
     delete_player_save,
-    delete_state,
     list_player_saves,
     load_player_state,
     migrate_old_save,
-    save_player_state,
 )
 from src.state.player_state import PlayerState
 from src.telemetry.logger import log_event
@@ -35,41 +42,83 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/save", response_model=SaveResponse)
-async def save_game(request: SaveRequest) -> SaveResponse:
-    """Save player game state to specific slot."""
-    slot = request.slot
+def _merge_client_save_fields(state: PlayerState, request_state: dict) -> None:
+    """Apply only client-allowed fields — server-owned subgraphs stay intact."""
+    if "current_location" in request_state:
+        state.current_location = request_state["current_location"]
+    if "discovered_evidence" in request_state:
+        state.discovered_evidence = list(request_state["discovered_evidence"])
+    if "visited_locations" in request_state:
+        state.visited_locations = list(request_state["visited_locations"])
+    if "narrator_verbosity" in request_state:
+        verbosity = request_state["narrator_verbosity"]
+        if verbosity in ("concise", "storyteller", "atmospheric"):
+            state.narrator_verbosity = verbosity
+    if "language" in request_state:
+        state.language = request_state["language"]
+
+
+def _new_state_from_client(case_id: str, request_state: dict) -> PlayerState:
+    """Create a fresh PlayerState from the client slice — no arbitrary field injection."""
     try:
-        case_id = request.state.get("case_id", "case_001")
+        case_data = load_case(case_id)
+        first_location = get_first_location_id(case_data)
+    except (FileNotFoundError, ValueError):
+        first_location = request_state.get("current_location", "library")
 
-        # Named slots are snapshots — always copy full state from autosave
+    state = PlayerState(
+        case_id=case_id,
+        current_location=request_state.get("current_location", first_location),
+    )
+    _merge_client_save_fields(state, request_state)
+    return state
+
+
+def _build_save_state(
+    case_id: str,
+    player_id: str,
+    slot: str,
+    request_state: dict,
+) -> PlayerState:
+    """Build authoritative save state — server-owned subgraphs preserved on autosave."""
+    if slot != "autosave":
+        autosave = load_player_state(case_id, player_id, "autosave")
+        if autosave:
+            return autosave
+        return _new_state_from_client(case_id, request_state)
+
+    existing = load_slot_state(case_id, player_id, slot)
+    if existing:
+        _merge_client_save_fields(existing, request_state)
+        return existing
+    return _new_state_from_client(case_id, request_state)
+
+
+@router.post("/save", response_model=SaveResponse)
+@limiter.limit(SAVE_LOAD_RATE)
+async def save_game(
+    request: Request,
+    body: SaveRequest,
+    player_id: str = Depends(get_authenticated_player_id),
+) -> SaveResponse:
+    """Save player game state to specific slot."""
+    player_id = player_id
+    slot = body.slot
+    try:
+        case_id = body.state.get("case_id", "case_001")
+        state = _build_save_state(case_id, player_id, slot, body.state)
+        save_slot_state(state, player_id, slot)
+
         if slot != "autosave":
-            autosave = load_player_state(case_id, request.player_id, "autosave")
-            state = autosave if autosave else PlayerState(**request.state)
-        else:
-            existing = load_player_state(case_id, request.player_id, slot)
-            if existing:
-                state = existing
-                state.current_location = request.state.get(
-                    "current_location", state.current_location
-                )
-                state.discovered_evidence = request.state.get(
-                    "discovered_evidence", state.discovered_evidence
-                )
-                state.visited_locations = request.state.get(
-                    "visited_locations", state.visited_locations
-                )
-            else:
-                state = PlayerState(**request.state)
-
-        success = save_player_state(case_id, request.player_id, state, slot)
-        if not success:
-            return SaveResponse(success=False, message=f"Failed to save to slot {slot}", slot=slot)
-
-        if slot != "autosave":
-            log_event("save_game", request.player_id, case_id, {"slot": slot})
+            await log_event("save_game", player_id, case_id, {"slot": slot})
 
         return SaveResponse(success=True, message=f"Saved to {slot}", slot=slot)
+    except StaleStateError:
+        return SaveResponse(
+            success=False,
+            message="Save conflict — reload and try again.",
+            slot=slot,
+        )
     except ValueError as e:
         return SaveResponse(success=False, message=str(e), slot=slot)
     except Exception as e:
@@ -77,49 +126,88 @@ async def save_game(request: SaveRequest) -> SaveResponse:
 
 
 @router.post("/settings/update", response_model=UpdateSettingsResponse)
-async def update_settings(request: UpdateSettingsRequest) -> UpdateSettingsResponse:
+async def update_settings(
+    request: UpdateSettingsRequest,
+    player_id: str = Depends(get_authenticated_player_id),
+) -> UpdateSettingsResponse:
     """Update player settings (narrator verbosity, etc.)."""
+    guard = IdempotencyGuard(player_id, "settings_update", request.request_id)
+    early = guard.begin()
+    if early is not None:
+        return UpdateSettingsResponse.model_validate(early)
+
     try:
-        state = load_slot_state(request.case_id, request.player_id, request.slot)
+        state = load_slot_state(request.case_id, player_id, request.slot)
         if not state:
-            state = PlayerState(case_id=request.case_id)
+            case_data = load_case(request.case_id)
+            state = PlayerState(
+                case_id=request.case_id,
+                current_location=get_first_location_id(case_data),
+            )
 
         if request.narrator_verbosity:
             valid_options = ["concise", "storyteller", "atmospheric"]
             if request.narrator_verbosity not in valid_options:
-                return UpdateSettingsResponse(
+                result = UpdateSettingsResponse(
                     success=False,
                     message=f"Invalid verbosity. Must be one of: {', '.join(valid_options)}",
                 )
+                guard.complete(result)
+                return result
             state.narrator_verbosity = request.narrator_verbosity
 
-        save_slot_state(state, request.player_id, request.slot)
-        return UpdateSettingsResponse(success=True, message="Settings updated successfully")
+        if request.assistance_mode:
+            state.assistance_mode = request.assistance_mode
+
+        if request.language:
+            from src.config.language import SUPPORTED_LANGUAGES
+
+            if request.language not in SUPPORTED_LANGUAGES:
+                result = UpdateSettingsResponse(
+                    success=False,
+                    message=f"Invalid language. Must be one of: {', '.join(SUPPORTED_LANGUAGES)}",
+                )
+                guard.complete(result)
+                return result
+            state.language = request.language
+
+        save_slot_state(state, player_id, request.slot)
+        result = UpdateSettingsResponse(success=True, message="Settings updated successfully")
+        guard.complete(result)
+        return result
     except Exception as e:
+        guard.fail_before_mutation()
         return UpdateSettingsResponse(success=False, message=f"Failed to update settings: {e}")
 
 
-@router.get("/load/{case_id}", response_model=StateResponse | None)
+@router.get("/load/{case_id}", response_model=StateResponse)
+@limiter.limit(SAVE_LOAD_RATE)
 async def load_game(
+    request: Request,
     case_id: str,
-    player_id: str = Query(default="default", description="Player identifier"),
+    player_id: str = Depends(get_authenticated_player_id),
     slot: str = Query(default="autosave", description="Save slot"),
     location_id: str | None = Query(default=None, description="Current location context"),
-) -> StateResponse | None:
+) -> StateResponse:
     """Load player game state from specific slot."""
     try:
         state = load_player_state(case_id, player_id, slot)
 
         if state is None:
-            return None
+            raise HTTPException(
+                status_code=404,
+                detail=f"No save found for case {case_id} in slot {slot}",
+            )
 
         # When loading from a named slot, copy to autosave so gameplay
         # continues seamlessly (all actions autosave to "autosave" slot)
         if slot != "autosave":
-            save_player_state(case_id, player_id, state, "autosave")
+            save_slot_state(state, player_id, "autosave")
+        else:
+            invalidate_state_cache(case_id, player_id, "autosave")
 
         if slot != "autosave":
-            log_event("load_game", player_id, case_id, {"slot": slot})
+            await log_event("load_game", player_id, case_id, {"slot": slot})
 
         target_loc = location_id or state.current_location
 
@@ -130,31 +218,37 @@ async def load_game(
             visited_locations=state.visited_locations,
             conversation_history=state.location_chat_history.get(target_loc, []),
             narrator_verbosity=state.narrator_verbosity,
+            assistance_mode=state.assistance_mode,
+            language=state.language,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/state/{case_id}")
-async def delete_game(case_id: str, player_id: str = "default") -> dict[str, bool]:
+async def delete_game(
+    case_id: str,
+    player_id: str = Depends(get_authenticated_player_id),
+) -> dict[str, bool]:
     """Delete player game state."""
-    result = delete_state(case_id, player_id)
+    result = delete_player_save(case_id, player_id, "autosave")
+    invalidate_state_cache(case_id, player_id, "autosave")
     return {"deleted": result}
 
 
 @router.post("/case/{case_id}/reset", response_model=ResetResponse)
 async def reset_case(
     case_id: str,
-    player_id: str = Query(default="default", description="Player identifier"),
+    player_id: str = Depends(get_authenticated_player_id),
 ) -> ResetResponse:
     """Reset case progress (delete saved state)."""
-    deleted_default = delete_state(case_id, player_id)
-    deleted_autosave = delete_player_save(case_id, player_id, "autosave")
+    deleted = delete_player_save(case_id, player_id, "autosave")
+    invalidate_state_cache(case_id, player_id, "autosave")
 
-    if deleted_default or deleted_autosave:
+    if deleted:
         return ResetResponse(
             success=True,
-            message=f"Case {case_id} reset successfully (active + autosave cleared).",
+            message=f"Case {case_id} reset successfully.",
         )
     return ResetResponse(
         success=False,
@@ -165,7 +259,7 @@ async def reset_case(
 @router.get("/case/{case_id}/saves/list", response_model=SaveSlotsListResponse)
 async def list_saves_endpoint(
     case_id: str,
-    player_id: str = Query(default="default", description="Player identifier"),
+    player_id: str = Depends(get_authenticated_player_id),
 ) -> SaveSlotsListResponse:
     """List all save slots with metadata for a player."""
     migrate_old_save(case_id, player_id)
@@ -192,7 +286,7 @@ async def list_saves_endpoint(
 async def delete_save_slot_endpoint(
     case_id: str,
     slot: str,
-    player_id: str = Query(default="default", description="Player identifier"),
+    player_id: str = Depends(get_authenticated_player_id),
 ) -> SaveSlotResponse:
     """Delete a specific save slot."""
     valid_slots = {"slot_1", "slot_2", "slot_3", "autosave"}
@@ -203,6 +297,8 @@ async def delete_save_slot_endpoint(
         )
 
     success = delete_player_save(case_id, player_id, slot)
+    invalidate_state_cache(case_id, player_id, slot)
+
     if not success:
         raise HTTPException(
             status_code=404,
@@ -213,10 +309,13 @@ async def delete_save_slot_endpoint(
 
 
 @router.get("/case/{case_id}/locations", response_model=list[LocationInfo])
-async def get_locations(case_id: str) -> list[LocationInfo]:
+async def get_locations(
+    case_id: str,
+    language: str = Query(default="en", pattern=r"^[a-zA-Z]{2}$"),
+) -> list[LocationInfo]:
     """Get all locations for LocationSelector."""
     try:
-        case_data = load_case(case_id)
+        case_data = load_localized_case_or_404(case_id, language)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Case not found: {case_id}")
 
@@ -225,26 +324,40 @@ async def get_locations(case_id: str) -> list[LocationInfo]:
 
 
 @router.post("/case/{case_id}/change-location", response_model=ChangeLocationResponse)
-async def change_location(case_id: str, request: ChangeLocationRequest) -> ChangeLocationResponse:
+async def change_location(
+    case_id: str,
+    request: ChangeLocationRequest,
+    player_id: str = Depends(get_authenticated_player_id),
+) -> ChangeLocationResponse:
     """Change player location."""
+    guard = IdempotencyGuard(player_id, "change_location", request.request_id)
+    early = guard.begin()
+    if early is not None:
+        return ChangeLocationResponse.model_validate(early)
+
+    state = load_slot_state(case_id, player_id, request.slot)
     try:
-        case_data = load_case(case_id)
+        case_data = load_localized_case_or_404(
+            case_id,
+            getattr(state, "language", "en") if state else "en",
+        )
         location = get_location(case_data, request.location_id)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Case not found: {case_id}")
+    except HTTPException:
+        guard.fail_before_mutation()
+        raise
     except KeyError:
+        guard.fail_before_mutation()
         raise HTTPException(status_code=404, detail=f"Location not found: {request.location_id}")
 
-    state = load_slot_state(case_id, request.player_id, request.slot)
     if state is None:
         state = PlayerState(case_id=case_id, current_location=request.location_id)
 
     state.visit_location(request.location_id)
-    save_slot_state(state, request.player_id, request.slot)
+    save_slot_state(state, player_id, request.slot)
 
-    log_event(
+    await log_event(
         "location_changed",
-        request.player_id,
+        player_id,
         case_id,
         {
             "location_id": request.location_id,
@@ -252,7 +365,7 @@ async def change_location(case_id: str, request: ChangeLocationRequest) -> Chang
         },
     )
 
-    return ChangeLocationResponse(
+    result = ChangeLocationResponse(
         success=True,
         location={
             "id": location.get("id", request.location_id),
@@ -263,3 +376,5 @@ async def change_location(case_id: str, request: ChangeLocationRequest) -> Chang
         },
         updated_state=state.model_dump(mode="json"),
     )
+    guard.complete(result)
+    return result

@@ -13,35 +13,35 @@ class TestCheckVerdict:
 
     def test_correct_verdict_exact_match(self) -> None:
         """Correct verdict with exact case match."""
-        solution = {"culprit": "draco"}
-        assert check_verdict("draco", solution) is True
+        solution = {"culprit": "cassian"}
+        assert check_verdict("cassian", solution) is True
 
     def test_correct_verdict_case_insensitive(self) -> None:
         """Correct verdict case-insensitive."""
-        solution = {"culprit": "draco"}
-        assert check_verdict("Draco", solution) is True
-        assert check_verdict("DRACO", solution) is True
+        solution = {"culprit": "cassian"}
+        assert check_verdict("Cassian", solution) is True
+        assert check_verdict("CASSIAN", solution) is True
 
     def test_incorrect_verdict(self) -> None:
         """Incorrect verdict returns False."""
-        solution = {"culprit": "draco"}
-        assert check_verdict("hermione", solution) is False
+        solution = {"culprit": "cassian"}
+        assert check_verdict("elena", solution) is False
 
     def test_verdict_empty_culprit(self) -> None:
         """Empty culprit in solution."""
         solution = {"culprit": ""}
-        assert check_verdict("draco", solution) is False
+        assert check_verdict("cassian", solution) is False
 
     def test_verdict_missing_culprit(self) -> None:
         """Missing culprit key in solution."""
         solution = {}
-        assert check_verdict("draco", solution) is False
+        assert check_verdict("cassian", solution) is False
 
     def test_verdict_whitespace_handling(self) -> None:
         """Verdict with whitespace (case-insensitive only, not trimmed)."""
-        solution = {"culprit": "draco"}
+        solution = {"culprit": "cassian"}
         # Only case-insensitivity is applied, not trimming
-        assert check_verdict("draco", solution) is True
+        assert check_verdict("cassian", solution) is True
 
 
 class TestScoreReasoning:
@@ -50,9 +50,9 @@ class TestScoreReasoning:
     def test_perfect_score(self) -> None:
         """Perfect reasoning: all key evidence, logical connectors, 2-5 sentences."""
         # Multi-sentence reasoning with 'because' and all key evidence
-        reasoning = "The frost pattern proves Draco's involvement. The wand signature confirms the spell. This happened because the evidence chain is complete."
-        evidence = ["frost_pattern", "wand_signature", "window_damage"]
-        solution = {"key_evidence": ["frost_pattern", "wand_signature", "window_damage"]}
+        reasoning = "The frost pattern proves Cassian's involvement. The focus signature confirms the spell. This happened because the evidence chain is complete."
+        evidence = ["frost_pattern", "focus_signature", "window_damage"]
+        solution = {"key_evidence": ["frost_pattern", "focus_signature", "window_damage"]}
         fallacies: list[str] = []
 
         score = score_reasoning(reasoning, evidence, solution, fallacies)
@@ -71,9 +71,9 @@ class TestScoreReasoning:
 
     def test_no_critical_evidence_heavy_penalty(self) -> None:
         """No critical evidence cited gets heavy penalty."""
-        reasoning = "Hermione did it because she was there. The evidence points to her clearly."
+        reasoning = "Elena did it because she was there. The evidence points to her clearly."
         evidence: list[str] = []  # No evidence cited
-        solution = {"key_evidence": ["frost_pattern", "wand_signature"]}
+        solution = {"key_evidence": ["frost_pattern", "focus_signature"]}
         fallacies: list[str] = []
 
         score = score_reasoning(reasoning, evidence, solution, fallacies)
@@ -86,7 +86,7 @@ class TestScoreReasoning:
             "The frost pattern proves the spell was cast from outside. This shows clear intent."
         )
         evidence = ["frost_pattern"]
-        solution = {"key_evidence": ["frost_pattern", "wand_signature", "window_damage"]}
+        solution = {"key_evidence": ["frost_pattern", "focus_signature", "window_damage"]}
         fallacies: list[str] = []
 
         score = score_reasoning(reasoning, evidence, solution, fallacies)
@@ -95,9 +95,9 @@ class TestScoreReasoning:
 
     def test_two_critical_evidence(self) -> None:
         """Citing two critical evidence gives +25."""
-        reasoning = "The frost pattern proves it. The wand signature confirms because both match."
-        evidence = ["frost_pattern", "wand_signature"]
-        solution = {"key_evidence": ["frost_pattern", "wand_signature", "window_damage"]}
+        reasoning = "The frost pattern proves it. The focus signature confirms because both match."
+        evidence = ["frost_pattern", "focus_signature"]
+        solution = {"key_evidence": ["frost_pattern", "focus_signature", "window_damage"]}
         fallacies: list[str] = []
 
         score = score_reasoning(reasoning, evidence, solution, fallacies)
@@ -106,9 +106,9 @@ class TestScoreReasoning:
 
     def test_all_critical_evidence(self) -> None:
         """Citing all critical evidence gives +40."""
-        reasoning = "The frost pattern shows the spell. The wand signature matches. Window damage proves it because everything aligns."
-        evidence = ["frost_pattern", "wand_signature", "window_damage"]
-        solution = {"key_evidence": ["frost_pattern", "wand_signature", "window_damage"]}
+        reasoning = "The frost pattern shows the spell. The focus signature matches. Window damage proves it because everything aligns."
+        evidence = ["frost_pattern", "focus_signature", "window_damage"]
+        solution = {"key_evidence": ["frost_pattern", "focus_signature", "window_damage"]}
         fallacies: list[str] = []
 
         score = score_reasoning(reasoning, evidence, solution, fallacies)
@@ -223,10 +223,10 @@ class TestScoreReasoning:
     def test_bullshit_reasoning_low_score(self) -> None:
         """Total bullshit reasoning should get very low score."""
         reasoning = (
-            "I guess maybe Hermione did it. She seems like the type. I think it was probably her."
+            "I guess maybe Elena did it. She seems like the type. I think it was probably her."
         )
         evidence: list[str] = []
-        solution = {"key_evidence": ["frost_pattern", "wand_signature"]}
+        solution = {"key_evidence": ["frost_pattern", "focus_signature"]}
         fallacies = ["confirmation_bias"]
 
         score = score_reasoning(reasoning, evidence, solution, fallacies)
@@ -237,9 +237,9 @@ class TestScoreReasoning:
 
     def test_good_reasoning_high_score(self) -> None:
         """Good reasoning with evidence and logic gets high score."""
-        reasoning = "Draco is guilty because the wand signature matches his wand. The frost pattern was cast from outside."
-        evidence = ["frost_pattern", "wand_signature"]
-        solution = {"key_evidence": ["frost_pattern", "wand_signature"]}
+        reasoning = "Cassian is guilty because the focus signature matches his focus. The frost pattern was cast from outside."
+        evidence = ["frost_pattern", "focus_signature"]
+        solution = {"key_evidence": ["frost_pattern", "focus_signature"]}
         fallacies: list[str] = []
 
         score = score_reasoning(reasoning, evidence, solution, fallacies)
@@ -248,10 +248,10 @@ class TestScoreReasoning:
 
     def test_score_clamped_to_100(self) -> None:
         """Score cannot exceed 100."""
-        reasoning = "The frost pattern proves it. Wand signature confirms. Window damage shows method. This happened because all evidence aligns."
-        evidence = ["frost_pattern", "wand_signature", "window_damage", "extra_evidence"]
+        reasoning = "The frost pattern proves it. Focus signature confirms. Window damage shows method. This happened because all evidence aligns."
+        evidence = ["frost_pattern", "focus_signature", "window_damage", "extra_evidence"]
         solution = {
-            "key_evidence": ["frost_pattern", "wand_signature", "window_damage", "extra_evidence"]
+            "key_evidence": ["frost_pattern", "focus_signature", "window_damage", "extra_evidence"]
         }
         fallacies: list[str] = []
 
@@ -275,7 +275,7 @@ class TestScoreReasoning:
         """Evidence not in key_evidence doesn't add bonus."""
         reasoning = "The hidden note proves guilt. This shows motive because it reveals intent."
         evidence = ["hidden_note"]  # Not in key_evidence
-        solution = {"key_evidence": ["frost_pattern", "wand_signature"]}
+        solution = {"key_evidence": ["frost_pattern", "focus_signature"]}
         fallacies: list[str] = []
 
         score = score_reasoning(reasoning, evidence, solution, fallacies)

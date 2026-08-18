@@ -1,25 +1,30 @@
-"""Witness interrogation, evidence presentation, and Legilimency endpoints."""
+"""Witness interrogation, evidence presentation, and read-only witness endpoints."""
 
-import json
-import logging
-import time
-from typing import Any
+import asyncio
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from src.api.dependencies import UserLLMConfig, get_user_llm_config
+from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
+from src.api.errors import llm_http_exception
 from src.api.helpers import (
-    detect_secrets_in_response,
     load_case_or_404,
-    load_or_create_state,
+    load_localized_case_or_404,
     load_slot_state,
-    save_slot_state,
+    state_delta,
 )
-from src.api.llm_client import LLMClientError as ClaudeClientError
 from src.api.llm_client import get_client
 from src.api.rate_limit import LLM_RATE, limiter
-from src.api.routes.legilimency import handle_programmatic_legilimency
+from src.api.routes.mnemonic_delving import handle_programmatic_mnemonic_delving
+from src.api.routes.witnesses_logic import (
+    finalize_witness_response,
+    load_witness_context,
+    prepare_evidence_presentation,
+    prepare_interrogation,
+    setup_interrogate_stream,
+    setup_present_evidence_stream,
+    stream_witness_llm,
+    wrap_interrogate_as_sse,
+)
 from src.api.schemas import (
     InterrogateRequest,
     InterrogateResponse,
@@ -27,148 +32,11 @@ from src.api.schemas import (
     PresentEvidenceResponse,
     WitnessInfo,
 )
+from src.api.stream_runner import replay_cached_stream
 from src.case_store.loader import get_witness, list_witnesses
-from src.context.spell_llm import (
-    SAFE_INVESTIGATION_SPELLS,
-    calculate_spell_success,
-    detect_spell_with_fuzzy,
-)
-from src.context.witness import build_witness_prompt, build_witness_system_prompt
-from src.state.player_state import PlayerState
-from src.telemetry.logger import log_event
-from src.utils.trust import (
-    EVIDENCE_PRESENTATION_BONUS,
-    adjust_trust,
-    detect_evidence_presentation,
-    match_evidence_to_inventory,
-)
+from src.state.idempotency import IdempotencyGuard
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-def _build_witness_case_context(case_data: dict[str, Any]) -> dict[str, Any]:
-    """Extract basic case context for witness prompts."""
-    victim_info = case_data.get("victim", {})
-    cause_of_death = victim_info.get("cause_of_death", "")
-    crime_type = cause_of_death.split()[0] if cause_of_death else "Victim found"
-
-    locations = case_data.get("locations", {})
-    crime_scene_loc = next(iter(locations.values()), {}) if locations else {}
-
-    return {
-        "victim_name": victim_info.get("name", ""),
-        "crime_type": crime_type,
-        "location": crime_scene_loc.get("name", "Unknown location"),
-    }
-
-
-def _build_evidence_prompt(
-    witness: dict[str, Any],
-    evidence_id: str,
-    witness_state: Any,
-    case_data: dict[str, Any],
-) -> tuple[str, str, str, int]:
-    """Build prompt for evidence presentation. Returns (prompt, system, evidence_name, trust_delta)."""
-    witness_id = witness.get("id", "")
-    case_inner = case_data.get("case", case_data)
-    evidence_name = evidence_id
-    evidence_desc = ""
-    witness_reaction = ""
-    found = False
-    for location in case_inner.get("locations", {}).values():
-        if found:
-            break
-        for ev in location.get("hidden_evidence", []):
-            if ev.get("id") == evidence_id:
-                evidence_name = ev.get("name", evidence_id)
-                evidence_desc = ev.get("description", "")
-                reactions = ev.get("witness_reactions", {})
-                witness_reaction = reactions.get(witness_id, "")
-                found = True
-                break
-
-    is_first_time = witness_state.mark_evidence_shown(evidence_id)
-    trust_delta = EVIDENCE_PRESENTATION_BONUS if is_first_time else 0
-    witness_state.adjust_trust(trust_delta)
-
-    witness_name = witness.get("name", "Unknown")
-
-    reaction_section = ""
-    if witness_reaction:
-        reaction_section = f"""
-== YOUR REACTION (you MUST convey this) ==
-{witness_reaction}
-
-Deliver this reaction in your own voice. You may add body language, pauses, or emotion, but the substance of what you say MUST match the reaction above.
-"""
-    else:
-        reaction_section = """
-React based on your personality and what you know about this type of evidence.
-"""
-
-    prompt = f"""You are {witness_name}. The Auror shows you evidence: "{evidence_name}".
-
-Evidence description: {evidence_desc}
-
-Your personality: {witness.get("personality", "")}
-Your trust level: {witness_state.trust}/100
-{reaction_section}
-Respond in 2-4 sentences as {witness_name}. Stay in character. Never break the fourth wall."""
-
-    system_prompt = build_witness_system_prompt(witness_name)
-    return prompt, system_prompt, evidence_name, trust_delta
-
-
-async def _handle_evidence_presentation(
-    witness: dict[str, Any],
-    evidence_id: str,
-    state: PlayerState,
-    witness_state: Any,
-    player_id: str,
-    case_data: dict[str, Any],
-    llm_config: UserLLMConfig | None = None,
-    slot: str = "autosave",
-) -> InterrogateResponse:
-    """Handle evidence presentation to witness."""
-    prompt, system_prompt, evidence_name, trust_delta = _build_evidence_prompt(
-        witness, evidence_id, witness_state, case_data,
-    )
-
-    try:
-        client = get_client()
-        _key = llm_config.api_key if llm_config else None
-        _model = llm_config.model if llm_config else None
-        witness_response = await client.get_response(
-            prompt,
-            system=system_prompt,
-            api_key=_key,
-            model=_model,
-        )
-    except ClaudeClientError as e:
-        raise HTTPException(status_code=503, detail=f"LLM service error: {e}")
-
-    secrets_revealed, secret_texts = detect_secrets_in_response(
-        witness_response, witness, witness_state
-    )
-
-    witness_state.add_conversation(
-        question=f"What do you know about {evidence_name}?",
-        response=witness_response,
-        trust_delta=trust_delta,
-    )
-
-    state.update_witness_state(witness_state)
-    save_slot_state(state, player_id, slot)
-
-    return InterrogateResponse(
-        response=witness_response,
-        trust=witness_state.trust,
-        trust_delta=trust_delta,
-        secrets_revealed=secrets_revealed,
-        secret_texts=secret_texts,
-        updated_state=state.model_dump(mode="json"),
-    )
 
 
 @router.post("/interrogate/stream")
@@ -176,96 +44,66 @@ async def _handle_evidence_presentation(
 async def interrogate_witness_stream(
     request: Request,
     body: InterrogateRequest,
+    player_id: str = Depends(get_authenticated_player_id),
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ):
     """Stream witness interrogation response via SSE."""
-    case_data = load_case_or_404(body.case_id)
+    guard = IdempotencyGuard(player_id, "interrogate_stream", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return replay_cached_stream(early)
     try:
-        witness = get_witness(case_data, body.witness_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Witness not found: {body.witness_id}")
-
-    state = load_or_create_state(body.case_id, body.player_id, case_data, slot=body.slot)
-    base_trust = witness.get("base_trust", 50)
-    witness_state = state.get_witness_state(body.witness_id, base_trust)
-
-    case_context = _build_witness_case_context(case_data)
-
-    prompt = build_witness_prompt(
-        witness=witness,
-        trust=witness_state.trust,
-        discovered_evidence=state.discovered_evidence,
-        conversation_history=witness_state.get_history_as_dicts(),
-        player_input=body.question,
-        case_context=case_context,
-    )
-    system_prompt = build_witness_system_prompt(witness.get("name", "Unknown"))
-    client = get_client()
-
-    async def event_generator():
-        full_response = ""
-        t0 = time.monotonic()
+        _, witness, state, witness_state, prep = await asyncio.to_thread(
+            setup_interrogate_stream,
+            body,
+            player_id,
+        )
+    except Exception:
+        guard.fail_before_mutation()
+        raise
+    if prep.mnemonic_delving_redirect:
         try:
-            async for chunk in client.get_response_stream(
-                prompt,
-                system=system_prompt,
-                api_key=llm_config.api_key,
-                model=llm_config.model,
-            ):
-                full_response += chunk
-                yield f"data: {json.dumps({'text': chunk})}\n\n"
-        except Exception as e:
-            log_event(
-                "llm_error",
-                body.player_id,
-                body.case_id,
+            result = await handle_programmatic_mnemonic_delving(
+                body=body,
+                witness=witness,
+                state=state,
+                witness_state=witness_state,
+                llm_config=llm_config,
+                slot=body.slot,
+                player_id=player_id,
+            )
+        except Exception:
+            guard.fail_before_mutation()
+            raise
+        if body.request_id:
+            guard.complete_stream(
+                result.response,
                 {
-                    "endpoint": "interrogate_stream",
-                    "error": str(e)[:200],
-                    "model": llm_config.model,
+                    "done": True,
+                    "trust": result.trust,
+                    "trust_delta": result.trust_delta,
+                    "secrets_revealed": result.secrets_revealed,
+                    "updated_state": result.updated_state,
+                    "meta": {"model": llm_config.model},
+                    "request_id": body.request_id,
                 },
             )
-            logger.error("LLM stream error in interrogate: %s", e)
-            yield f"data: {json.dumps({'error': 'An error occurred while processing your request.'})}\n\n"
-            return
+        return wrap_interrogate_as_sse(result, llm_config.model, body.request_id)
 
-        llm_elapsed_ms = int((time.monotonic() - t0) * 1000)
-
-        secrets_revealed, _ = detect_secrets_in_response(full_response, witness, witness_state)
-
-        trust_delta = adjust_trust(body.question, witness.get("personality", ""))
-        witness_state.adjust_trust(trust_delta)
-        witness_state.add_conversation(
-            question=body.question,
-            response=full_response,
-            trust_delta=trust_delta,
-        )
-        state.update_witness_state(witness_state)
-        save_slot_state(state, body.player_id, body.slot)
-
-        log_event(
-            "witness_questioned",
-            body.player_id,
-            body.case_id,
-            {
-                "witness_id": body.witness_id,
-                "question": body.question[:100],
-            },
-        )
-        if secrets_revealed:
-            log_event(
-                "secret_revealed",
-                body.player_id,
-                body.case_id,
-                {
-                    "witness_id": body.witness_id,
-                    "secrets": secrets_revealed,
-                },
-            )
-
-        yield f"data: {json.dumps({'done': True, 'trust': witness_state.trust, 'secrets_revealed': secrets_revealed, 'updated_state': state.model_dump(mode='json'), 'meta': {'model': llm_config.model, 'latency_ms': llm_elapsed_ms}})}\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return stream_witness_llm(
+        prep,
+        witness,
+        witness_state,
+        state,
+        player_id,
+        body.case_id,
+        body.witness_id,
+        body.slot,
+        llm_config,
+        "interrogate_stream",
+        request=request,
+        idempotency=guard,
+    )
 
 
 @router.post("/interrogate", response_model=InterrogateResponse)
@@ -273,187 +111,80 @@ async def interrogate_witness_stream(
 async def interrogate_witness(
     request: Request,
     body: InterrogateRequest,
+    player_id: str = Depends(get_authenticated_player_id),
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ) -> InterrogateResponse:
-    """Interrogate a witness with a question."""
-    case_data = load_case_or_404(body.case_id)
+    """Interrogate a witness (non-streaming, used by tests)."""
+    guard = IdempotencyGuard(player_id, "interrogate", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return InterrogateResponse.model_validate(early)
+
     try:
-        witness = get_witness(case_data, body.witness_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Witness not found: {body.witness_id}")
+        result = await _interrogate_impl(body, player_id, llm_config)
+    except HTTPException:
+        guard.fail_before_mutation()
+        raise
 
-    state = load_or_create_state(body.case_id, body.player_id, case_data, slot=body.slot)
-    base_trust = witness.get("base_trust", 50)
-    witness_state = state.get_witness_state(body.witness_id, base_trust)
+    guard.complete(result)
+    return result
 
-    # Check for evidence presentation in question
-    evidence_word = detect_evidence_presentation(body.question)
-    if evidence_word:
-        evidence_id = match_evidence_to_inventory(
-            extracted_word=evidence_word,
-            discovered_evidence=state.discovered_evidence,
-            case_data=case_data,
-        )
-        if evidence_id and evidence_id in state.discovered_evidence:
-            return await _handle_evidence_presentation(
-                witness=witness,
-                evidence_id=evidence_id,
-                state=state,
-                witness_state=witness_state,
-                player_id=body.player_id,
-                case_data=case_data,
-                llm_config=llm_config,
-                slot=body.slot,
-            )
 
-    # Spell detection
-    spell_id, target = detect_spell_with_fuzzy(body.question)
-    spell_outcome: str | None = None
+async def _interrogate_impl(
+    body: InterrogateRequest,
+    player_id: str,
+    llm_config: UserLLMConfig,
+) -> InterrogateResponse:
+    load_case_or_404(body.case_id)
+    existing_state = load_slot_state(body.case_id, player_id, body.slot)
+    case_data = load_localized_case_or_404(
+        body.case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
+    witness, state, witness_state = load_witness_context(body, case_data, player_id)
 
-    if spell_id == "legilimency":
-        return await handle_programmatic_legilimency(
+    prep = prepare_interrogation(body, case_data, witness, state, witness_state)
+    if prep.mnemonic_delving_redirect:
+        return await handle_programmatic_mnemonic_delving(
             body=body,
             witness=witness,
             state=state,
             witness_state=witness_state,
             llm_config=llm_config,
             slot=body.slot,
+            player_id=player_id,
         )
-    elif spell_id and spell_id in SAFE_INVESTIGATION_SPELLS:
-        spell_key = spell_id.lower()
-        attempts = witness_state.spell_attempts.get(spell_key, 0)
-        spell_success = calculate_spell_success(
-            spell_id=spell_key,
-            player_input=body.question,
-            attempts_in_location=attempts,
-            location_id=f"witness_{body.witness_id}",
-        )
-        spell_outcome = "SUCCESS" if spell_success else "FAILURE"
-        witness_state.spell_attempts[spell_key] = attempts + 1
-        logger.info(
-            f"Spell Cast on Witness: {spell_id} | Witness: {body.witness_id} | "
-            f"Attempt #{attempts + 1} | Outcome: {spell_outcome}"
-        )
-
-    # Trust adjustment
-    trust_delta = 0
-    if spell_id:
-        invasive_spells = {"prior_incantato", "specialis_revelio"}
-        if spell_id in invasive_spells and witness_state.trust < 70:
-            trust_delta = -5
-    else:
-        trust_delta = adjust_trust(body.question, witness.get("personality", ""))
-
-    witness_state.adjust_trust(trust_delta)
-
-    case_context = _build_witness_case_context(case_data)
-
-    prompt = build_witness_prompt(
-        witness=witness,
-        trust=witness_state.trust,
-        discovered_evidence=state.discovered_evidence,
-        conversation_history=witness_state.get_history_as_dicts(),
-        player_input=body.question,
-        spell_id=spell_id,
-        spell_outcome=spell_outcome,
-        case_context=case_context,
-    )
 
     try:
         client = get_client()
-        system_prompt = build_witness_system_prompt(witness.get("name", "Unknown"))
-        witness_response = await client.get_response(
-            prompt,
-            system=system_prompt,
+        response = await client.get_response(
+            prep.prompt,
+            system=prep.system_prompt,
             api_key=llm_config.api_key,
             model=llm_config.model,
         )
-    except ClaudeClientError as e:
-        raise HTTPException(status_code=503, detail=f"LLM service error: {e}")
+    except Exception as e:
+        raise llm_http_exception(e) from e
 
-    secrets_revealed, secret_texts = detect_secrets_in_response(
-        witness_response, witness, witness_state
-    )
-
-    witness_state.add_conversation(
-        question=body.question,
-        response=witness_response,
-        trust_delta=trust_delta,
-    )
-
-    state.update_witness_state(witness_state)
-    save_slot_state(state, body.player_id, body.slot)
-
-    log_event(
-        "witness_questioned",
-        body.player_id,
+    trust_delta, clean_response, secrets_revealed, secret_texts = await finalize_witness_response(
+        response,
+        witness,
+        witness_state,
+        state,
+        player_id,
         body.case_id,
-        {
-            "witness_id": body.witness_id,
-            "question": body.question[:100],
-        },
+        body.witness_id,
+        body.slot,
+        prep,
     )
-    if secrets_revealed:
-        log_event(
-            "secret_revealed",
-            body.player_id,
-            body.case_id,
-            {
-                "witness_id": body.witness_id,
-                "secrets": secrets_revealed,
-            },
-        )
 
     return InterrogateResponse(
-        response=witness_response,
+        response=clean_response,
         trust=witness_state.trust,
         trust_delta=trust_delta,
         secrets_revealed=secrets_revealed,
         secret_texts=secret_texts,
-        updated_state=state.model_dump(mode="json"),
-    )
-
-
-@router.post("/present-evidence", response_model=PresentEvidenceResponse)
-@limiter.limit(LLM_RATE)
-async def present_evidence(
-    request: Request,
-    body: PresentEvidenceRequest,
-    llm_config: UserLLMConfig = Depends(get_user_llm_config),
-) -> PresentEvidenceResponse:
-    """Present evidence to a witness."""
-    case_data = load_case_or_404(body.case_id)
-    try:
-        witness = get_witness(case_data, body.witness_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Witness not found: {body.witness_id}")
-
-    state = load_or_create_state(body.case_id, body.player_id, case_data, slot=body.slot)
-
-    if body.evidence_id not in state.discovered_evidence:
-        raise HTTPException(status_code=400, detail=f"Evidence not discovered: {body.evidence_id}")
-
-    base_trust = witness.get("base_trust", 50)
-    witness_state = state.get_witness_state(body.witness_id, base_trust)
-
-    result = await _handle_evidence_presentation(
-        witness=witness,
-        evidence_id=body.evidence_id,
-        state=state,
-        witness_state=witness_state,
-        player_id=body.player_id,
-        case_data=case_data,
-        llm_config=llm_config,
-        slot=body.slot,
-    )
-
-    return PresentEvidenceResponse(
-        response=result.response,
-        trust=result.trust,
-        trust_delta=result.trust_delta,
-        secrets_revealed=result.secrets_revealed,
-        secret_texts=result.secret_texts,
-        updated_state=result.updated_state,
+        updated_state=state_delta(state),
     )
 
 
@@ -462,95 +193,131 @@ async def present_evidence(
 async def present_evidence_stream(
     request: Request,
     body: PresentEvidenceRequest,
+    player_id: str = Depends(get_authenticated_player_id),
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ):
     """Stream evidence presentation response via SSE."""
-    case_data = load_case_or_404(body.case_id)
+    guard = IdempotencyGuard(player_id, "present_evidence_stream", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return replay_cached_stream(early)
     try:
-        witness = get_witness(case_data, body.witness_id)
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Witness not found: {body.witness_id}")
+        _, witness, state, witness_state, prep = await asyncio.to_thread(
+            setup_present_evidence_stream,
+            body,
+            player_id,
+        )
+    except Exception:
+        guard.fail_before_mutation()
+        raise
 
-    state = load_or_create_state(body.case_id, body.player_id, case_data, slot=body.slot)
+    return stream_witness_llm(
+        prep,
+        witness,
+        witness_state,
+        state,
+        player_id,
+        body.case_id,
+        body.witness_id,
+        body.slot,
+        llm_config,
+        "present_evidence_stream",
+        use_natural_warming=False,
+        request=request,
+        idempotency=guard,
+    )
+
+
+@router.post("/present-evidence", response_model=PresentEvidenceResponse)
+@limiter.limit(LLM_RATE)
+async def present_evidence(
+    request: Request,
+    body: PresentEvidenceRequest,
+    player_id: str = Depends(get_authenticated_player_id),
+    llm_config: UserLLMConfig = Depends(get_user_llm_config),
+) -> PresentEvidenceResponse:
+    """Present evidence to a witness (non-streaming, used by tests)."""
+    guard = IdempotencyGuard(player_id, "present_evidence", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return PresentEvidenceResponse.model_validate(early)
+
+    try:
+        result = await _present_evidence_impl(body, player_id, llm_config)
+    except HTTPException:
+        guard.fail_before_mutation()
+        raise
+
+    guard.complete(result)
+    return result
+
+
+async def _present_evidence_impl(
+    body: PresentEvidenceRequest,
+    player_id: str,
+    llm_config: UserLLMConfig,
+) -> PresentEvidenceResponse:
+    load_case_or_404(body.case_id)
+    existing_state = load_slot_state(body.case_id, player_id, body.slot)
+    case_data = load_localized_case_or_404(
+        body.case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
+    witness, state, witness_state = load_witness_context(body, case_data, player_id)
 
     if body.evidence_id not in state.discovered_evidence:
         raise HTTPException(status_code=400, detail=f"Evidence not discovered: {body.evidence_id}")
 
-    base_trust = witness.get("base_trust", 50)
-    witness_state = state.get_witness_state(body.witness_id, base_trust)
+    prep = prepare_evidence_presentation(body, case_data, witness, witness_state, state=state)
 
-    prompt, system_prompt, evidence_name, trust_delta = _build_evidence_prompt(
-        witness, body.evidence_id, witness_state, case_data,
+    try:
+        client = get_client()
+        response = await client.get_response(
+            prep.prompt,
+            system=prep.system_prompt,
+            api_key=llm_config.api_key,
+            model=llm_config.model,
+        )
+    except Exception as e:
+        raise llm_http_exception(e) from e
+
+    trust_delta, clean_response, secrets_revealed, secret_texts = await finalize_witness_response(
+        response,
+        witness,
+        witness_state,
+        state,
+        player_id,
+        body.case_id,
+        body.witness_id,
+        body.slot,
+        prep,
+        use_natural_warming=False,
     )
-    client = get_client()
 
-    async def event_generator():
-        full_response = ""
-        t0 = time.monotonic()
-        try:
-            async for chunk in client.get_response_stream(
-                prompt,
-                system=system_prompt,
-                api_key=llm_config.api_key,
-                model=llm_config.model,
-            ):
-                full_response += chunk
-                yield f"data: {json.dumps({'text': chunk})}\n\n"
-        except Exception as e:
-            log_event(
-                "llm_error",
-                body.player_id,
-                body.case_id,
-                {
-                    "endpoint": "present_evidence_stream",
-                    "error": str(e)[:200],
-                    "model": llm_config.model,
-                },
-            )
-            logger.error("LLM stream error in present_evidence: %s", e)
-            yield f"data: {json.dumps({'error': 'An error occurred while processing your request.'})}\n\n"
-            return
-
-        llm_elapsed_ms = int((time.monotonic() - t0) * 1000)
-
-        secrets_revealed, _ = detect_secrets_in_response(
-            full_response, witness, witness_state
-        )
-
-        witness_state.add_conversation(
-            question=f"What do you know about {evidence_name}?",
-            response=full_response,
-            trust_delta=trust_delta,
-        )
-        state.update_witness_state(witness_state)
-        save_slot_state(state, body.player_id, body.slot)
-
-        log_event(
-            "evidence_presented",
-            body.player_id,
-            body.case_id,
-            {
-                "witness_id": body.witness_id,
-                "evidence_id": body.evidence_id,
-            },
-        )
-
-        yield f"data: {json.dumps({'done': True, 'trust': witness_state.trust, 'trust_delta': trust_delta, 'secrets_revealed': secrets_revealed, 'updated_state': state.model_dump(mode='json'), 'meta': {'model': llm_config.model, 'latency_ms': llm_elapsed_ms}})}\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    return PresentEvidenceResponse(
+        response=clean_response,
+        trust=witness_state.trust,
+        trust_delta=trust_delta,
+        secrets_revealed=secrets_revealed,
+        secret_texts=secret_texts,
+        updated_state=state_delta(state),
+    )
 
 
 @router.get("/witnesses", response_model=list[WitnessInfo])
 async def get_witnesses(
     case_id: str = "case_001",
-    player_id: str = "default",
+    player_id: str = Depends(get_authenticated_player_id),
     slot: str = "autosave",
+    language: str | None = Query(default=None, pattern=r"^[a-zA-Z]{2}$"),
 ) -> list[WitnessInfo]:
     """List available witnesses with current trust levels."""
-    case_data = load_case_or_404(case_id)
-    witness_ids = list_witnesses(case_data)
     state = load_slot_state(case_id, player_id, slot)
-
+    case_data = load_localized_case_or_404(
+        case_id,
+        language or (getattr(state, "language", "en") if state else "en"),
+    )
+    witness_ids = list_witnesses(case_data)
     witnesses: list[WitnessInfo] = []
     for witness_id in witness_ids:
         witness = get_witness(case_data, witness_id)
@@ -579,17 +346,19 @@ async def get_witnesses(
 async def get_witness_info(
     witness_id: str,
     case_id: str = "case_001",
-    player_id: str = "default",
+    player_id: str = Depends(get_authenticated_player_id),
     slot: str = "autosave",
 ) -> WitnessInfo:
     """Get single witness info with current trust level."""
-    case_data = load_case_or_404(case_id)
+    state = load_slot_state(case_id, player_id, slot)
+    case_data = load_localized_case_or_404(
+        case_id,
+        getattr(state, "language", "en") if state else "en",
+    )
     try:
         witness = get_witness(case_data, witness_id)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Witness not found: {witness_id}")
-
-    state = load_slot_state(case_id, player_id, slot)
 
     if state and witness_id in state.witness_states:
         ws = state.witness_states[witness_id]

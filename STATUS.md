@@ -1,8 +1,9 @@
 # Project Status
 
-**Version:** 2.0.0 (Case Redesign + Evidence Interpretation)
-**Last Updated:** 2026-04-09
-**Current Phase:** Phase 7 (Production Readiness)
+**Version:** 2.3.0 (Primary web game + secondary Telegram beta + EN/RU localization)
+**Last Updated:** 2026-07-17
+**Current Branch:** `feat/evidence-detection-natural-language`
+**Current Phase:** Web primary; Telegram secondary-client beta deployment
 **Type Safety Grade:** A
 
 ---
@@ -11,196 +12,157 @@
 
 | Category | Status | Notes |
 |----------|--------|-------|
-| Backend | ✅ Production Ready | Python 3.13, FastAPI, PostgreSQL (Neon), ~697/759 tests passing (91.8%) |
+| Backend | ✅ Ready | Python 3.13, FastAPI, SQLite (`/app/saves`), **898 pass / 4 skip** |
 | Frontend | ✅ Production Ready | React 18, TypeScript 5.6, Zod validation, 0 TS errors |
+| Telegram | ✅ Secondary beta implemented | Bun + Hono + grammY gateway, durable jobs, Mini App, EN/RU, Case 001; web remains primary |
 | Type Safety | ✅ Grade A | Compile-time (0 TS errors) + runtime (Zod) validation |
-| Security | ✅ Clean | 0 vulnerabilities (audited 2026-04-06) |
-| Builds | ✅ Success | Frontend 112.45 KB gzipped |
-| LLM | ✅ BYOK + Streaming | Free tier: MiMo-V2-Flash, BYOK via Settings, SSE streaming |
-| Music | ✅ Complete | Per-case ambience with volume/play/mute, localStorage persistence |
-| Cases | 🔄 Case 001 redesigned | Dobby culprit, witness_reactions data ready, system TBD |
+| LLM | ✅ BYOK + Streaming | Multi-provider via LiteLLM, SSE streaming |
+| Saves | ✅ Stable | Server-authoritative SQLite, autosave + 3 manual slots, HMAC player tokens |
+| Cases | ✅ Case 001 playable | Wisp redesign live; English/Russian authored localization; paragraph-safe prose rendering |
+| Docs | ✅ Updated | Telegram implementation/deployment plans and current status documented |
 
 ---
 
 ## 🔄 In Progress
 
-### Witness Evidence Reaction System
-- `witness_reactions` data written into case_001.yaml for every evidence piece
-- Each witness has a one-line interpretation per evidence item
-- **No backend/frontend system yet** — next step is designing the mechanic (UX discussion pending)
-- Question: button ("show evidence"), automatic during conversation, or something else?
+### Telegram secondary-client beta deployment
+- Branch: `feat/evidence-detection-natural-language`
+- Code is implemented and validated locally. This is an optional secondary client, not a replacement for the web game.
+- Remaining owner steps: apply migration SQL, configure production secrets, build/deploy the Telegram service, set webhook, and run the production smoke test.
+- Production host: `bot.thelantern.institute`
+
+### Future Telegram product work
+- Add additional authored localized cases.
+- Implement paid-case entitlement purchases with Telegram Stars when a paid case exists.
+- Expand Mini App polish after beta feedback.
+
+### Lore compliance (Case 001)
+- ✅ Fixed: pear kitchen gag → service bell + warded pantry hatch; `healing potion winky` → `pippa`; Graves `Restricted Section` → `Sealed Stacks`
+- Remaining medium echoes: `Minerva` Whitmore, `Great Hall`, prefect/Head Boy/castle language, Hand of Glory / Moste Potente Alchemy
 
 ---
 
 ## ✅ Recent Completions
 
-### 2026-04-10 — Issue #7: Dynamic LLM model catalog from OpenRouter API
-- Status: done
-- Changes: Created `api/model_catalog.py` — fetches models from OpenRouter API, caches 24h, filters to text-only chat models. Direct providers (anthropic/openai/google) get top 5 most recent; OpenRouter gets top 10 exclusive models. Fixed frontend filter, added `httpx` runtime dep, remaps IDs for LiteLLM (google→gemini, openrouter prefix).
+### 2026-06-20 — Matthew rename + briefing + lore fixes
+- **Matthew refactor:** `tom` / `inner_voice` → `matthew` across API (`/api/matthew/*`), context modules, frontend hooks/components; backward compat for legacy save fields and `"tom"` message type
+- **Briefing skip:** `SKIP_BRIEFING_CALIBRATION_AND_ENGAGEMENT = true` — dossier only, then start investigation
+- **Location assets:** `iron_lodge_common_room.*`, `librarian_office.*` copied from legacy portrait names
+- **Lore pass:** bound familiars (not elves), case 002 `M.S.` initials, CASE_DESIGN_GUIDE / case-file doc fixes
+- **Case 001 HP leaks (critical):** kitchen access, Whitmore keyword, Graves wrong-suspect text
 
-### 2026-04-09 — Issue #9: Narrator em dash spacing
-- Status: done
-- Changes: Added system rule to `build_system_prompt()` in `context/narrator.py` — max one em dash per response, spaces required around it
+### 2026-07-17 — Telegram gateway, Mini App, and localization
+- **Telegram gateway:** Bun/Hono/grammY webhook and local polling modes, durable SQLite update/job queue, idempotent engine mutations, serial per-player processing, retry-safe Telegram delivery, health/metrics, and secret-safe structured logs.
+- **Telegram play loop:** English/Russian onboarding, freeform investigation and witness messages, inline Casebook/Evidence/Witnesses/Move/Verdict buttons, autosave, 40 LLM turns per UTC day, and Case 001 verdict flow.
+- **Mini App:** authenticated Casebook, Evidence, Witnesses, and Verdict routes with Telegram `initData` validation, signed sessions, CSRF, origin checks, and feature flags.
+- **Localization:** dedicated Russian Case 001 overlay with stable mechanics IDs; English and Russian names/descriptions for locations, witnesses, evidence, briefing, verdict, and Telegram UI.
+- **Prose rendering:** case loader folds authored line wraps into spaces while preserving blank lines as paragraphs across web, Telegram, and case discovery.
+- **Deployment:** `Dockerfile.telegram`, Compose service on `bot.thelantern.institute`, shared proxy network, Telegram data volume, and phase-specific deployment/runbook docs.
 
-### 2026-04-09 — planner (routing)
-- Created PRP for react-router-dom URL navigation
-- **File created**: PRPs/PRP-ROUTING.md
-- **Scope**: BrowserRouter wrapper, `/` landing, `/case/:caseId` game, remove session localStorage, fix SaveLoadModal reload, update test providers
-- **Confidence**: 8/10
-- **Handoff to**: react-vite-specialist (Tasks 1-6) → validation-gates
+### 2026-06-19 — Medium review + deploy verification
+- Model catalog lock, spell detection unified, CORS tighten, telemetry safety
+- Frontend: autosave slot naming, `ensureSession` 401 recovery, location roundtrip cuts
+- Location switch restores per-location `conversation_history` from `updated_state`
+- Deploy verified: `lantern.db` active; legacy JSON saves are artifacts only
+- Restart/save: cache invalidation on delete/reset, location localStorage cleared on restart
 
-### 2026-04-09 — planner
-- Created PRP for layout redesign + hints toggle
-- **File created**: PRPs/PRP-LAYOUT-REDESIGN.md
-- **Scope**: Merged header, sidebar image+3 modal buttons, hints toggle (localStorage), simplified input area
-- **Confidence**: 8/10
-- **Handoff to**: react-vite-specialist (Tasks 1-7) → validation-gates
+### 2026-05/06 — 5-wave refactor (50 items)
+- Auth: HMAC player tokens, IDOR fix — all routes require `X-Player-Token`
+- State: SQLite + bounded LRU cache, slot semantics (autosave snapshots)
+- SSE: keepalives, post-LLM try/except, witness history cap (50)
+- Baseline after waves: 867 pass, 4 skip
 
-### 2026-04-07 — Case 001 Full Redesign
-- Complete `case_001.yaml` rewrite (~1900 lines)
-- **New culprit**: Dobby (was Draco) — slave following Lucius's orders to protect Draco
-- **Three-phase misdirection**: Hermione (early, motive) → Draco (mid, evidence avalanche) → Dobby (late, "something doesn't fit")
-- **Raw evidence**: All descriptions are observations only, no self-interpreting conclusions
-- **New evidence**: `dual_shimmer`, `kitchen_log`, `dobby_frostbite`, `lucius_order`, `hermione_book_slip`
-- **Witness reactions**: Per-evidence one-liner for each witness showing how they'd interpret it
-- **Dobby's slavery as moral core**: Can a slave be held responsible for following orders?
-- Backup at `case_001_backup_v2.yaml`
-
-### 2026-04-07 — Case 002 Consistency Fixes
-- Vector's lie conditions: evidence-gated → trust-based (`trust<60`)
-- Added `not_present` sections to all 4 locations
-- Migrated 20 evidence items from `triggers` to `discovery_guidance`
-- Fixed Filch's knowledge (specific → vague)
-- All 73 related tests pass
-
-### 2026-04-07 — Markdown Rendering Fix
-- Added `renderInlineMarkdown` to 8 components showing LLM text
-- Fixed: LocationView, WitnessInterview, BriefingDossier, BriefingMessage, BriefingQuestion, BriefingEngagement, ConfrontationDialogue, EvidenceModal
-- Bold/italic was showing raw `*asterisks*` — now renders properly
-
-### 2026-04-07 — Save System Overhaul (JSON → PostgreSQL)
-- **Per-player saves**: Anonymous UUID via `crypto.randomUUID()` in localStorage
-- **Slot system**: autosave (continuous) + 3 manual slots (snapshots of autosave)
-- **All API calls** now pass `player_id` + `slot: 'autosave'` — no more shared `default` player
-- **Manual save**: Named slots snapshot full autosave state (conversation, witnesses, briefing, etc.)
-- **Manual load**: Backend copies named slot → autosave, frontend resumes from autosave
-- **PostgreSQL migration**: JSON files → Neon PostgreSQL (`saves` table with JSONB column)
-- **Single cached connection** with autocommit — fast after initial Neon cold-start
-- Frontend `client.ts`: slot/player_id added to all 15+ API functions
-- Backend `persistence.py`: full rewrite from file I/O to SQL (same function signatures, zero changes to routes)
-- Deleted `localSaves.ts`, removed all localStorage save logic
-
-### 2026-04-07 — Routes Modularization & Rate Limiting
-- 3600-line routes.py split into 7 submodules
-- slowapi on all 11 LLM endpoints
-- Code review found 14 issues (1 critical, 4 major) — some still pending
+### 2026-04-07 — Case 001 redesign + save system
+- Culprit: Wisp (layered magic twist); three-phase misdirection Elena → Cassian → Wisp
+- Raw evidence descriptions; `witness_reactions` per evidence
+- Per-player UUID saves, JSON → SQLite, slot-aware API
 
 ---
 
 ## Architecture
 
-**Backend:** Python 3.13.3 + FastAPI + LiteLLM 1.57+ (multi-provider)
-- State: PostgreSQL (Neon) — `saves` table with JSONB, 4 slots per player
+**Backend:** Python 3.13 + FastAPI + LiteLLM
+- **State:** `PlayerState` in SQLite (`saves/lantern.db`), 4 slots per `(player_id, case_id)`
+- **Pattern:** Load → mutate → save per action; LLM prose + programmatic extractors (`[EVIDENCE:]`, `[TRUST_DELTA:]`, secret text scoring)
+- **Secrets:** LLM decides whether to reveal (trust/pressure prompt); server detects revelation via `score_secret_revelation` — YAML `trigger` fields parsed but **not enforced** in witness routes
 - Start: `cd backend && uv run uvicorn src.main:app --reload`
 
-**Frontend:** React 18 + TypeScript 5.6 + Vite 6 + Tailwind
-- Validation: Zod (24 schemas)
-- Bundle: ~112 KB gzipped
+**Telegram secondary client:** Bun + Hono + grammY + Vite/React
+- Gateway owns Telegram identity, modes, durable jobs, daily usage, localization presentation, and Mini App sessions.
+- FastAPI remains source of truth for both clients. The web client is the primary full-featured player experience; Telegram is a constrained chat-first surface.
+- Start locally: `cd telegram && ~/.bun/bin/bun run dev:poll`
+
+**Frontend:** React 18 + TypeScript + Vite + Tailwind
+- Thin client state; full progress on server
+- Zod `.strict()` schemas mirror Pydantic responses
 - Start: `cd frontend && ~/.bun/bin/bun run dev`
 
 ---
 
 ## What's Working
 
-- **Investigation**: Freeform LLM narrator, evidence discovery (semantic guidance, 5+ variants)
-- **Witnesses**: Interrogation, trust mechanics, secret revelation via evidence
-- **Spells**: 7 investigation spells (text casting), Legilimency (formula-based)
-- **Verdict**: Submission, fallacy detection, post-verdict confrontation
-- **Briefing**: Moody Q&A system
-- **Tom**: Ghost mentor (50/50 helpful/misleading)
-- **UI**: Main menu, 3 locations (clickable + keys 1-3), save/load (4 slots), inline markdown
-- **Cases**: Landing page with case selection, YAML-based case creation, 2 playable cases
-- **Music**: Per-case background music (auto-detection, volume control, track switching)
-- **LLM**: Multi-provider BYOK (OpenRouter/Anthropic/OpenAI/Google), SSE streaming
+- Investigation (LLM narrator, evidence tags, spells, location nav)
+- Witnesses (interrogation, trust deltas, programmatic secret detection, present evidence)
+- Verdict (fallacy detection, confrontation, wrong-suspect feedback)
+- Briefing (dossier; calibration/engagement skippable via feature flag)
+- Matthew spirit companion (auto-comments + chat)
+- Save/load (autosave + 3 slots, export/import JSON)
+- Music, BYOK, SSE streaming, case landing page
+- Primary web game: full investigation, rites, witnesses, verdict, saves, music, Matthew, and multi-provider LLM support
+- Secondary Telegram bot and Mini App beta path (Case 001, English/Russian)
 
-**Known Issues:**
-- Frontend tests: 377/565 passing (pre-existing test infrastructure)
-- mypy: 14 type errors in non-core modules
-- Code review critical/major issues pending fix (routes refactor)
-- Case 001 tests may need updating (evidence IDs changed, culprit changed)
-
----
-
-## Completed Phases
-
-| Phase | Date | Description |
-|-------|------|-------------|
-| P1 | 2026-01-05 | Core investigation, evidence discovery |
-| P2-2.5 | 2026-01-06 | Witness interrogation, trust mechanics, UI polish |
-| P3-3.9 | 2026-01-07 | Verdict system, briefing, Moody Q&A |
-| P4.1-4.8 | 2026-01-09–12 | Tom LLM mentor, 7 spells, Legilimency |
-| P5.1-5.8 | 2026-01-12–17 | Menu, locations, save/load, landing page, case infra, YAML schema, type safety (Grade A) |
-| P6 | 2026-01-17 | First complete cases (001 & 002), balance testing, playtesting |
-| P6.5 | 2026-01-18 | Investigation layout redesign (70/30 split, horizontal tabs) |
-| Music | 2026-01-24 | Client-side music ambience (auto-detect, track switching, localStorage) |
-| Multi-LLM | 2026-01-23 | Multi-provider via LiteLLM, BYOK settings UI |
-| Rate Limiting | 2026-04-06 | slowapi on all LLM endpoints, request size limits, routes modularization |
-| Case Redesign | 2026-04-07 | Case 001 Dobby rewrite, case 002 fixes, markdown rendering, slot saves |
-| Save System | 2026-04-07 | Per-player UUID saves, slot-aware API, JSON → PostgreSQL (Neon) |
+**Known issues:**
+- Web remains the primary product; Telegram intentionally supports a smaller Case 001 surface and omits several web features.
+- Telegram production deployment still requires owner-run SQL migrations, production secrets, webhook registration, and smoke testing.
+- Telegram currently exposes Case 001; additional cases need authored locale overlays before Russian release.
+- Frontend suite still contains 134 todo tests; no current type errors.
+- `check_secret_triggers()` exists but remains unused in live witness flow.
 
 ---
 
 ## What's Next
 
+**Before public Telegram secondary-client beta:**
+1. Apply `backend/migrations/2026-07-17-idempotency-records.sql` and Telegram gateway migrations.
+2. Configure production env values and deploy with `./deploy.sh`.
+3. Register Telegram webhook and verify `/health`, onboarding, first clue, first interview, first verdict, and solved-case funnel.
+4. Run full validation (`backend`, `frontend`, and `telegram` suites) after deployment.
+
 **Immediate:**
-1. Design witness evidence reaction system (how players show evidence to witnesses)
-2. Fix critical/major issues from code review (API key leak in SSE errors, CORS, Dockerfile)
-3. Update case 001 tests for new evidence IDs and culprit
+1. Collect Telegram beta feedback and fix onboarding/play-loop friction.
+2. Add authored locale overlays for future cases.
+3. Decide witness evidence reaction UX for richer Telegram interactions.
 
-**Phase 6.5 — UI/UX & Visual Polish:**
-1. Improve overall style — more HP vibes, lighter UX
-2. Add artwork to locations and screens
-3. Light theme option
-
-**Phase 7 — Production Preparation:**
-1. Key manager for server (Infisical or similar)
-2. Production hardening (security headers, CORS config, error sanitization)
-3. ~~Test saves after deployment~~ ✅ Saves migrated to PostgreSQL (Neon)
+**Phase 7 — Production:**
+1. Key manager (Infisical or similar)
+2. Security headers, CORS hardening, error sanitization
 
 **Future:**
-- Phase 7.5: Bayesian Probability Tracker (optional teaching tool)
-- Phase 8: Meta-Narrative (expansion content)
-- Additional cases (3, 4, 5)
-
----
-
-## Ideas & Open Problems
-
-**Monetization:** HP IP can't monetize directly — free samples / community lead magnets. Free tier: MiMo-V2-Flash. BYOK for power users. Paid tier via Stripe or alternative. Telegram bot for Russian audience.
-
-**Technical:** Simple landing page + account management (open-source auth). Alternative payment processors research needed.
-
-**Content:** Polish existing cases, improve verdict flow, more cases.
+- Additional cases (003+)
+- Meta-narrative / Argent Veil arc
+- Bayesian probability tracker (optional teaching tool)
 
 ---
 
 ## Key Documents
 
-- `PLANNING.md` — Roadmap, priorities, backlog
-- `CHANGELOG.md` — Version history
-- `docs/game-design/AUROR_ACADEMY_GAME_DESIGN.md` — Game design
-- `docs/CASE_DESIGN_GUIDE.md` — Case creation guidelines
-- `docs/planning/PRP-LOCALSTORAGE-SAVES.md` — Save migration PRP
-- `docs/planning/PRP-SLOT-AWARE-SAVES.md` — Slot-aware saves PRP
-- `PRPs/PRP-TELEMETRY.md` — Telemetry system PRP (ready)
+| Doc | Purpose |
+|-----|---------|
+| `CLAUDE.md` | Dev guide (root) |
+| `backend/CLAUDE.md` | Backend architecture index |
+| `frontend/CLAUDE.md` | Frontend architecture index |
+| `docs/case-files/CASE_DESIGN_GUIDE.md` | Case authoring |
+| `docs/case-files/STORY_DESIGN_METHOD.md` | Narrative design method |
+| `README.md` | Setup and run instructions |
+
+---
 
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Backend Tests | ~697/759 (91.8%) |
-| Frontend Tests | 377/565 (66.7%) |
-| Bundle Size | 112.45 KB gzipped |
-| Dependencies | 0 vulnerabilities |
+| Backend Tests | 898 pass / 4 skip (2026-07-17) |
+| Frontend Tests | 332 pass / 2 skip / 134 todo |
+| Telegram Tests | 55 pass (2026-07-17) |
 | TypeScript Errors | 0 |
-| ESLint Errors | 0 |
+| License | MIT |

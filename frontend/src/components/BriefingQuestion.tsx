@@ -2,7 +2,7 @@
  * BriefingQuestion Component
  *
  * Displays a single teaching question slide with multiple choice inputs.
- * Part of the Briefing Wizard.
+ * Part of the Briefing Initiate.
  *
  * @module components/BriefingQuestion
  */
@@ -18,7 +18,7 @@ interface BriefingQuestionProps {
     onSelectChoice: (choiceId: string) => void;
     /** Currently selected choice ID (null if none selected) */
     selectedChoiceId: string | null;
-    /** Moody's response to the selected choice */
+    /** Graves's response to the selected choice */
     choiceResponse: string | null;
     /** Callback when player continues to next step */
     onContinue: () => void;
@@ -40,7 +40,7 @@ export function BriefingQuestion({
             {/* Question Prompt */}
             <div className={`mb-8 p-4 ${theme.colors.bg.semiTransparent} border-l-2 ${theme.colors.border.default}`}>
                 <div className={`${theme.typography.caption} mb-2`}>
-                    MOODY'S QUERY:
+                    GRAVES'S QUERY:
                 </div>
                 <div className={theme.typography.body}>
                     "{question.prompt}"
@@ -83,10 +83,10 @@ export function BriefingQuestion({
             {/* Feedback & Continue */}
             {selectedChoiceId && (
                 <div className="mt-auto animate-fadeIn">
-                    {/* Moody's Response */}
+                    {/* Graves's Response */}
                     {choiceResponse && (
                         <div className={`mb-4 p-4 ${theme.colors.bg.primary} border ${theme.colors.border.default}`}>
-                            <span className={`${theme.typography.caption} mr-2`}>MOODY:</span>
+                            <span className={`${theme.typography.caption} mr-2`}>GRAVES:</span>
                             <span className={theme.typography.body}>{renderInlineMarkdown(choiceResponse)}</span>
                         </div>
                     )}

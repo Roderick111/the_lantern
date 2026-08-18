@@ -25,8 +25,8 @@ def test_verdict_request_validation():
         valid_request = SubmitVerdictRequest(
             case_id="case_001",
             player_id="default",
-            accused_suspect_id="draco",
-            reasoning="The evidence shows Draco is guilty.",
+            accused_suspect_id="cassian",
+            reasoning="The evidence shows Cassian is guilty.",
             evidence_cited=["evidence_1", "evidence_2"],
         )
         print(f"SUCCESS: {valid_request.model_dump()}")
@@ -38,8 +38,8 @@ def test_verdict_request_validation():
     print("-" * 70)
     try:
         default_request = SubmitVerdictRequest(
-            accused_suspect_id="draco",
-            reasoning="The evidence shows Draco is guilty.",
+            accused_suspect_id="cassian",
+            reasoning="The evidence shows Cassian is guilty.",
         )
         print(f"SUCCESS: {default_request.model_dump()}")
     except ValidationError as e:
@@ -50,8 +50,8 @@ def test_verdict_request_validation():
     print("-" * 70)
     try:
         empty_evidence_request = SubmitVerdictRequest(
-            accused_suspect_id="draco",
-            reasoning="The evidence shows Draco is guilty.",
+            accused_suspect_id="cassian",
+            reasoning="The evidence shows Cassian is guilty.",
             evidence_cited=[],
         )
         print(f"SUCCESS: {empty_evidence_request.model_dump()}")
@@ -64,7 +64,7 @@ def test_verdict_request_validation():
     try:
         invalid_request = SubmitVerdictRequest(
             accused_suspect_id="",  # Invalid: min_length=1
-            reasoning="The evidence shows Draco is guilty.",
+            reasoning="The evidence shows Cassian is guilty.",
         )
         print(f"SUCCESS: {invalid_request.model_dump()}")
     except ValidationError as e:
@@ -75,7 +75,7 @@ def test_verdict_request_validation():
     print("-" * 70)
     try:
         invalid_request = SubmitVerdictRequest(
-            accused_suspect_id="draco",
+            accused_suspect_id="cassian",
             reasoning="",  # Invalid: min_length=1
         )
         print(f"SUCCESS: {invalid_request.model_dump()}")
@@ -88,7 +88,7 @@ def test_verdict_request_validation():
     try:
         long_reasoning = "x" * 2001  # Invalid: max_length=2000
         invalid_request = SubmitVerdictRequest(
-            accused_suspect_id="draco",
+            accused_suspect_id="cassian",
             reasoning=long_reasoning,
         )
         print(f"SUCCESS: {invalid_request.model_dump()}")
@@ -101,8 +101,8 @@ def test_verdict_request_validation():
     try:
         invalid_request = SubmitVerdictRequest(
             case_id="case 001",  # Invalid: pattern doesn't allow spaces
-            accused_suspect_id="draco",
-            reasoning="The evidence shows Draco is guilty.",
+            accused_suspect_id="cassian",
+            reasoning="The evidence shows Cassian is guilty.",
         )
         print(f"SUCCESS: {invalid_request.model_dump()}")
     except ValidationError as e:
@@ -116,7 +116,7 @@ def test_verdict_request_validation():
 {
   "case_id": "case_001",           // Default: "case_001", pattern: ^[a-zA-Z0-9_-]+$
   "player_id": "default",          // Default: "default", pattern: ^[a-zA-Z0-9_-]+$
-  "accused_suspect_id": "draco",   // REQUIRED, min_length: 1, pattern: ^[a-zA-Z0-9_-]+$
+  "accused_suspect_id": "cassian",   // REQUIRED, min_length: 1, pattern: ^[a-zA-Z0-9_-]+$
   "reasoning": "The frost...",     // REQUIRED, min_length: 1, max_length: 2000
   "evidence_cited": ["e1", "e2"]   // Default: [], list of evidence IDs
 }

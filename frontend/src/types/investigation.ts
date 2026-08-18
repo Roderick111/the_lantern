@@ -12,6 +12,11 @@
 // API Request Types
 // ============================================
 
+import type { StreamFailure } from '../api/base';
+
+/** Valid save slot names (matches backend SaveSlotName Literal). */
+export type SaveSlotName = 'autosave' | 'slot_1' | 'slot_2' | 'slot_3';
+
 /**
  * Request payload for the /api/investigate endpoint
  */
@@ -22,10 +27,10 @@ export interface InvestigateRequest {
   case_id?: string;
   /** Current location ID (defaults to "library") */
   location_id?: string;
-  /** Player identifier for state tracking (defaults to "default") */
-  player_id?: string;
   /** Save slot for state persistence (defaults to "autosave") */
-  slot?: string;
+  slot?: SaveSlotName;
+  /** Stable id reused when retrying this turn. */
+  request_id?: string;
 }
 
 /**
@@ -69,7 +74,7 @@ export interface SaveResponse {
  */
 export interface ConversationMessage {
   /** Message type */
-  type: 'player' | 'narrator' | 'tom';
+  type: 'player' | 'narrator' | 'matthew' | 'tom';
   /** Message text content */
   text: string;
   /** Unix timestamp in milliseconds */
@@ -92,6 +97,9 @@ export interface LoadResponse {
   conversation_history?: ConversationMessage[] | null;
   /** Narrator verbosity style (Phase 5.7) */
   narrator_verbosity?: 'concise' | 'storyteller' | 'atmospheric';
+  assistance_mode?: 'normal' | 'easy';
+  /** Game response language */
+  language?: string;
 }
 
 /**
@@ -150,6 +158,9 @@ export interface InvestigationState {
   readonly visited_locations: readonly string[];
   /** Narrator verbosity style */
   readonly narrator_verbosity?: 'concise' | 'storyteller' | 'atmospheric';
+  readonly assistance_mode?: 'normal' | 'easy';
+  /** Game response language */
+  readonly language?: string;
 }
 
 /**
@@ -168,6 +179,10 @@ export interface ConversationItem {
   evidence_names?: Record<string, string>;
   /** Timestamp of the interaction */
   timestamp: Date;
+  /** Stable id reused when retrying this turn. */
+  requestId?: string;
+  status?: 'streaming' | 'complete' | 'failed';
+  failure?: StreamFailure;
 }
 
 // ============================================
@@ -214,6 +229,12 @@ export interface WitnessConversationItem {
   timestamp: string;
   /** Trust change from this exchange */
   trust_delta?: number;
+  requestId?: string;
+  status?: 'streaming' | 'complete' | 'failed';
+  failure?: StreamFailure;
+  operation?: 'interrogate' | 'present_evidence';
+  evidenceId?: string;
+  evidenceName?: string;
 }
 
 /**
@@ -246,10 +267,9 @@ export interface InterrogateRequest {
   question: string;
   /** Case identifier */
   case_id?: string;
-  /** Player identifier */
-  player_id?: string;
   /** Save slot (defaults to "autosave") */
-  slot?: string;
+  slot?: SaveSlotName;
+  request_id?: string;
 }
 
 /**
@@ -278,10 +298,9 @@ export interface PresentEvidenceRequest {
   evidence_id: string;
   /** Case identifier */
   case_id?: string;
-  /** Player identifier */
-  player_id?: string;
   /** Save slot (defaults to "autosave") */
-  slot?: string;
+  slot?: SaveSlotName;
+  request_id?: string;
 }
 
 /**
@@ -338,7 +357,7 @@ export interface MentorFeedbackData {
  * Single line of dialogue in confrontation
  */
 export interface DialogueLine {
-  /** Speaker identifier (moody, player, suspect name) */
+  /** Speaker identifier (graves, player, suspect name) */
   speaker: string;
   /** Dialogue text */
   text: string;
@@ -406,7 +425,7 @@ export interface TeachingChoice {
   id: string;
   /** Display text for the choice */
   text: string;
-  /** Moody's response when this choice is selected */
+  /** Graves's response when this choice is selected */
   response: string;
 }
 
@@ -470,7 +489,7 @@ export interface BriefingContent {
 export interface BriefingConversation {
   /** Player's question */
   question: string;
-  /** Moody's answer */
+  /** Graves's answer */
   answer: string;
 }
 
@@ -478,7 +497,7 @@ export interface BriefingConversation {
  * Response from POST /api/briefing/{case_id}/question
  */
 export interface BriefingQuestionResponse {
-  /** Moody's answer to the question */
+  /** Graves's answer to the question */
   answer: string;
 }
 
@@ -491,13 +510,13 @@ export interface BriefingCompleteResponse {
 }
 
 // ============================================
-// Phase 4: Tom's Inner Voice Types
+// Phase 4: Matthew spirit companion types
 // ============================================
 
 /**
- * Tom trigger types for categorizing his messages
+ * Matthew trigger types for categorizing companion messages
  */
-export type TomTriggerType =
+export type MatthewTriggerType =
   | 'helpful'
   | 'misleading'
   | 'self_aware'
@@ -505,15 +524,15 @@ export type TomTriggerType =
   | 'emotional';
 
 /**
- * Tom's inner voice trigger from backend
+ * Matthew spirit companion trigger from backend
  */
-export interface InnerVoiceTrigger {
+export interface MatthewTrigger {
   /** Unique trigger identifier */
   id: string;
-  /** Tom's message text */
+  /** Matthew's message text */
   text: string;
   /** Whether message is helpful or misleading */
-  type: TomTriggerType;
+  type: MatthewTriggerType;
   /** Evidence tier (1=early, 2=mid, 3=late) */
   tier: 1 | 2 | 3;
 }
@@ -526,17 +545,17 @@ export interface InnerVoiceTrigger {
 export type Message =
   | { type: 'player'; text: string; timestamp?: number }
   | { type: 'narrator'; text: string; timestamp?: number }
-  | { type: 'tom_ghost'; text: string; tone?: 'helpful' | 'misleading'; mode?: string; trust_level?: number; timestamp?: number };
+  | { type: 'matthew_ghost'; text: string; tone?: 'helpful' | 'misleading'; mode?: string; trust_level?: number; timestamp?: number };
 
 // ============================================
-// Phase 4.1: Tom LLM Chat Types
+// Phase 4.1: Matthew LLM chat types
 // ============================================
 
 /**
- * Response from Tom LLM endpoints (auto-comment and direct chat)
+ * Response from Matthew LLM endpoints (auto-comment and direct chat)
  */
-export interface TomResponse {
-  /** Tom's message text */
+export interface MatthewResponse {
+  /** Matthew's message text */
   text: string;
   /** Response mode: 'auto_helpful', 'auto_misleading', 'direct_chat_helpful', etc */
   mode: string;
@@ -574,9 +593,15 @@ export interface ChangeLocationResponse {
     name: string;
     /** Location description */
     description: string;
+    /** Surface elements */
+    surface_elements?: string[];
+    /** Witnesses present */
+    witnesses_present?: string[];
   };
   /** Status message */
   message?: string;
+  /** Updated player state (for B3 roundtrip reduction) */
+  updated_state?: Record<string, unknown>;
 }
 
 // ============================================
@@ -641,7 +666,7 @@ export interface DeleteSlotResponse {
 export interface ApiCaseMetadata {
   /** Case identifier (e.g., "case_001") */
   id: string;
-  /** Display title (e.g., "The Restricted Section") */
+  /** Display title (e.g., "The Sealed Stacks") */
   title: string;
   /** Difficulty level from backend */
   difficulty: 'beginner' | 'intermediate' | 'advanced';
@@ -657,7 +682,7 @@ export interface ApiCaseMetadata {
 export interface CaseMetadata {
   /** Case identifier (e.g., "case_001") */
   id: string;
-  /** Display name (e.g., "The Restricted Section") */
+  /** Display name (e.g., "The Sealed Stacks") */
   name: string;
   /** Difficulty level (display format) */
   difficulty: 'Easy' | 'Medium' | 'Hard';

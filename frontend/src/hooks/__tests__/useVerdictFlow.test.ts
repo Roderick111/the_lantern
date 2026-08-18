@@ -43,8 +43,8 @@ const mockSuccessResponseCorrect: SubmitVerdictResponse = {
   mentor_feedback: mockFeedback,
   confrontation: {
     dialogue: [
-      { speaker: 'moody', text: 'Good work.' },
-      { speaker: 'draco', text: 'I confess.', tone: 'remorseful' },
+      { speaker: 'graves', text: 'Good work.' },
+      { speaker: 'cassian', text: 'I confess.', tone: 'remorseful' },
     ],
     aftermath: 'Justice was served.',
   },
@@ -66,7 +66,7 @@ const mockSuccessResponseIncorrect: SubmitVerdictResponse = {
   },
   confrontation: null,
   reveal: null,
-  wrong_suspect_response: 'MOODY: Wrong suspect!',
+  wrong_suspect_response: 'GRAVES: Wrong suspect!',
 };
 
 const mockMaxAttemptsResponse: SubmitVerdictResponse = {
@@ -75,10 +75,10 @@ const mockMaxAttemptsResponse: SubmitVerdictResponse = {
   case_solved: true,
   mentor_feedback: mockFeedback,
   confrontation: {
-    dialogue: [{ speaker: 'moody', text: 'Let me show you what happened.' }],
+    dialogue: [{ speaker: 'graves', text: 'Let me show you what happened.' }],
     aftermath: 'The truth was revealed.',
   },
-  reveal: 'The actual culprit was Draco.',
+  reveal: 'The actual culprit was Cassian.',
   wrong_suspect_response: null,
 };
 
@@ -147,7 +147,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       act(() => {
-        void result.current.submitVerdict('draco', 'Test reasoning', ['evidence_1']);
+        void result.current.submitVerdict('cassian', 'Test reasoning', ['evidence_1']);
       });
 
       expect(result.current.state.submitting).toBe(true);
@@ -159,15 +159,15 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow({ caseId: 'case_001', playerId: 'test_player' }));
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'My reasoning', ['frost_pattern', 'wand_signature']);
+        await result.current.submitVerdict('cassian', 'My reasoning', ['frost_pattern', 'focus_signature']);
       });
 
       expect(apiClient.submitVerdict).toHaveBeenCalledWith({
         case_id: 'case_001',
         player_id: 'test_player',
-        accused_suspect_id: 'draco',
+        accused_suspect_id: 'cassian',
         reasoning: 'My reasoning',
-        evidence_cited: ['frost_pattern', 'wand_signature'],
+        evidence_cited: ['frost_pattern', 'focus_signature'],
       });
     });
 
@@ -177,7 +177,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'Test reasoning', []);
+        await result.current.submitVerdict('cassian', 'Test reasoning', []);
       });
 
       expect(result.current.state.submitting).toBe(false);
@@ -195,14 +195,14 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('hermione', 'Wrong reasoning', []);
+        await result.current.submitVerdict('elena', 'Wrong reasoning', []);
       });
 
       expect(result.current.state.submitted).toBe(true);
       expect(result.current.state.correct).toBe(false);
       expect(result.current.state.caseSolved).toBe(false);
       expect(result.current.state.confrontation).toBeNull();
-      expect(result.current.state.wrongSuspectResponse).toBe('MOODY: Wrong suspect!');
+      expect(result.current.state.wrongSuspectResponse).toBe('GRAVES: Wrong suspect!');
       expect(result.current.state.attemptsRemaining).toBe(8);
     });
 
@@ -212,10 +212,10 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('hermione', 'Final wrong guess', []);
+        await result.current.submitVerdict('elena', 'Final wrong guess', []);
       });
 
-      expect(result.current.state.reveal).toBe('The actual culprit was Draco.');
+      expect(result.current.state.reveal).toBe('The actual culprit was Cassian.');
       expect(result.current.state.confrontation).not.toBeNull();
       expect(result.current.state.attemptsRemaining).toBe(0);
     });
@@ -234,7 +234,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'Test', []);
+        await result.current.submitVerdict('cassian', 'Test', []);
       });
 
       expect(result.current.state.submitting).toBe(false);
@@ -247,7 +247,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'Test', []);
+        await result.current.submitVerdict('cassian', 'Test', []);
       });
 
       expect(result.current.state.error).toBe('Failed to submit verdict');
@@ -262,13 +262,13 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'Test', []);
+        await result.current.submitVerdict('cassian', 'Test', []);
       });
 
       expect(result.current.state.error).toBe('Server error');
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'Test', []);
+        await result.current.submitVerdict('cassian', 'Test', []);
       });
 
       expect(result.current.state.error).toBeNull();
@@ -286,7 +286,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('hermione', 'Wrong', []);
+        await result.current.submitVerdict('elena', 'Wrong', []);
       });
 
       expect(result.current.state.submitted).toBe(true);
@@ -306,7 +306,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('hermione', 'Wrong', []);
+        await result.current.submitVerdict('elena', 'Wrong', []);
       });
 
       const attemptsAfterSubmit = result.current.state.attemptsRemaining;
@@ -324,7 +324,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'Correct reasoning', []);
+        await result.current.submitVerdict('cassian', 'Correct reasoning', []);
       });
 
       expect(result.current.state.caseSolved).toBe(true);
@@ -351,7 +351,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'Test', []);
+        await result.current.submitVerdict('cassian', 'Test', []);
       });
 
       expect(result.current.state.error).toBe('Test error');
@@ -375,7 +375,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'Test', []);
+        await result.current.submitVerdict('cassian', 'Test', []);
       });
 
       expect(apiClient.submitVerdict).toHaveBeenCalledWith(
@@ -389,7 +389,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow());
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'Test', []);
+        await result.current.submitVerdict('cassian', 'Test', []);
       });
 
       expect(apiClient.submitVerdict).toHaveBeenCalledWith(
@@ -403,7 +403,7 @@ describe('useVerdictFlow', () => {
       const { result } = renderHook(() => useVerdictFlow({ caseId: 'case_002' }));
 
       await act(async () => {
-        await result.current.submitVerdict('draco', 'Test', []);
+        await result.current.submitVerdict('cassian', 'Test', []);
       });
 
       expect(apiClient.submitVerdict).toHaveBeenCalledWith(

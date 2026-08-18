@@ -1,7 +1,7 @@
 /**
  * useGameActions — centralizes all action handlers for InvestigationView.
  *
- * Extracts evidence inspection, witness interaction, Tom chat, verdict flow,
+ * Extracts evidence inspection, witness interaction, Matthew chat, verdict flow,
  * save/load, restart, and menu handlers out of the god component.
  *
  * @module hooks/useGameActions
@@ -9,7 +9,6 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { getEvidenceDetails, resetCase } from "../api/client";
-import { getOrCreatePlayerId } from "../utils/playerId";
 import type { EvidenceDetails, InvestigationState, Message } from "../types/investigation";
 import type { useGameModals } from "./useGameModals";
 
@@ -43,7 +42,7 @@ interface BriefingSlice {
   markComplete: () => Promise<void>;
 }
 
-interface TomSlice {
+interface MatthewSlice {
   checkAutoComment: (isCritical: boolean) => Promise<Message | null>;
   sendMessage: (msg: string) => Promise<Message>;
 }
@@ -64,20 +63,20 @@ export interface UseGameActionsParams {
   witnesses: WitnessSlice;
   verdict: VerdictSlice;
   briefing: BriefingSlice;
-  tom: TomSlice;
+  matthew: MatthewSlice;
   saveSlots: SaveSlotsSlice;
 }
 
 export function useGameActions({
   caseId,
-  playerId,
+  playerId: _playerId,
   modals,
   toast,
   investigation,
   witnesses,
   verdict,
   briefing,
-  tom,
+  matthew,
   saveSlots,
 }: UseGameActionsParams) {
   // ---- Evidence detail modal state ----
@@ -86,7 +85,7 @@ export function useGameActions({
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
 
-  // ---- Inline messages (Tom ghost voice) ----
+  // ---- Inline messages (Matthew spirit companion) ----
   const [inlineMessages, setInlineMessages] = useState<Message[]>([]);
 
   // ---- Restart loading ----
@@ -94,7 +93,7 @@ export function useGameActions({
 
   // ---- Hints (persisted in localStorage) ----
   const [hintsEnabled, setHintsEnabled] = useState(() =>
-    localStorage.getItem("hp-detective-hints-enabled") !== "false",
+    localStorage.getItem("lantern-hints-enabled") !== "false",
   );
 
   // Restore conversation messages on case load
@@ -119,50 +118,58 @@ export function useGameActions({
   }, []);
 
   // ---- Briefing ----
+  const handleBriefingDismiss = useCallback(() => {
+    modals.setBriefingModalOpen(false);
+  }, [modals]);
+
   const handleBriefingComplete = useCallback(async () => {
     await briefing.markComplete();
     modals.setBriefingModalOpen(false);
   }, [briefing, modals]);
 
-  // ---- Tom integration ----
-  const handleEvidenceDiscoveredWithTom = useCallback(
+  // ---- Matthew integration ----
+  const handleEvidenceDiscoveredWithMatthew = useCallback(
     async (evidenceIds: string[]) => {
       investigation.handleEvidenceDiscovered(evidenceIds);
       try {
         const isCritical = evidenceIds.length > 1;
-        const tomMessage = await tom.checkAutoComment(isCritical);
-        if (tomMessage) {
-          setInlineMessages((prev) => [...prev, tomMessage]);
+        const matthewMessage = await matthew.checkAutoComment(isCritical);
+        if (matthewMessage) {
+          setInlineMessages((prev) => [...prev, matthewMessage]);
         }
       } catch (error) {
-        console.error("Tom auto-comment failed:", error);
+        console.error("Matthew auto-comment failed:", error);
       }
     },
-    [investigation, tom],
+    [investigation, matthew],
   );
 
-  const handleTomMessage = useCallback(
+  const handleMatthewMessage = useCallback(
     async (message: string) => {
+      const companionName = investigation.state?.language === "ru" ? "Матвей" : "Matthew";
       const userMessage: Message = {
         type: "player",
-        text: `Tom, ${message}`,
+        text: `${companionName}, ${message}`,
         timestamp: Date.now(),
       };
       setInlineMessages((prev) => [...prev, userMessage]);
       try {
-        const tomResponse = await tom.sendMessage(message);
-        setInlineMessages((prev) => [...prev, tomResponse]);
+        const matthewResponse = await matthew.sendMessage(message);
+        setInlineMessages((prev) => [...prev, matthewResponse]);
       } catch (error) {
-        console.error("Tom chat error:", error);
+        console.error("Matthew chat error:", error);
         const errorMessage: Message = {
-          type: "tom_ghost",
-          text: "Tom seems distracted... he can't respond right now.",
+          type: "matthew_ghost",
+          text:
+            investigation.state?.language === "ru"
+              ? "Шёпот Матвея тает — сейчас его не разобрать."
+              : "Matthew's whisper fades — too faint to hear right now.",
           timestamp: Date.now(),
         };
         setInlineMessages((prev) => [...prev, errorMessage]);
       }
     },
-    [tom],
+    [investigation.state?.language, matthew],
   );
 
   // ---- Witness ----
@@ -185,7 +192,7 @@ export function useGameActions({
       setEvidenceLoading(true);
       setEvidenceError(null);
       try {
-        const details = await getEvidenceDetails(evidenceId, caseId, playerId);
+        const details = await getEvidenceDetails(evidenceId, caseId);
         setSelectedEvidence(details);
       } catch (err) {
         const msg =
@@ -195,7 +202,7 @@ export function useGameActions({
         setEvidenceLoading(false);
       }
     },
-    [caseId, playerId],
+    [caseId],
   );
 
   const handleEvidenceModalClose = useCallback(() => {
@@ -225,7 +232,12 @@ export function useGameActions({
   const handleRestartCase = useCallback(async () => {
     setRestartLoading(true);
     try {
-      await resetCase(caseId, getOrCreatePlayerId());
+      await resetCase(caseId);
+      try {
+        localStorage.removeItem(`lantern_game_location_${caseId}`);
+      } catch (e) {
+        console.warn("Failed to clear location from localStorage:", e);
+      }
       window.location.reload();
     } catch (error) {
       console.error("Error resetting case:", error);
@@ -297,7 +309,7 @@ export function useGameActions({
   // ---- Hints ----
   const handleHintsChange = useCallback((v: boolean) => {
     setHintsEnabled(v);
-    localStorage.setItem("hp-detective-hints-enabled", String(v));
+    localStorage.setItem("lantern-hints-enabled", String(v));
   }, []);
 
   return {
@@ -313,9 +325,10 @@ export function useGameActions({
     hintsEnabled,
     handleHintsChange,
     // Handlers
+    handleBriefingDismiss,
     handleBriefingComplete,
-    handleEvidenceDiscoveredWithTom,
-    handleTomMessage,
+    handleEvidenceDiscoveredWithMatthew,
+    handleMatthewMessage,
     handleWitnessClick,
     handleWitnessModalClose,
     handleEvidenceClick,

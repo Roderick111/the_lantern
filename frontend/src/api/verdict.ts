@@ -15,7 +15,6 @@ export async function submitVerdict(
 ): Promise<SubmitVerdictResponse> {
   return apiCall('POST', '/api/submit-verdict', SubmitVerdictResponseSchema, {
     case_id: request.case_id ?? 'case_001',
-    player_id: request.player_id ?? 'default',
     accused_suspect_id: request.accused_suspect_id,
     reasoning: request.reasoning,
     evidence_cited: request.evidence_cited,

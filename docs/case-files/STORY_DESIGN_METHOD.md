@@ -86,25 +86,25 @@ LAYER 6: POLISH (30 min - optional)
 
 ```
 TRUE STORY:
-Helena Blackwood (4th year Ravenclaw) discovered Professor Vector's
+Helena Blackwood (4th year Candlewick) discovered Professor Morraine's
 1991 Arithmancy theorem was fraudulent. She found the original
-manuscript in the archives showing Vector fabricated a key variable.
+manuscript in the archives showing Morraine fabricated a key variable.
 
-Helena approached Vector at 10 PM in the Restricted Section, offering
-to help fix the fraud privately. Vector panicked, realizing her
-15-year career was at stake. She used Wingardium Leviosa to topple
+Helena approached Morraine at 10 PM in the Sealed Stacks, offering
+to help fix the fraud privately. Morraine panicked, realizing her
+15-year career was at stake. She used Levitation Cantrip to topple
 a bookshelf onto Helena, staging it as an accident.
 
-Vector then blackmailed Argus Filch (who found the body) into
-cleaning the scene by threatening to expose his Kwikspell letters.
+Morraine then blackmailed Argus Crankshaw (who found the body) into
+cleaning the scene by threatening to expose his Basic Cantrips primer letters.
 ```
 
 **Universe Check:**
-- ✅ Professors can commit crimes (Lockhart, Quirrell, Crouch Jr.)
+- ✅ Professors can commit crimes
 - ✅ Academic fraud is realistic (scholars value legacy)
-- ✅ Hogwarts has poor security (canon fact)
-- ✅ Filch is vulnerable to blackmail (canon characterization)
-- ✅ Arithmancy exists but is underexplored (safe territory)
+- ✅ Blackwood Collegiate has poor security
+- ✅ Mr. Crankshaw is vulnerable to blackmail
+- ✅ Numeromancy exists but is underexplored (safe territory)
 
 ### Output:
 One-page document with true story + universe checks
@@ -184,27 +184,27 @@ One-page document with true story + universe checks
 ```
 CHARACTER WEB:
 
-Helena ←→ Vector: Mentor/protégé (3 years), weekly meetings
+Helena ←→ Morraine: Mentor/protégé (3 years), weekly meetings
 Helena ←→ Adrian: Housemates, study partners investigating fraud
-Helena ←→ Filch: Transactional (she didn't report his Kwikspell,
-                    he gave her Restricted Section access)
+Helena ←→ Mr. Crankshaw: Transactional (she didn't report his Basic Cantrips primer course,
+                    he gave her Sealed Stacks access)
 Helena ←→ Marcus: Transactional (paid him to create distraction)
 
-Vector ←→ Filch: Blackmail (Kwikspell letters)
-Vector ←→ Adrian: Distant (just another student)
-Vector ←→ Marcus: None (different house, no classes)
+Morraine ←→ Mr. Crankshaw: Blackmail (Basic Cantrips primer letters)
+Morraine ←→ Adrian: Distant (just another student)
+Morraine ←→ Marcus: None (different house, no classes)
 
-Adrian ←→ Filch: None (or: Filch caught Adrian helping Helena)
+Adrian ←→ Mr. Crankshaw: None (or: Mr. Crankshaw caught Adrian helping Helena)
 Adrian ←→ Marcus: None (different houses, different years)
 
-Marcus ←→ Filch: Historical (Filch caught him before for rule-breaking)
+Marcus ←→ Mr. Crankshaw: Historical (Mr. Crankshaw caught him before for rule-breaking)
 
 CANON CHECK:
-✅ Ravenclaw students studying together (natural)
+✅ Candlewick students studying together (natural)
 ✅ Professor mentoring promising student (common)
-✅ Filch's Kwikspell is canon (Chamber of Secrets)
+✅ Mr. Crankshaw's Basic Cantrips primer is in-universe (The Hollow Below)
 ✅ Students paying other students for favors (realistic)
-✅ Slytherin/Ravenclaw don't naturally interact (explains Marcus isolation)
+✅ Iron Lodge/Candlewick don't naturally interact (explains Marcus isolation)
 ```
 
 ### Output:
@@ -231,7 +231,7 @@ Relationship matrix with 3+ connections per character
    - Clearly rules out suspects
    - Establishes timeline
    - Proves/disproves theories
-   - Example: Helena's wand showing Lumos (eliminates accident)
+   - Example: Helena's focus showing Raise the Lamp (eliminates accident)
 
    **Type B: Ambiguous Evidence** (4-6 pieces)
    - Supports 2-3 different interpretations
@@ -280,7 +280,7 @@ EVIDENCE OPTIONS:
 ❌ Coins with Helena's signature (too elaborate, unrealistic)
 ❌ Signed contract (too formal for students)
 ✅ Marcus has expensive new quidditch gloves + Helena's last
-   withdrawal slip from Gringotts (50 Galleons, same day)
+   withdrawal slip from Ironwright Vaults (50 sovereigns, same day)
 ✅ Note in Marcus's pocket: "10 PM, alcove. Make noise. —H"
 
 INTERPRETATIONS:
@@ -291,24 +291,24 @@ D) Marcus stole the money and killed Helena (false theory)
 
 ---
 
-EVENT: Vector erased library log
-EVIDENCE: Erased log entry showing "S. Vector, 10:15 PM"
+EVENT: Morraine erased library log
+EVIDENCE: Erased log entry showing "C. Morraine, 10:15 PM"
 
 AMBIGUITY ADDED:
-✅ Actually THREE erased names: S. Vector, M. Flint, [damaged]
+✅ Actually THREE erased names: C. Morraine, M. Sterling, [damaged]
 
 INTERPRETATIONS:
-A) Vector erased all three to hide murder timeline (truth)
-B) Vector protecting Marcus (false)
-C) Someone else erased all three to frame Vector (false)
+A) Morraine erased all three to hide murder timeline (truth)
+B) Morraine protecting Marcus (false)
+C) Someone else erased all three to frame Morraine (false)
 D) Third name is real killer (false)
 ```
 
 **Canon Check:**
 - ✅ Library checkout logs exist (mentioned in canon)
-- ✅ Gringotts withdrawal slips realistic
+- ✅ Ironwright Vaults withdrawal slips realistic
 - ✅ Students pass notes (very common in HP)
-- ✅ Specialis Revelio can reveal erasures (plausible magical forensics)
+- ✅ Identify Substance can reveal erasures (plausible magical forensics)
 
 ### Output:
 7-10 evidence pieces, half ambiguous, mapped to theories
@@ -354,7 +354,7 @@ D) Third name is real killer (false)
    - Isolation forces proximity to danger → behavioral tells emerge under pressure
    - Can be literal (locked room, remote location) or metaphorical (information control, social hierarchy, time pressure)
    - Characters remain in contact with murderer even after suspicion arises
-   - **For HP:** Hogwarts naturally isolates; use house divisions, curfews, restricted areas to further constrain
+   - **For HP:** Blackwood Collegiate naturally isolates; use house divisions, curfews, restricted areas to further constrain
 
 6. **Setting as Mood:**
    - Setting evokes mood deliberately, not just backdrop
@@ -375,21 +375,21 @@ LOCATION: Study Alcove (behind tapestry)
 
 WHY HERE:
 - Hidden from main library (privacy for illicit activities)
-- Shares wall with Restricted Section (sound carries)
+- Shares wall with Sealed Stacks (sound carries)
 - Close enough to hear crash, far enough to avoid danger
 - Marcus knows about it (older student, uses for dueling practice)
 
 WHAT IT REVEALS:
 - Warm chair → Recently occupied
-- Clove smell → Hand of Glory residue (dark artifact)
+- Clove smell → Thief's Candle residue (cursed artifact)
 - Clear sight line to library entrance → Lookout position
 - Hidden passage behind bookshelf → How Marcus escapes undetected
 
 EVIDENCE PLACEMENT LOGIC:
 ✅ Marcus's scarf draped on chair (he was comfortable, not rushed)
 ✅ Scorch marks on wall from duel practice (habitual use)
-✅ Two empty Butterbeer bottles (he waited here before)
-❌ Helena's research notes (why would they be HERE? She used Restricted Section)
+✅ Two empty spiced ale bottles (he waited here before)
+❌ Helena's research notes (why would they be HERE? She used Sealed Stacks)
 
 CANON CHECK:
 ✅ Hidden alcoves exist (Room of Requirement precedent)
@@ -399,29 +399,29 @@ CANON CHECK:
 
 ---
 
-LOCATION: Restricted Section Crime Scene
+LOCATION: Sealed Stacks Crime Scene
 
 WHY HERE:
 - Helena needed original manuscript (only stored here)
-- Vector suggested meeting here (control, privacy, no witnesses)
+- Morraine suggested meeting here (control, privacy, no witnesses)
 - Bookshelf positioned for "accident" staging (premeditation)
 
 WHAT IT REVEALS:
 - Scuff marks on floor → Shelf moved into position (premeditation)
 - Helena's bag near manuscript shelves → She was researching, not fleeing
-- No defensive spell traces except Lumos → She trusted Vector until last moment
+- No defensive spell traces except Raise the Lamp → She trusted Morraine until last moment
 - Ceiling scorch marks → High-power magic (eliminates students)
 
 PHYSICAL LOGIC:
 - Bookshelf 8 feet tall, 300+ lbs → Requires strong Leviosa
 - Helena 10 feet away → Had to be moved, then dropped
 - Blood spatter pattern → Fell from above, not pushed
-- Dust patterns → Only ONE set of adult footprints approaching shelf (Vector's)
+- Dust patterns → Only ONE set of adult footprints approaching shelf (Morraine's)
 
 CANON CHECK:
-✅ Restricted Section poorly supervised (canon - Harry breaks in multiple times)
-✅ Ancient books are heavy and dangerous (Monster Book of Monsters precedent)
-✅ Levitation can move furniture (Wingardium Leviosa lessons)
+✅ Sealed Stacks poorly supervised (students break in multiple times)
+✅ Ancient books are heavy and dangerous (precedent in old libraries)
+✅ Levitation can move furniture (Levitation Cantrip lessons)
 ```
 
 ### Output:
@@ -452,7 +452,7 @@ CANON CHECK:
    - Example: "I helped Helena break into the office"
 
    **Tier 3 Secrets** (Trust 80%+): Incriminating knowledge, complicity
-   - Example: "I heard Vector threaten Helena"
+   - Example: "I heard Morraine threaten Helena"
 
    **Rule:** Each secret must connect to ANOTHER character's story
 
@@ -469,16 +469,16 @@ CANON CHECK:
 
 5. **Moral Complexity Framework:**
    - **Competing values:** Characters prioritize different valid principles
-     - Example: Vector values her 15-year legacy vs Helena values truth
+     - Example: Morraine values her 15-year legacy vs Helena values truth
      - Both are understandable positions
    - **Culprit psychology:** Even culprit believes they're right (understandable ≠ excusable)
-     - Vector didn't think of herself as murderer; saw it as self-defense (flawed logic)
+     - Morraine didn't think of herself as murderer; saw it as self-defense (flawed logic)
      - Understand motive without justifying action
    - **Multiple perspectives:** Different characters see same event differently
-     - Adrian sees Helena as noble; Vector sees her as threat; Marcus sees her as employer
+     - Adrian sees Helena as noble; Morraine sees her as threat; Marcus sees her as employer
    - **No simple answers:** Avoid reducing case to "villain because evil"
    - **Costs to all choices:** Even "correct" investigation choice has consequences
-     - Exposing fraud destroys Vector's legacy
+     - Exposing fraud destroys Morraine's legacy
      - Covering up denies Helena justice
      - Player sees complexity, not clean victory
 
@@ -514,31 +514,31 @@ CANON CHECK:
 CONTRADICTION 1: Time of Discovery
 
 Adrian: "I heard the crash at 10:05 and ran immediately"
-Filch: "I found the body at 10:05"
-Vector: "I arrived at 10:10 after Filch summoned me"
+Mr. Crankshaw: "I found the body at 10:05"
+Morraine: "I arrived at 10:10 after Mr. Crankshaw summoned me"
 
 RESOLUTION:
 - Adrian heard crash, fled, didn't investigate (cowardice)
-- Filch found body at 10:05 (true)
-- Vector ALREADY THERE, hiding, emerged when Filch arrived (lie)
-- Timeline evidence proves Vector was there BEFORE crash
+- Mr. Crankshaw found body at 10:05 (true)
+- Morraine ALREADY THERE, hiding, emerged when Mr. Crankshaw arrived (lie)
+- Timeline evidence proves Morraine was there BEFORE crash
 
 ---
 
 CONTRADICTION 2: Helena's Intent
 
-Adrian's secret: "Helena wanted to protect Vector, fix fraud quietly"
-Marcus's testimony: "Helena paid me 50 Galleons to 'make noise' at 10 PM"
-Filch's observation: "Helena looked determined, not scared"
+Adrian's secret: "Helena wanted to protect Morraine, fix fraud quietly"
+Marcus's testimony: "Helena paid me 50 sovereigns to 'make noise' at 10 PM"
+Mr. Crankshaw's observation: "Helena looked determined, not scared"
 
 INTERPRETATIONS:
 A) Helena planned confrontation but wanted escape plan (distraction)
-B) Helena planned to expose Vector publicly (distraction for escape)
-C) Helena planned to trap Vector somehow (distraction as part of plan)
+B) Helena planned to expose Morraine publicly (distraction for escape)
+C) Helena planned to trap Morraine somehow (distraction as part of plan)
 
 RESOLUTION:
 Helena's journal (if found): "Tonight I offer her a choice. If she
-refuses, M has instructions to deliver the package to Dumbledore at
+refuses, M has instructions to deliver the package to Headmaster Ashford at
 10:30. Insurance, not threat."
 
 ---
@@ -548,28 +548,28 @@ SECRET WEB:
 Adrian (Trust 40%): "I was in the library studying late"
 Adrian (Trust 65%): "Helena and I were investigating the fraud together"
 Adrian (Trust 85%): "Helena gave me copies of the manuscript three days ago.
-                      They're hidden in my trunk. Vector might know."
+                      They're hidden in my trunk. Morraine might know."
 
 → Connects to Marcus: He has the third copy
-→ Connects to Vector: She's looking for the copies (motive to eliminate witnesses)
+→ Connects to Morraine: She's looking for the copies (motive to eliminate witnesses)
 → Creates player question: Is Adrian also in danger?
 
 Marcus (Trust 35%): "I was dueling, that's all"
-Marcus (Trust 60%): "Helena paid me 50 Galleons for a distraction"
-Marcus (Trust 80%): "She gave me an envelope to deliver to Dumbledore at
+Marcus (Trust 60%): "Helena paid me 50 sovereigns for a distraction"
+Marcus (Trust 80%): "She gave me an envelope to deliver to Headmaster Ashford at
                      10:30 if she didn't come back. I still have it.
                      I was too scared to deliver it after she died."
 
 → Connects to Helena: Evidence of her planning
 → Connects to Adrian: Confirms conspiracy
 → Creates player question: What's in the envelope? Why didn't Marcus deliver it?
-→ Canon check: ✅ Students freeze in crisis (very realistic - Neville, early Harry)
+→ Universe check: ✅ Students freeze in crisis (very realistic - Rowan, early initiates)
 ```
 
 ### Multi-Theory Test:
 
 ```
-THEORY A: Vector murdered Helena (CORRECT)
+THEORY A: Morraine murdered Helena (CORRECT)
 Supported by:
 - Scorch marks (high power magic) ✅
 - Erased log entry ✅
@@ -581,7 +581,7 @@ Contradicted by:
 THEORY B: Marcus murdered Helena (false, but plausible early)
 Supported by:
 - Present at scene ✅
-- Dark artifact residue ✅
+- Cursed artifact residue ✅
 - Had Helena's money ✅
 - Erased log includes his name ✅
 Contradicted by:
@@ -596,7 +596,7 @@ Supported by:
 - Books fell on her ✅
 Contradicted by:
 - Shelf positioning (deliberate) ❌
-- Helena's last spell (Lumos, not levitation) ❌
+- Helena's last spell (Raise the Lamp, not levitation) ❌
 - High-power scorch marks (external magic) ❌
 
 THEORY D: Adrian murdered Helena (false, briefly viable)

@@ -21,6 +21,8 @@ import { useTheme } from '../context/useTheme';
 interface EvidenceBoardProps {
   /** Array of discovered evidence IDs */
   evidence: string[];
+  /** Localized display names keyed by stable evidence IDs */
+  evidenceNames?: Record<string, string>;
   /** Current case ID */
   caseId: string;
   /** Optional: Compact mode for smaller displays */
@@ -43,6 +45,7 @@ interface EvidenceBoardProps {
 
 export function EvidenceBoard({
   evidence,
+  evidenceNames,
   caseId: _caseId,
   compact: _compact = false,
   onEvidenceClick,
@@ -58,10 +61,10 @@ export function EvidenceBoard({
     () =>
       evidence.map((evidenceId, index) => ({
         id: evidenceId,
-        formattedId: formatEvidenceId(evidenceId),
+        formattedId: evidenceNames?.[evidenceId] ?? formatEvidenceId(evidenceId),
         displayIndex: String(index + 1).padStart(2, "0"),
       })),
-    [evidence],
+    [evidence, evidenceNames],
   );
 
   // Empty state
@@ -138,7 +141,7 @@ export function EvidenceBoard({
  *
  * @example
  * formatEvidenceId("hidden_note") // "Hidden Note"
- * formatEvidenceId("wand_signature") // "Wand Signature"
+ * formatEvidenceId("focus_signature") // "Focus Signature"
  */
 function formatEvidenceId(id: string): string {
   return id

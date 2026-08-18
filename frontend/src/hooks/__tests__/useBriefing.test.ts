@@ -26,11 +26,11 @@ vi.mock('../../api/client');
 const mockBriefing: BriefingContent = {
   case_id: 'case_001',
   dossier: {
-    title: 'The Restricted Section',
+    title: 'The Sealed Archive',
     victim: 'Third-year student',
     location: 'Library',
     time: '9:15pm',
-    status: 'Petrified',
+    status: 'Held in stillness',
     synopsis: 'VICTIM: Third-year student\nLOCATION: Library',
   },
   teaching_questions: [
@@ -45,7 +45,7 @@ const mockBriefing: BriefingContent = {
       concept_summary: "That's base rates, recruit.",
     },
   ],
-  transition: 'Now get to work. CONSTANT VIGILANCE.',
+  transition: 'Now get to work. TRUST NOTHING UNSEEN.',
   briefing_completed: false,
 };
 
@@ -206,21 +206,7 @@ describe('useBriefing', () => {
         await result.current.loadBriefing();
       });
 
-      expect(client.getBriefing).toHaveBeenCalledWith('case_002', 'default');
-    });
-
-    it('uses custom playerId', async () => {
-      vi.mocked(client.getBriefing).mockResolvedValue(mockBriefing);
-
-      const { result } = renderHook(() =>
-        useBriefing({ playerId: 'player123' })
-      );
-
-      await act(async () => {
-        await result.current.loadBriefing();
-      });
-
-      expect(client.getBriefing).toHaveBeenCalledWith('case_001', 'player123');
+      expect(client.getBriefing).toHaveBeenCalledWith('case_002');
     });
   });
 
@@ -327,24 +313,20 @@ describe('useBriefing', () => {
       expect(result.current.conversation).toHaveLength(0);
     });
 
-    it('uses custom caseId and playerId', async () => {
+    it('uses custom caseId', async () => {
       vi.mocked(client.askBriefingQuestion).mockResolvedValue({
         answer: 'Answer',
       });
 
       const { result } = renderHook(() =>
-        useBriefing({ caseId: 'case_002', playerId: 'player123' })
+        useBriefing({ caseId: 'case_002' })
       );
 
       await act(async () => {
         await result.current.askQuestion('Test?');
       });
 
-      expect(client.askBriefingQuestion).toHaveBeenCalledWith(
-        'case_002',
-        'Test?',
-        'player123'
-      );
+      expect(client.askBriefingQuestion).toHaveBeenCalledWith('case_002', 'Test?');
     });
   });
 
@@ -420,23 +402,20 @@ describe('useBriefing', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    it('uses custom caseId and playerId', async () => {
+    it('uses custom caseId', async () => {
       vi.mocked(client.markBriefingComplete).mockResolvedValue({
         success: true,
       });
 
       const { result } = renderHook(() =>
-        useBriefing({ caseId: 'case_002', playerId: 'player123' })
+        useBriefing({ caseId: 'case_002' })
       );
 
       await act(async () => {
         await result.current.markComplete();
       });
 
-      expect(client.markBriefingComplete).toHaveBeenCalledWith(
-        'case_002',
-        'player123'
-      );
+      expect(client.markBriefingComplete).toHaveBeenCalledWith('case_002');
     });
   });
 

@@ -26,7 +26,7 @@ src/
 │   ├── witnesses.ts             # interrogateWitness(), interrogateStream(), presentEvidenceStream()
 │   ├── briefing.ts              # getBriefing(), askBriefingQuestion(), markBriefingComplete()
 │   ├── verdict.ts               # submitVerdict()
-│   ├── tom.ts                   # checkTomAutoComment(), sendTomChat()
+│   ├── matthew.ts               # checkMatthewAutoComment(), sendMatthewChat()
 │   ├── saves.ts                 # saveGameState(), loadGameState(), listSaveSlots(), deleteSaveSlot()
 │   ├── settings.ts              # setNarratorVerbosity(), getSettings()
 │   └── telemetry.ts             # logSessionStart() — anonymous usage tracking
@@ -43,12 +43,12 @@ src/
 │   ├── useVerdictFlow.ts        # useReducer — submission, feedback, confrontation, attempts
 │   ├── useBriefing.ts           # Briefing content, Q&A conversation, choice selection
 │   ├── useLocation.ts           # Available locations, current location, visited set
-│   ├── useTomChat.ts            # Tom auto-comments (30% chance) + direct chat
+│   ├── useMatthewChat.ts        # Matthew auto-comments (30% chance) + direct chat
 │   ├── useSaveSlots.ts          # Slot operations: save, load, list, delete, import
 │   ├── useGameModals.ts         # Centralized modal open/close state (prevents prop drilling)
 │   ├── useGameActions.ts        # All event handlers extracted from InvestigationView
 │   ├── useMainMenu.ts           # Main menu state
-│   └── useInnerVoice.ts         # Tom inner voice triggers (advanced, not actively used)
+│   └── useInnerVoice.ts         # Matthew companion triggers (advanced, not actively used)
 │
 ├── components/
 │   ├── layout/
@@ -70,9 +70,9 @@ src/
 │   ├── VerdictSubmission.tsx    # Form: suspect + reasoning + evidence selection
 │   ├── MentorFeedback.tsx       # Post-verdict: score, fallacies, critique, praise
 │   ├── ConfrontationDialogue.tsx # Final confrontation scene with culprit
-│   ├── BriefingModal.tsx        # 3-step wizard: dossier → teaching questions → engagement
+│   ├── BriefingModal.tsx        # 3-step initiate: dossier → teaching questions → engagement
 │   ├── BriefingDossier.tsx      # Case details + persons of interest
-│   ├── BriefingQuestion.tsx     # A/B/C choice + Moody feedback
+│   ├── BriefingQuestion.tsx     # A/B/C choice + Graves feedback
 │   ├── BriefingEngagement.tsx   # Q&A recap + start investigation
 │   ├── BriefingConversation.tsx # Briefing chat history
 │   ├── EvidenceModal.tsx        # Evidence detail view
@@ -81,7 +81,7 @@ src/
 │   ├── MainMenu.tsx             # In-game menu: restart, save, load, settings
 │   ├── SettingsModal.tsx        # Narrator verbosity, hints toggle
 │   ├── SaveLoadModal.tsx        # Multi-slot save/load UI
-│   ├── AurorHandbook.tsx        # In-game help/tips
+│   ├── LanternCompendium.tsx        # In-game help/tips
 │   ├── MusicPlayer.tsx          # Background music controls
 │   ├── LocationHeaderBar.tsx    # Sticky location tabs for navigation
 │   ├── LocationSelector.tsx     # Location change UI
@@ -122,7 +122,7 @@ src/
 
 **Theming** — Two modes: dark (CRT terminal) and light (LCARS sci-fi). All colors/fonts come from `styles/terminal-theme.ts`. Components use `useTheme()` to get current tokens. Never hardcode colors.
 
-**Player identity** — Anonymous UUID stored in localStorage (`hp_game_player_id`). Passed with every API call as `player_id`.
+**Player identity** — Anonymous UUID stored in localStorage (`lantern_game_player_id`). Passed with every API call as `player_id`.
 
 **Save system** — 4 slots: `autosave` (continuous) + 3 manual (`slot_1`, `slot_2`, `slot_3`). Manual save snapshots autosave state. All operations via `useSaveSlots` hook.
 
@@ -142,7 +142,7 @@ Player input → api/investigation.ts (SSE stream)
             → LocationView accumulates chunks
             → Extract [EVIDENCE: id] tags
             → useInvestigation.handleEvidenceDiscovered()
-            → Check Tom auto-comment (30% chance)
+            → Check Matthew auto-comment (30% chance)
             → Render conversation timeline
 ```
 
@@ -159,12 +159,12 @@ Verdict: VerdictSubmission → api/verdict.ts
 
 | Key | Purpose |
 |-----|---------|
-| `hp-detective-theme` | Dark/light mode |
+| `lantern-theme` | Dark/light mode |
 | `hp-detective-music-*` | Volume, mute, enabled, track per case |
-| `hp_game_player_id` | Anonymous player UUID |
-| `hp_llm_settings` | BYOK provider config |
+| `lantern_game_player_id` | Anonymous player UUID |
+| `lantern_llm_settings` | BYOK provider config |
 | `telemetry_consent_shown` | Telemetry banner dismissed |
-| `hp_game_location_{caseId}` | Current location per case (reload persistence) |
+| `lantern_game_location_{caseId}` | Current location per case (reload persistence) |
 
 ---
 

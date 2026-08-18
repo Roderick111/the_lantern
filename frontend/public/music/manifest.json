@@ -1,6 +1,6 @@
 {
   "tracks": [
-    { "id": "case_001_default", "name": "The Restricted Section", "file": "case_001_default.mp3" },
+    { "id": "restricted_section", "name": "The Sealed Stacks", "file": "case_001_default.mp3" },
     { "id": "case_002_default", "name": "The Dark Alley", "file": "case_002_default.mp3" },
     { "id": "moonspire", "name": "Moonspire", "file": "1. Moonspire.mp3" },
     { "id": "winds_of_valor", "name": "Winds of Valor", "file": "2. Winds of Valor.mp3" },
@@ -11,7 +11,7 @@
     { "id": "mystic_grove", "name": "Mystic Grove", "file": "7. Mystic Grove.mp3" },
     { "id": "throne_of_storms", "name": "Throne of Storms", "file": "8. Throne of Storms.mp3" },
     { "id": "sorrows_edge", "name": "Sorrow's Edge", "file": "9. Sorrow's Edge.mp3" },
-    { "id": "elven_dawn", "name": "Elven Dawn", "file": "10. Elven Dawn.mp3" },
+    { "id": "case_001_default", "name": "Elven Dawn", "file": "10. Elven Dawn.mp3" },
     { "id": "the_attic", "name": "The Attic", "file": "386_The_Attic.mp3" },
     { "id": "desert_devotional", "name": "Desert Devotional", "file": "390_Desert_Devotional.mp3" },
     { "id": "feast_of_crispian", "name": "Feast of Crispian", "file": "401_Feast_of_Crispian.mp3" },

@@ -1,14 +1,16 @@
 /**
  * SettingsModal Component
  *
- * Compact settings modal with segmented controls, collapsible AI section,
- * and dense audio controls. Matches System Menu aesthetic.
+ * Scoped settings modal with segmented controls and collapsible AI section.
+ * Game mode also exposes hints and dense audio controls.
  *
  * @module components/SettingsModal
  */
 
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { backdropVariants, dialogContentVariants, reducedMotionVariants } from '../utils/modalAnimations';
 import { useTheme } from '../context/useTheme';
 import { useMusic } from '../hooks/useMusic';
 import {
@@ -18,25 +20,57 @@ import {
   verifyApiKey,
   getAvailableModels,
   getActiveModel,
+  updateSettings,
   type ModelInfo,
 } from '../api/client';
+import { updateGamePreferences } from '../utils/gamePreferences';
 
 // ============================================
 // Types
 // ============================================
 
 export type NarratorVerbosity = 'concise' | 'storyteller' | 'atmospheric';
+export type AssistanceMode = 'normal' | 'easy';
 
-export interface SettingsModalProps {
+export type GameLanguage = 'en' | 'ru' | 'fr' | 'es' | 'de' | 'pt' | 'zh' | 'ja' | 'ko' | 'it';
+
+const LANGUAGE_OPTIONS: { value: GameLanguage; label: string }[] = [
+  { value: 'en', label: 'English' },
+  { value: 'it', label: 'Italiano' },
+  { value: 'ru', label: 'Русский' },
+  { value: 'fr', label: 'Français' },
+  { value: 'es', label: 'Español' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'pt', label: 'Português' },
+  { value: 'zh', label: '中文' },
+  { value: 'ja', label: '日本語' },
+  { value: 'ko', label: '한국어' },
+];
+
+interface SharedSettingsProps {
   isOpen: boolean;
   onClose: () => void;
-  caseId: string;
-  playerId: string;
   narratorVerbosity: NarratorVerbosity;
   onVerbosityChange?: (v: NarratorVerbosity) => void;
+  language: GameLanguage;
+  onLanguageChange?: (v: GameLanguage) => void;
+  assistanceMode?: AssistanceMode;
+  onAssistanceModeChange?: (v: AssistanceMode) => void;
+}
+
+interface GameSettingsProps extends SharedSettingsProps {
+  mode?: 'game';
+  caseId: string;
+  playerId: string;
   hintsEnabled: boolean;
   onHintsChange: (v: boolean) => void;
 }
+
+interface GeneralSettingsProps extends SharedSettingsProps {
+  mode: 'general';
+}
+
+export type SettingsModalProps = GameSettingsProps | GeneralSettingsProps;
 
 // ============================================
 // Segmented Control
@@ -86,16 +120,21 @@ function SegmentedControl<T extends string>({
 // Component
 // ============================================
 
-export function SettingsModal({
-  isOpen,
-  onClose,
-  caseId,
-  playerId,
-  narratorVerbosity,
-  onVerbosityChange,
-  hintsEnabled,
-  onHintsChange,
-}: SettingsModalProps) {
+export function SettingsModal(props: SettingsModalProps) {
+  const {
+    isOpen,
+    onClose,
+    narratorVerbosity,
+    onVerbosityChange,
+    language,
+    onLanguageChange,
+    assistanceMode = 'normal',
+    onAssistanceModeChange,
+  } = props;
+  const isGeneral = props.mode === 'general';
+  const caseId = isGeneral ? '' : props.caseId;
+  const hintsEnabled = isGeneral ? false : props.hintsEnabled;
+  const onHintsChange = isGeneral ? undefined : props.onHintsChange;
   const { mode, toggleTheme, theme } = useTheme();
   const [updating, setUpdating] = useState(false);
 
@@ -125,6 +164,7 @@ export function SettingsModal({
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [freeModelName, setFreeModelName] = useState<string>('Free tier');
   const [aiExpanded, setAiExpanded] = useState(true);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     const saved = getLLMSettings();
@@ -152,8 +192,20 @@ export function SettingsModal({
     setVerifying(false);
   };
 
-  const handleSaveLLM = () => {
+  const handleSaveLLM = async () => {
     if (llmApiKey && llmProvider) {
+      if (verified !== true) {
+        setVerifying(true);
+        setVerifyError(null);
+        const result = await verifyApiKey(llmProvider, llmApiKey, llmModel || undefined);
+        setVerifying(false);
+        if (!result.valid) {
+          setVerified(false);
+          setVerifyError(result.error ?? 'Verify your API key before saving');
+          return;
+        }
+        setVerified(true);
+      }
       saveLLMSettings({ provider: llmProvider, apiKey: llmApiKey, model: llmModel || null });
     } else {
       clearLLMSettings();
@@ -194,19 +246,19 @@ export function SettingsModal({
 
   const handleVerbosityChange = async (newVerbosity: NarratorVerbosity) => {
     if (newVerbosity === selectedVerbosity || updating) return;
+    if (isGeneral) {
+      updateGamePreferences({ narratorVerbosity: newVerbosity });
+      onVerbosityChange?.(newVerbosity);
+      return;
+    }
     setUpdating(true);
     try {
-      const response = await fetch('/api/settings/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          case_id: caseId,
-          player_id: playerId,
-          narrator_verbosity: newVerbosity,
-        }),
+      const data = await updateSettings({
+        case_id: caseId,
+        narrator_verbosity: newVerbosity,
       });
-      const data = await response.json() as { success: boolean; message?: string };
       if (data.success) {
+        updateGamePreferences({ narratorVerbosity: newVerbosity });
         onVerbosityChange?.(newVerbosity);
       } else {
         console.error('Failed to update verbosity:', data.message);
@@ -218,21 +270,78 @@ export function SettingsModal({
     }
   };
 
+  const handleLanguageChange = async (newLang: GameLanguage) => {
+    if (newLang === language || updating) return;
+    if (isGeneral) {
+      updateGamePreferences({ language: newLang });
+      onLanguageChange?.(newLang);
+      return;
+    }
+    setUpdating(true);
+    try {
+      const data = await updateSettings({
+        case_id: caseId,
+        language: newLang,
+      });
+      if (data.success) {
+        updateGamePreferences({ language: newLang });
+        onLanguageChange?.(newLang);
+      } else {
+        console.error('Failed to update language:', data.message);
+      }
+    } catch (error) {
+      console.error('Error updating language:', error);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleAssistanceModeChange = async (newMode: AssistanceMode) => {
+    if (newMode === assistanceMode || updating) return;
+    if (isGeneral) {
+      updateGamePreferences({ assistanceMode: newMode });
+      onAssistanceModeChange?.(newMode);
+      return;
+    }
+    setUpdating(true);
+    try {
+      const data = await updateSettings({ case_id: caseId, assistance_mode: newMode });
+      if (data.success) {
+        updateGamePreferences({ assistanceMode: newMode });
+        onAssistanceModeChange?.(newMode);
+      } else {
+        console.error('Failed to update assistance mode:', data.message);
+      }
+    } catch (error) {
+      console.error('Error updating assistance mode:', error);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   // Section header style
   const sectionLabel = `${theme.colors.text.tertiary} ${theme.fonts.ui} text-sm font-bold uppercase tracking-wider`;
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className={theme.components.modal.overlay} />
+      <AnimatePresence>
+        {isOpen && (
+          <Dialog.Portal forceMount>
+            <Dialog.Overlay asChild forceMount>
+              <motion.div className={theme.components.modal.overlay}
+                variants={prefersReducedMotion ? reducedMotionVariants : backdropVariants}
+                initial="initial" animate="animate" exit="exit" />
+            </Dialog.Overlay>
 
-        <Dialog.Content
-          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-                     ${theme.colors.bg.primary} border ${theme.colors.interactive.border} rounded-sm
-                     w-full max-w-sm shadow-2xl max-h-[85vh] flex flex-col
-                     focus:outline-none`}
-          onEscapeKeyDown={onClose}
-        >
+            <Dialog.Content asChild forceMount onEscapeKeyDown={onClose}>
+              <motion.div
+                className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
+                           ${theme.colors.bg.primary} border ${theme.colors.interactive.border} rounded-sm
+                           w-[calc(100%-2rem)] max-w-sm shadow-2xl max-h-[calc(100dvh-2rem)] flex flex-col
+                           focus:outline-none`}
+                variants={prefersReducedMotion ? reducedMotionVariants : dialogContentVariants}
+                initial="initial" animate="animate" exit="exit"
+              >
           {/* Header */}
           <div className={`border-b ${theme.colors.interactive.border} px-5 py-3 flex items-center justify-between ${theme.colors.bg.semiTransparent} shrink-0`}>
             <Dialog.Title className={`${theme.typography.headerLg} ${theme.colors.interactive.text}`}>
@@ -261,20 +370,24 @@ export function SettingsModal({
 
             <div className={`border-t ${theme.colors.border.separator}`} />
 
-            {/* Hints Toggle */}
-            <div className="flex items-center justify-between gap-3">
-              <span className={sectionLabel}>Hints</span>
-              <SegmentedControl
-                options={[
-                  { value: 'on' as const, label: 'On' },
-                  { value: 'off' as const, label: 'Off' },
-                ]}
-                value={hintsEnabled ? 'on' : 'off'}
-                onChange={(v) => onHintsChange(v === 'on')}
-              />
-            </div>
+            {!isGeneral && onHintsChange && (
+              <>
+                {/* Hints Toggle */}
+                <div className="flex items-center justify-between gap-3">
+                  <span className={sectionLabel}>Hints</span>
+                  <SegmentedControl
+                    options={[
+                      { value: 'on' as const, label: 'On' },
+                      { value: 'off' as const, label: 'Off' },
+                    ]}
+                    value={hintsEnabled ? 'on' : 'off'}
+                    onChange={(v) => onHintsChange(v === 'on')}
+                  />
+                </div>
 
-            <div className={`border-t ${theme.colors.border.separator}`} />
+                <div className={`border-t ${theme.colors.border.separator}`} />
+              </>
+            )}
 
             {/* Narrator Style — label + 3-segment control */}
             <div className="space-y-2">
@@ -289,6 +402,48 @@ export function SettingsModal({
                 onChange={(v) => void handleVerbosityChange(v)}
                 disabled={updating}
               />
+            </div>
+
+            <div className={`border-t ${theme.colors.border.separator}`} />
+
+            <div className="space-y-2">
+              <span className={sectionLabel}>Guidance</span>
+              <SegmentedControl
+                options={[
+                  { value: 'normal' as const, label: 'Normal' },
+                  { value: 'easy' as const, label: 'Easy' },
+                ]}
+                value={assistanceMode}
+                onChange={(v) => void handleAssistanceModeChange(v)}
+                disabled={updating}
+              />
+              <p className={`${theme.typography.helper} ${theme.colors.text.muted} text-xs`}>
+                Easy gives fuller orientation and gentle nudges.
+              </p>
+            </div>
+
+            <div className={`border-t ${theme.colors.border.separator}`} />
+
+            {/* Language */}
+            <div className="space-y-2">
+              <span className={sectionLabel}>AI Response Language</span>
+              <select
+                value={language}
+                onChange={(e) => void handleLanguageChange(e.target.value as GameLanguage)}
+                disabled={updating}
+                className={`w-full py-1.5 px-2 border rounded-sm ${theme.fonts.input} text-sm
+                  ${theme.colors.bg.primary} ${theme.colors.border.default} ${theme.colors.text.primary}
+                  ${updating ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {LANGUAGE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              {language !== 'en' && (
+                <p className={`${theme.typography.helper} ${theme.colors.text.muted} text-xs italic`}>
+                  Non-English may affect evidence detection and some game mechanics.
+                </p>
+              )}
             </div>
 
             <div className={`border-t ${theme.colors.border.separator}`} />
@@ -328,6 +483,10 @@ export function SettingsModal({
 
                   {llmProvider && (
                     <>
+                      <p className={`${theme.typography.helper} ${theme.colors.text.muted}`}>
+                        Your API key is stored only for this browser tab and cleared when you close it.
+                      </p>
+
                       {/* API Key */}
                       <div className="flex gap-1">
                         <input
@@ -379,7 +538,7 @@ export function SettingsModal({
                           {verifying ? 'Verifying...' : 'Verify'}
                         </button>
                         <button
-                          onClick={handleSaveLLM}
+                          onClick={() => { void handleSaveLLM(); }}
                           disabled={!llmApiKey}
                           className={`flex-1 py-1.5 px-2 border rounded-sm ${theme.fonts.ui} text-xs uppercase tracking-wider transition-all duration-150
                             ${llmApiKey
@@ -414,7 +573,7 @@ export function SettingsModal({
             <div className={`border-t ${theme.colors.border.separator}`} />
 
             {/* Audio — compact layout */}
-            <div className="space-y-2.5">
+            {!isGeneral && <div className="space-y-2.5">
               <span className={sectionLabel}>Audio</span>
 
               {/* Row 1: Music toggle + track navigation */}
@@ -514,11 +673,11 @@ export function SettingsModal({
                   {musicMuted ? 'Muted' : 'Mute'}
                 </button>
               </div>
-            </div>
+            </div>}
           </div>
 
-          {/* Footer */}
-          <div className={`border-t ${theme.colors.interactive.border} px-5 py-2.5 ${theme.colors.bg.semiTransparent} shrink-0`}>
+          {/* Footer — hidden on mobile */}
+          <div className={`hidden md:block border-t ${theme.colors.interactive.border} px-5 py-2.5 ${theme.colors.bg.semiTransparent} shrink-0`}>
             <p className={`text-center ${theme.colors.text.muted} text-xs ${theme.fonts.ui} uppercase tracking-widest`}>
               Press ESC to close
             </p>
@@ -535,8 +694,11 @@ export function SettingsModal({
               {theme.symbols.closeButton}
             </button>
           </Dialog.Close>
-        </Dialog.Content>
-      </Dialog.Portal>
+            </motion.div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        )}
+      </AnimatePresence>
     </Dialog.Root>
   );
 }

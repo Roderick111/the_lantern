@@ -31,6 +31,7 @@ vi.mock('../../api/client', async (importOriginal) => {
   return {
     ...actual,
     investigate: vi.fn(),
+    investigateStream: vi.fn(),
   };
 });
 
@@ -40,7 +41,7 @@ vi.mock('../../api/client', async (importOriginal) => {
 
 const mockLocationData: LocationResponse = {
   id: 'library',
-  name: 'Hogwarts Library - Crime Scene',
+  name: 'Blackwood Collegiate Library - Crime Scene',
   description: 'You enter the library. A heavy oak desk dominates the center.',
   surface_elements: [
     'Oak desk with scattered papers',
@@ -61,6 +62,8 @@ const defaultProps = {
   locationData: mockLocationData,
   onEvidenceDiscovered: vi.fn(),
   discoveredEvidence: [],
+  hintsEnabled: true,
+  isFirstLocation: true,
 };
 
 // ============================================
@@ -84,7 +87,7 @@ describe('LocationView', () => {
     it('renders location name', () => {
       render(<LocationView {...defaultProps} />);
 
-      expect(screen.getByText(/Hogwarts Library - Crime Scene/i)).toBeInTheDocument();
+      expect(screen.getByText(/Blackwood Collegiate Library - Crime Scene/i)).toBeInTheDocument();
     });
 
     it('renders location description', () => {
@@ -108,7 +111,7 @@ describe('LocationView', () => {
 
       const textarea = screen.getByPlaceholderText(/describe your action/i);
       expect(textarea).toBeInTheDocument();
-      expect(textarea).toHaveAttribute('rows', '3');
+      expect(textarea).toHaveAttribute('rows', '2');
     });
 
     it('renders quick action shortcuts', () => {
@@ -158,9 +161,45 @@ describe('LocationView', () => {
   // ------------------------------------------
 
   describe('Input Handling', () => {
-    it.todo('updates input value when typing');
+    it('updates input value when typing', async () => {
+      const user = userEvent.setup();
+      render(<LocationView {...defaultProps} />);
+
+      const textarea = screen.getByPlaceholderText(/describe your action/i);
+      await user.type(textarea, 'I check the bookshelf');
+
+      expect(textarea).toHaveValue('I check the bookshelf');
+    });
 
     it.todo('shows Ctrl+Enter hint');
+  });
+
+  // ------------------------------------------
+  // Validation Tests (added — converted from todo)
+  // ------------------------------------------
+
+  describe('Validation', () => {
+    it('shows inline error and does NOT call investigateStream when input is empty', async () => {
+      const user = userEvent.setup();
+      render(<LocationView {...defaultProps} />);
+
+      // SEND button is disabled when input empty, but we can force-submit
+      // via Enter on an empty (whitespace) input
+      const textarea = screen.getByPlaceholderText(/describe your action/i);
+      await user.click(textarea);
+      await user.keyboard('   '); // whitespace only
+      await user.keyboard('{Enter}');
+
+      // No backend call was attempted
+      expect(api.investigateStream).not.toHaveBeenCalled();
+
+      // Inline error is shown
+      await waitFor(() => {
+        expect(
+          screen.getByText(/please enter an action to investigate/i),
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   // ------------------------------------------
@@ -168,13 +207,165 @@ describe('LocationView', () => {
   // ------------------------------------------
 
   describe('API Integration', () => {
-    it.todo('calls investigate API on Ctrl+Enter submit');
+    it('calls investigateStream with correct payload on submit', async () => {
+      const user = userEvent.setup();
+      (api.investigateStream as Mock).mockImplementation(
+        (
+          _req: unknown,
+          callbacks: {
+            onChunk: (t: string) => void;
+            onDone: (d: Record<string, unknown>) => void;
+          },
+        ) => {
+          callbacks.onChunk('You find nothing of note.');
+          callbacks.onDone({ new_evidence: [], evidence_names: {} });
+        },
+      );
+
+      render(<LocationView {...defaultProps} />);
+
+      const textarea = screen.getByPlaceholderText(/describe your action/i);
+      await user.type(textarea, 'I search under the desk');
+      await user.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(api.investigateStream).toHaveBeenCalledTimes(1);
+      });
+
+      // Verify the request payload
+      const firstCall = (api.investigateStream as Mock).mock.calls[0];
+      const requestArg = firstCall[0] as Record<string, unknown>;
+      expect(requestArg).toMatchObject({
+        player_input: 'I search under the desk',
+        case_id: 'case_001',
+        location_id: 'library',
+        slot: 'autosave',
+      });
+      expect(requestArg).not.toHaveProperty('player_id');
+    });
+
+    it('accumulates streaming chunks into the narrator message', async () => {
+      const user = userEvent.setup();
+      (api.investigateStream as Mock).mockImplementation(
+        (
+          _req: unknown,
+          callbacks: {
+            onChunk: (t: string) => void;
+            onDone: (d: Record<string, unknown>) => void;
+          },
+        ) => {
+          callbacks.onChunk('You search ');
+          callbacks.onChunk('carefully and ');
+          callbacks.onChunk('find a clue.');
+          callbacks.onDone({ new_evidence: [], evidence_names: {} });
+        },
+      );
+
+      render(<LocationView {...defaultProps} />);
+
+      const textarea = screen.getByPlaceholderText(/describe your action/i);
+      await user.type(textarea, 'search desk');
+      await user.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/You search carefully and find a clue\./),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('strips [EVIDENCE: id] tags from rendered text and calls onEvidenceDiscovered', async () => {
+      const user = userEvent.setup();
+      const onEvidenceDiscovered = vi.fn();
+      (api.investigateStream as Mock).mockImplementation(
+        (
+          _req: unknown,
+          callbacks: {
+            onChunk: (t: string) => void;
+            onDone: (d: Record<string, unknown>) => void;
+          },
+        ) => {
+          callbacks.onChunk(
+            'You find a hidden note. [EVIDENCE: hidden_note]',
+          );
+          callbacks.onDone({
+            new_evidence: ['hidden_note'],
+            evidence_names: { hidden_note: 'Hidden Note' },
+          });
+        },
+      );
+
+      render(
+        <LocationView
+          {...defaultProps}
+          onEvidenceDiscovered={onEvidenceDiscovered}
+        />,
+      );
+
+      const textarea = screen.getByPlaceholderText(/describe your action/i);
+      await user.type(textarea, 'search desk');
+      await user.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(onEvidenceDiscovered).toHaveBeenCalledWith(['hidden_note']);
+      });
+
+      // Tag stripped from displayed text
+      expect(screen.queryByText(/\[EVIDENCE: hidden_note\]/)).not.toBeInTheDocument();
+      // Clean narrator text remains
+      expect(screen.getByText(/You find a hidden note\./)).toBeInTheDocument();
+    });
+
+    it('extracts canonical [EVIDENCE_id] tags', async () => {
+      const user = userEvent.setup();
+      const onEvidenceDiscovered = vi.fn();
+      (api.investigateStream as Mock).mockImplementation(
+        (_req: unknown, callbacks: { onChunk: (t: string) => void; onDone: (d: Record<string, unknown>) => void }) => {
+          callbacks.onChunk('You identify the pattern. [EVIDENCE_frost_pattern]');
+          callbacks.onDone({
+            new_evidence: ['frost_pattern'],
+            evidence_names: { frost_pattern: 'Frost Pattern' },
+          });
+        },
+      );
+
+      render(
+        <LocationView
+          {...defaultProps}
+          onEvidenceDiscovered={onEvidenceDiscovered}
+        />,
+      );
+      const textarea = screen.getByPlaceholderText(/describe your action/i);
+      await user.type(textarea, 'inspect the pattern');
+      await user.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(onEvidenceDiscovered).toHaveBeenCalledWith(['frost_pattern']);
+      });
+      expect(screen.queryByText(/EVIDENCE_frost_pattern/)).not.toBeInTheDocument();
+    });
+
+    it('strips malformed rite control markers from rendered text', async () => {
+      const user = userEvent.setup();
+      (api.investigateStream as Mock).mockImplementation(
+        (_req: unknown, callbacks: { onChunk: (t: string) => void; onDone: (d: Record<string, unknown>) => void }) => {
+          callbacks.onChunk('The frost forms a starburst. [EVIDENCE_pattern] [NO_EVIDENCE]');
+          callbacks.onDone({ new_evidence: [], evidence_names: {} });
+        },
+      );
+
+      render(<LocationView {...defaultProps} />);
+      const textarea = screen.getByPlaceholderText(/describe your action/i);
+      await user.type(textarea, 'cast essence');
+      await user.keyboard('{Enter}');
+
+      expect(await screen.findByText('The frost forms a starburst.')).toBeInTheDocument();
+      expect(screen.queryByText(/EVIDENCE_pattern|NO_EVIDENCE/)).not.toBeInTheDocument();
+    });
 
     it.todo('displays narrator response after successful submit');
 
     it.todo('shows evidence discovery indicator');
-
-    it.todo('calls onEvidenceDiscovered when evidence is found');
 
     it.todo('does not call onEvidenceDiscovered when no evidence found');
 
@@ -201,7 +392,33 @@ describe('LocationView', () => {
   describe('Loading State', () => {
     it.todo('shows loading indicator during API call');
 
-    it.todo('disables input during loading');
+    it('disables textarea and SEND button while stream is in flight', async () => {
+      const user = userEvent.setup();
+      let resolveStream: (() => void) | undefined;
+      (api.investigateStream as Mock).mockImplementation(
+        (_req: unknown, _callbacks: unknown) =>
+          new Promise<void>((resolve) => {
+            resolveStream = resolve;
+          }),
+      );
+
+      render(<LocationView {...defaultProps} />);
+
+      const textarea = screen.getByPlaceholderText(/describe your action/i);
+      const sendButton = screen.getByRole('button', { name: /submit action/i });
+
+      await user.type(textarea, 'I search the desk');
+      await user.keyboard('{Enter}');
+
+      // While the stream is pending: input disabled, send button disabled
+      await waitFor(() => {
+        expect(textarea).toBeDisabled();
+      });
+      expect(sendButton).toBeDisabled();
+
+      // Clean up dangling promise
+      resolveStream?.();
+    });
   });
 
   // ------------------------------------------
@@ -278,15 +495,15 @@ describe('LocationView', () => {
       expect(textarea).toHaveValue("check the window");
     });
 
-    it('fills input with Tom prompt when ask Tom clicked', async () => {
+    it('fills input with inner voice prompt when ask voice clicked', async () => {
       const user = userEvent.setup();
       render(<LocationView {...defaultProps} />);
 
-      const button = screen.getByRole('button', { name: /ask Tom/i });
+      const button = screen.getByRole('button', { name: /ask matthew/i });
       await user.click(button);
 
       const textarea = screen.getByPlaceholderText(/describe your action/i);
-      expect(textarea).toHaveValue("Tom, what do you think?");
+      expect(textarea).toHaveValue('Matthew, what do you think?');
     });
 
     it('does NOT auto-submit when quick action clicked', async () => {
@@ -306,10 +523,10 @@ describe('LocationView', () => {
   });
 
   // ------------------------------------------
-  // Auror's Handbook Tests (Phase 4.5)
+  // Lantern Compendium Tests (Phase 4.5)
   // ------------------------------------------
 
-  describe("Auror's Handbook (Phase 4.5)", () => {
+  describe("Lantern Compendium (Phase 4.5)", () => {
     it.todo('renders Handbook button');
 
     it.todo('opens Handbook modal when button clicked');
@@ -320,7 +537,7 @@ describe('LocationView', () => {
 
     it.todo('closes Handbook modal on second Ctrl+H press');
 
-    it.todo('Handbook shows all 7 spells');
+    it.todo('Handbook shows all 7 rites');
 
     it.todo('Handbook button has title with keyboard shortcut');
   });

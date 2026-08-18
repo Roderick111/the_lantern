@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Request
 
+from src.api.llm_client import UnsupportedModelError, validate_byok_model
 from src.api.rate_limit import VERIFY_KEY_RATE, limiter
 from src.api.schemas import ModelInfo, VerifyKeyRequest, VerifyKeyResponse
 from src.config.llm_settings import get_llm_settings
@@ -24,8 +25,15 @@ async def verify_api_key(request: Request, body: VerifyKeyRequest) -> VerifyKeyR
     if not test_model:
         return VerifyKeyResponse(valid=False, error=f"Unknown provider: {body.provider}")
 
+    if body.model:
+        try:
+            validate_byok_model(body.model)
+        except UnsupportedModelError as e:
+            return VerifyKeyResponse(valid=False, error=str(e))
+
     try:
         from litellm import acompletion
+        from litellm.exceptions import AuthenticationError, RateLimitError
 
         await acompletion(
             model=test_model,
@@ -34,8 +42,12 @@ async def verify_api_key(request: Request, body: VerifyKeyRequest) -> VerifyKeyR
             api_key=body.api_key,
         )
         return VerifyKeyResponse(valid=True)
-    except Exception as e:
-        return VerifyKeyResponse(valid=False, error=str(e))
+    except AuthenticationError:
+        return VerifyKeyResponse(valid=False, error="Invalid API key")
+    except RateLimitError:
+        return VerifyKeyResponse(valid=False, error="Rate limited — try again shortly")
+    except Exception:
+        return VerifyKeyResponse(valid=False, error="Verification failed — check key and provider")
 
 
 @router.get("/llm/active")

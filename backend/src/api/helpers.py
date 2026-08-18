@@ -3,8 +3,11 @@
 Contains secret detection, investigation helpers, and state loading utilities.
 """
 
+import asyncio
 import logging
 import re
+import threading
+from collections.abc import AsyncIterator
 from typing import Any
 
 from fastapi import HTTPException
@@ -15,6 +18,8 @@ from src.case_store.loader import (
     get_location,
     list_locations,
     load_case,
+    load_localized_case,
+    load_witnesses,
 )
 from src.context.spell_llm import calculate_spell_success
 from src.state.persistence import load_player_state, save_player_state
@@ -25,12 +30,163 @@ from src.utils.evidence import (
     extract_flags_from_response,
 )
 
+# Shared SSE response headers for all streaming endpoints
+SSE_HEADERS = {
+    "X-Accel-Buffering": "no",
+    "Cache-Control": "no-cache, no-store",
+    "Connection": "keep-alive",
+}
+
+# SSE keepalive comment (browsers ignore these, but they keep the connection alive)
+SSE_KEEPALIVE = ": keepalive\n\n"
+_KEEPALIVE_INTERVAL = 15  # seconds
+
+
+async def stream_with_keepalive(
+    source: AsyncIterator[str],
+) -> AsyncIterator[str]:
+    """Wrap an async LLM chunk stream with periodic keepalive comments.
+
+    Yields SSE comments every 15s of silence to prevent mobile
+    browsers and proxies from dropping the connection.
+    """
+    aiter = source.__aiter__()
+    pending: asyncio.Task[str] | None = None
+
+    async def next_chunk() -> str:
+        return await aiter.__anext__()
+
+    try:
+        while True:
+            if pending is None:
+                pending = asyncio.create_task(next_chunk())
+            done, _ = await asyncio.wait(
+                {pending},
+                timeout=_KEEPALIVE_INTERVAL,
+            )
+            if not done:
+                # asyncio.wait leaves pending task alive. wait_for would cancel
+                # __anext__ here, which permanently kills slow provider streams.
+                yield SSE_KEEPALIVE
+                continue
+            try:
+                chunk = pending.result()
+            except StopAsyncIteration:
+                return
+            finally:
+                pending = None
+            yield chunk
+    finally:
+        if pending is not None and not pending.done():
+            pending.cancel()
+            await asyncio.gather(pending, return_exceptions=True)
+        close = getattr(aiter, "aclose", None)
+        if close is not None:
+            await close()
+
+
 logger = logging.getLogger(__name__)
 
 
 # ============================================
 # Secret Detection
 # ============================================
+
+_STOPWORDS = {
+    "i",
+    "me",
+    "my",
+    "myself",
+    "we",
+    "our",
+    "ours",
+    "ourselves",
+    "you",
+    "your",
+    "yours",
+    "yourself",
+    "yourselves",
+    "he",
+    "him",
+    "his",
+    "himself",
+    "she",
+    "her",
+    "hers",
+    "herself",
+    "it",
+    "its",
+    "itself",
+    "they",
+    "them",
+    "their",
+    "theirs",
+    "themselves",
+    "what",
+    "which",
+    "who",
+    "whom",
+    "this",
+    "that",
+    "these",
+    "those",
+    "am",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "having",
+    "do",
+    "does",
+    "did",
+    "doing",
+    "a",
+    "an",
+    "the",
+    "and",
+    "but",
+    "if",
+    "or",
+    "because",
+    "as",
+    "until",
+    "while",
+    "of",
+    "at",
+    "by",
+    "for",
+    "with",
+    "about",
+    "against",
+    "between",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "to",
+    "from",
+    "up",
+    "down",
+    "in",
+    "out",
+    "on",
+    "off",
+    "over",
+    "under",
+    "again",
+    "further",
+    "then",
+    "once",
+}
 
 DENIAL_PATTERNS = [
     "i didn't",
@@ -65,78 +221,172 @@ DENIAL_PATTERNS = [
     "denied",
 ]
 
-_STOPWORDS = {
-    "i", "me", "my", "myself", "we", "our", "ours", "ourselves",
-    "you", "your", "yours", "yourself", "yourselves",
-    "he", "him", "his", "himself", "she", "her", "hers", "herself",
-    "it", "its", "itself", "they", "them", "their", "theirs", "themselves",
-    "what", "which", "who", "whom", "this", "that", "these", "those",
-    "am", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "having", "do", "does", "did", "doing",
-    "a", "an", "the", "and", "but", "if", "or", "because", "as",
-    "until", "while", "of", "at", "by", "for", "with", "about",
-    "against", "between", "into", "through", "during", "before",
-    "after", "above", "below", "to", "from", "up", "down",
-    "in", "out", "on", "off", "over", "under", "again",
-    "further", "then", "once",
-}
+# Threshold for unified scorer (0.70 rejects 4/5 window matches = 0.68)
+REVEAL_THRESHOLD = 0.70
 
 
-def is_affirmative_mention(keyword: str, text: str, lookback_chars: int = 40) -> bool:
-    """Check if keyword appears affirmatively (not in denial context)."""
-    text_lower = text.lower()
-    keyword_lower = keyword.lower()
-    pos = text_lower.find(keyword_lower)
+def _stem(word: str) -> str:
+    """Lightweight suffix-strip stemmer. No dependencies."""
+    # Order matters: longest suffixes first
+    if word.endswith("ying"):
+        return word  # "lying", "dying" — don't strip
+    if word.endswith("ing") and len(word) > 5:
+        # running -> runn -> run (handle double consonant)
+        base = word[:-3]
+        if len(base) > 2 and base[-1] == base[-2]:
+            return base[:-1]
+        return base
+    if word.endswith("tion") or word.endswith("sion"):
+        return word[:-3]  # keep the root
+    if word.endswith("ment") and len(word) > 6:
+        return word[:-4]
+    if word.endswith("ness") and len(word) > 6:
+        return word[:-4]
+    if word.endswith("ied") and len(word) > 4:
+        return word[:-3] + "y"  # carried -> carry
+    if word.endswith("ed") and len(word) > 4:
+        base = word[:-2]
+        if len(base) > 2 and base[-1] == base[-2]:
+            return base[:-1]  # stopped -> stop
+        return base
+    if word.endswith("ly") and len(word) > 4:
+        return word[:-2]
+    if word.endswith("ies") and len(word) > 4:
+        return word[:-3] + "y"  # stories -> story
+    if word.endswith("es") and len(word) > 4:
+        return word[:-2]
+    if word.endswith("s") and not word.endswith("ss") and len(word) > 3:
+        return word[:-1]
+    return word
 
-    if pos == -1:
-        return False
 
-    start = max(0, pos - lookback_chars)
-    context_before = text_lower[start:pos]
+def _tokenize(text: str) -> list[str]:
+    """Extract content words (lowercase, no stopwords, stemmed)."""
+    return [_stem(w) for w in re.findall(r"[a-z]+", text.lower()) if w not in _STOPWORDS]
 
+
+def _keyword_overlap_score(response_tokens: set[str], keywords: list[str]) -> float:
+    """Score how well response matches author-defined keywords.
+
+    Each keyword phrase is scored by token overlap. Returns best match.
+    """
+    if not keywords:
+        return 0.0
+
+    best = 0.0
+    for keyword in keywords:
+        kw_tokens = _tokenize(keyword)
+        if not kw_tokens:
+            continue
+        matched = sum(1 for t in kw_tokens if t in response_tokens)
+        best = max(best, matched / len(kw_tokens))
+
+    return best
+
+
+def _content_overlap_score(
+    response_tokens: list[str],
+    secret_text: str,
+    window_size: int = 5,
+) -> float:
+    """Score how much response reproduces secret text content.
+
+    Sliding window: fraction of best window's tokens found in secret.
+    Returns 0.0 if secret has fewer content words than window_size.
+    """
+    secret_tokens = set(_tokenize(secret_text))
+    if len(secret_tokens) < window_size:
+        return 0.0
+
+    best = 0.0
+    for i in range(len(response_tokens) - window_size + 1):
+        window = response_tokens[i : i + window_size]
+        matched = sum(1 for w in window if w in secret_tokens)
+        best = max(best, matched / window_size)
+
+    return best
+
+
+def _denial_penalty(text_lower: str) -> float:
+    """0.0 if response contains denial patterns, 1.0 if clean."""
     for denial in DENIAL_PATTERNS:
-        if denial in context_before:
-            return False
+        if denial in text_lower:
+            return 0.0
+    return 1.0
 
-    return True
+
+def _evasion_penalty(text_lower: str, response_tokens: list[str]) -> float:
+    """Detect question-echoing evasion. 0.0 if evasion, 1.0 if clean.
+
+    Triggers when content words appear ONLY inside question sentences
+    (ending with '?') and there's no affirmative framing.
+    """
+    # If no question marks, no evasion
+    if "?" not in text_lower:
+        return 1.0
+
+    # Check if ALL content tokens appear only in question sentences
+    # Split by '?' — everything before a '?' is a question clause
+    raw_parts = text_lower.split("?")
+    # Last part (after final '?') is non-question
+    non_question_text = raw_parts[-1] if raw_parts else ""
+
+    nq_tokens = set(_tokenize(non_question_text))
+
+    # If content words exist outside questions → not evasion
+    if nq_tokens - _STOPWORDS:
+        # Check for affirmative framing in non-question part
+        affirmatives = {"yes", "fine", "admit", "confess", "true", "right", "okay"}
+        if nq_tokens & affirmatives:
+            return 1.0
+        # Has non-question content, probably not pure evasion
+        return 1.0
+
+    # All content is in questions — likely evasion
+    return 0.0
+
+
+def score_secret_revelation(
+    response_text: str,
+    keywords: list[str],
+    secret_text: str,
+) -> float:
+    """Unified 0.0–1.0 score for how strongly response reveals a secret.
+
+    Combines keyword overlap and content overlap, then applies
+    denial and evasion penalties.
+    """
+    text_lower = response_text.lower()
+    response_tokens = _tokenize(response_text)
+    response_token_set = set(response_tokens)
+
+    kw_score = _keyword_overlap_score(response_token_set, keywords)
+    text_score = _content_overlap_score(response_tokens, secret_text)
+
+    # Keyword is stronger signal, content overlap slightly discounted
+    raw = max(kw_score, text_score * 0.85)
+
+    # Apply filters — these reduce score toward 0
+    raw *= _denial_penalty(text_lower)
+    raw *= _evasion_penalty(text_lower, response_tokens)
+
+    return raw
 
 
 def detect_keyword_match(response: str, keywords: list[str]) -> bool:
     """Check if response affirmatively mentions any keywords."""
     if not keywords:
         return False
-    for keyword in keywords:
-        if is_affirmative_mention(keyword, response):
-            return True
-    return False
+    return score_secret_revelation(response, keywords, "") >= REVEAL_THRESHOLD
 
 
 def detect_secret_by_consecutive_words(
-    response_text: str, secret_text: str, window_size: int = 5
+    response_text: str,
+    secret_text: str,
+    window_size: int = 5,
 ) -> bool:
-    """Detect if secret revealed by consecutive word matching.
-
-    Checks if response contains N consecutive words where ALL words appear
-    somewhere in the secret text.
-    """
-    response_lower = response_text.lower()
-    secret_lower = secret_text.lower()
-
-    response_words = re.findall(r"\b[a-z]+\b", response_lower)
-    secret_words = set(re.findall(r"\b[a-z]+\b", secret_lower))
-
-    secret_words_filtered = secret_words - _STOPWORDS
-    response_words_filtered = [w for w in response_words if w not in _STOPWORDS]
-
-    if len(secret_words_filtered) < window_size:
-        return False
-
-    for i in range(len(response_words_filtered) - window_size + 1):
-        window = response_words_filtered[i : i + window_size]
-        if all(word in secret_words_filtered for word in window):
-            return True
-
-    return False
+    """Check if response reproduces secret text content."""
+    return score_secret_revelation(response_text, [], secret_text) >= REVEAL_THRESHOLD
 
 
 def detect_secrets_in_response(
@@ -158,12 +408,12 @@ def detect_secrets_in_response(
             secret_text = secret.get("text", "")
             secret_keywords = secret.get("keywords", [])
 
-            keyword_match = detect_keyword_match(response_text, secret_keywords)
-            consecutive_match = detect_secret_by_consecutive_words(
-                response_text, secret_text, window_size=5
+            score = score_secret_revelation(
+                response_text,
+                secret_keywords,
+                secret_text,
             )
-
-            if keyword_match or consecutive_match:
+            if score >= REVEAL_THRESHOLD:
                 witness_state.reveal_secret(secret_id)
                 secrets_revealed.append(secret_id)
 
@@ -177,22 +427,89 @@ def detect_secrets_in_response(
 
 
 # ============================================
-# State Loading Helpers
+# State Loading Helpers — bounded LRU cache + SQLite persistence
 # ============================================
+
+_STATE_CACHE_MAX = 256
+_CacheKey = tuple[str, str, str]
+_state_cache: dict[_CacheKey, PlayerState] = {}
+_cache_lock = threading.Lock()
+
+
+def _cache_key(case_id: str, player_id: str, slot: str) -> _CacheKey:
+    return (player_id, case_id, "autosave" if slot == "default" else slot)
+
+
+def _cache_put(key: _CacheKey, state: PlayerState) -> None:
+    """Insert into bounded LRU cache, evicting oldest if full."""
+    with _cache_lock:
+        _state_cache.pop(key, None)
+        if len(_state_cache) >= _STATE_CACHE_MAX:
+            oldest = next(iter(_state_cache))
+            del _state_cache[oldest]
+        _state_cache[key] = state
 
 
 def load_slot_state(
-    case_id: str, player_id: str, slot: str = "autosave",
+    case_id: str,
+    player_id: str,
+    slot: str = "autosave",
 ) -> PlayerState | None:
-    """Load player state from a specific slot."""
-    return load_player_state(case_id, player_id, slot)
+    """Load player state — deep-copied from cache, or fresh from SQLite."""
+    key = _cache_key(case_id, player_id, slot)
+    with _cache_lock:
+        cached = _state_cache.get(key)
+        if cached is not None:
+            _state_cache.pop(key)
+            _state_cache[key] = cached
+            return cached.model_copy(deep=True)
+
+    state = load_player_state(case_id, player_id, slot)
+    if state is not None:
+        _cache_put(key, state)
+        return state.model_copy(deep=True)
+    return None
+
+
+def clear_state_cache() -> None:
+    """Clear all in-memory cached player states (for tests and admin tooling)."""
+    with _cache_lock:
+        _state_cache.clear()
+
+
+def state_delta(state: PlayerState) -> dict[str, Any]:
+    """Lightweight state slice for SSE done payloads (avoids full model_dump)."""
+    from src.api.schemas import StateDeltaResponse
+
+    return StateDeltaResponse(
+        case_id=state.case_id,
+        current_location=state.current_location,
+        discovered_evidence=list(state.discovered_evidence),
+        visited_locations=list(state.visited_locations),
+        save_revision=state.save_revision,
+    ).model_dump(mode="json")
 
 
 def save_slot_state(
-    state: PlayerState, player_id: str, slot: str = "autosave",
+    state: PlayerState,
+    player_id: str,
+    slot: str = "autosave",
 ) -> None:
-    """Save player state to a specific slot."""
+    """Save player state — persist to SQLite, then update cache."""
+    key = _cache_key(state.case_id, player_id, slot)
     save_player_state(state.case_id, player_id, state, slot)
+    _cache_put(key, state.model_copy(deep=True))
+
+
+def invalidate_state_cache(
+    case_id: str,
+    player_id: str,
+    slot: str = "autosave",
+) -> None:
+    """Remove a specific entry from the state cache."""
+    key = _cache_key(case_id, player_id, slot)
+    with _cache_lock:
+        _state_cache.pop(key, None)
 
 
 def load_case_or_404(case_id: str) -> dict[str, Any]:
@@ -201,13 +518,32 @@ def load_case_or_404(case_id: str) -> dict[str, Any]:
         return load_case(case_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Case not found: {case_id}")
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+def load_localized_case_or_404(case_id: str, language: str = "en") -> dict[str, Any]:
+    """Load a case with authored player-facing locale text."""
+    try:
+        if language == "en":
+            return load_case_or_404(case_id)
+        return load_localized_case(case_id, language)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404, detail=f"Case or locale not found: {case_id}/{language}"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def load_or_create_state(
-    case_id: str, player_id: str, case_data: dict[str, Any], slot: str = "autosave",
+    case_id: str,
+    player_id: str,
+    case_data: dict[str, Any],
+    slot: str = "autosave",
 ) -> PlayerState:
-    """Load existing player state or create new one."""
-    state = load_player_state(case_id, player_id, slot)
+    """Load existing player state or create new one (uses cache)."""
+    state = load_slot_state(case_id, player_id, slot)
     if state is None:
         first_location = get_first_location_id(case_data)
         state = PlayerState(case_id=case_id, current_location=first_location)
@@ -279,19 +615,29 @@ def resolve_location(
     request: InvestigateRequest,
     case_data: dict[str, Any],
     slot: str = "autosave",
+    existing_state: PlayerState | None = None,
+    player_id: str | None = None,
+    locations: list[dict[str, Any]] | None = None,
 ) -> tuple[str, dict[str, Any]]:
-    """Resolve and validate target location for investigation."""
+    """Resolve and validate target location for investigation.
+
+    Args:
+        existing_state: Pre-loaded state to avoid redundant DB call.
+        locations: Precomputed location list (avoids duplicate list_locations call).
+    """
     target_location_id = request.location_id
-    all_locations = list_locations(case_data)
+    all_locations = locations if locations is not None else list_locations(case_data)
     location_ids = [loc["id"] for loc in all_locations]
 
     if not target_location_id or target_location_id == "library":
         if target_location_id == "library" and "library" in location_ids:
             pass
         else:
-            existing_state = load_player_state(request.case_id, request.player_id, slot)
-            if existing_state and existing_state.current_location:
-                target_location_id = existing_state.current_location
+            state = existing_state or load_player_state(
+                request.case_id, player_id or getattr(request, "player_id", "default"), slot
+            )
+            if state and state.current_location:
+                target_location_id = state.current_location
             elif location_ids:
                 target_location_id = location_ids[0]
             else:
@@ -321,6 +667,7 @@ def save_conversation_and_return(
     already_discovered: bool,
     slot: str = "autosave",
     evidence_names: dict[str, str] | None = None,
+    location_changed: str | None = None,
 ) -> InvestigateResponse:
     """Save conversation to state and return investigation response."""
     state.add_conversation_message("player", player_input, location_id=location_id)
@@ -332,7 +679,8 @@ def save_conversation_and_return(
         new_evidence=new_evidence,
         evidence_names=evidence_names or {},
         already_discovered=already_discovered,
-        updated_state=state.model_dump(mode="json"),
+        location_changed=location_changed,
+        updated_state=state_delta(state),
     )
 
 
@@ -351,9 +699,9 @@ def check_spell_already_discovered(
     from backend.src.spells.definitions import get_spell
 
     spell_def = get_spell(spell_id)
-    spell_name = spell_def.get("name") if spell_def else "the spell"
+    spell_name = spell_def.get("name") if spell_def else "the rite"
     return (
-        f"You cast {spell_name}, but it reveals nothing new. "
+        f"You perform {spell_name}, but it reveals nothing new. "
         "The evidence has already given up its secrets."
     )
 
@@ -373,6 +721,7 @@ def calculate_spell_outcome(
         player_input=player_input,
         attempts_in_location=attempts,
         location_id=location_key,
+        assistance_mode=state.assistance_mode,
     )
     spell_outcome = "SUCCESS" if success else "FAILURE"
 
@@ -388,11 +737,11 @@ def calculate_spell_outcome(
     return spell_outcome
 
 
-def find_witness_for_legilimency(
+def find_witness_for_mnemonic_delving(
     target: str | None,
     case_data: dict[str, Any],
 ) -> dict[str, Any] | None:
-    """Find witness data for Legilimency spell target."""
+    """Find witness data for Mnemonic Delving spell target."""
     if not target:
         return None
     for _, witness_data in case_data.get("witnesses", {}).items():
@@ -413,7 +762,7 @@ def process_spell_flags(
     flags = extract_flags_from_response(narrator_response)
 
     if "relationship_damaged" in flags and spell_id and target:
-        for witness_id, witness_data in case_data.get("witnesses", {}).items():
+        for witness_id, witness_data in load_witnesses(case_data).items():
             witness_name = witness_data.get("name", "")
             if target.lower() in witness_name.lower():
                 base_trust = witness_data.get("base_trust", 50)
@@ -431,7 +780,7 @@ def extract_new_evidence(
     discovered_ids: list[str],
     state: PlayerState,
 ) -> list[str]:
-    """Extract newly discovered evidence from LLM response [EVIDENCE: id] tags."""
+    """Extract newly discovered evidence from narrator evidence tags."""
     new_evidence: list[str] = []
 
     response_evidence = extract_evidence_from_response(narrator_response)

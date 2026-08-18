@@ -16,13 +16,13 @@ class TestDetectFallacies:
     def test_no_fallacies_good_reasoning(self) -> None:
         """Good reasoning with evidence has no fallacies."""
         reasoning = (
-            "The wand signature proves Draco cast the spell. The frost pattern confirms this."
+            "The focus signature proves Wisp cast the spell. The frost pattern confirms this."
         )
-        accused_id = "draco"
-        evidence_cited = ["wand_signature", "frost_pattern"]
+        accused_id = "wisp"
+        evidence_cited = ["focus_signature", "frost_pattern"]
         case_data = {
-            "solution": {"culprit": "draco"},
-            "wrong_suspects": [],
+            "solution": {"culprit": "wisp"},
+            "wrong_suspects": {},
         }
 
         fallacies = detect_fallacies(reasoning, accused_id, evidence_cited, case_data)
@@ -31,16 +31,15 @@ class TestDetectFallacies:
     def test_detect_multiple_fallacies(self) -> None:
         """Detect multiple fallacies in bad reasoning."""
         reasoning = "She was present in the library. The witness said she did it. She argued before the incident."
-        accused_id = "hermione"
+        accused_id = "elena"
         evidence_cited: list[str] = []
         case_data = {
-            "solution": {"culprit": "draco"},
-            "wrong_suspects": [
-                {
-                    "id": "hermione",
-                    "exoneration_evidence": ["wand_signature"],
+            "solution": {"culprit": "wisp"},
+            "wrong_suspects": {
+                "elena": {
+                    "exoneration_evidence": ["focus_signature"],
                 }
-            ],
+            },
         }
 
         fallacies = detect_fallacies(reasoning, accused_id, evidence_cited, case_data)
@@ -57,11 +56,11 @@ class TestDetectFallacies:
     def test_detect_single_fallacy(self) -> None:
         """Detect single specific fallacy."""
         reasoning = "She was there at the scene so she must have done it."
-        accused_id = "draco"
+        accused_id = "wisp"
         evidence_cited: list[str] = []
         case_data = {
-            "solution": {"culprit": "draco"},
-            "wrong_suspects": [],
+            "solution": {"culprit": "wisp"},
+            "wrong_suspects": {},
         }
 
         fallacies = detect_fallacies(reasoning, accused_id, evidence_cited, case_data)
@@ -73,59 +72,56 @@ class TestCheckConfirmationBias:
 
     def test_confirmation_bias_wrong_suspect_no_exoneration(self) -> None:
         """Confirmation bias: wrong suspect, didn't cite exoneration evidence."""
-        accused_id = "hermione"
+        accused_id = "elena"
         evidence_cited = ["hidden_note"]  # Not the exoneration evidence
         case_data = {
-            "solution": {"culprit": "draco"},
-            "wrong_suspects": [
-                {
-                    "id": "hermione",
-                    "exoneration_evidence": ["wand_signature"],
+            "solution": {"culprit": "wisp"},
+            "wrong_suspects": {
+                "elena": {
+                    "exoneration_evidence": ["focus_signature"],
                 }
-            ],
+            },
         }
 
         assert _check_confirmation_bias(accused_id, evidence_cited, case_data) is True
 
     def test_no_confirmation_bias_cited_exoneration(self) -> None:
         """No confirmation bias if player cited exoneration evidence."""
-        accused_id = "hermione"
-        evidence_cited = ["wand_signature"]  # This is the exoneration evidence
+        accused_id = "elena"
+        evidence_cited = ["focus_signature"]  # This is the exoneration evidence
         case_data = {
-            "solution": {"culprit": "draco"},
-            "wrong_suspects": [
-                {
-                    "id": "hermione",
-                    "exoneration_evidence": ["wand_signature"],
+            "solution": {"culprit": "wisp"},
+            "wrong_suspects": {
+                "elena": {
+                    "exoneration_evidence": ["focus_signature"],
                 }
-            ],
+            },
         }
 
         assert _check_confirmation_bias(accused_id, evidence_cited, case_data) is False
 
     def test_no_confirmation_bias_correct_suspect(self) -> None:
         """No confirmation bias for correct suspect."""
-        accused_id = "draco"
+        accused_id = "wisp"
         evidence_cited: list[str] = []
         case_data = {
-            "solution": {"culprit": "draco"},
-            "wrong_suspects": [],
+            "solution": {"culprit": "wisp"},
+            "wrong_suspects": {},
         }
 
         assert _check_confirmation_bias(accused_id, evidence_cited, case_data) is False
 
     def test_no_confirmation_bias_no_exoneration_defined(self) -> None:
         """No confirmation bias if no exoneration evidence defined."""
-        accused_id = "hermione"
+        accused_id = "elena"
         evidence_cited: list[str] = []
         case_data = {
-            "solution": {"culprit": "draco"},
-            "wrong_suspects": [
-                {
-                    "id": "hermione",
+            "solution": {"culprit": "wisp"},
+            "wrong_suspects": {
+                "elena": {
                     "exoneration_evidence": [],  # Empty
                 }
-            ],
+            },
         }
 
         assert _check_confirmation_bias(accused_id, evidence_cited, case_data) is False
@@ -148,7 +144,7 @@ class TestCheckCorrelationNotCausation:
 
     def test_no_fallacy_with_causal_evidence(self) -> None:
         """No fallacy if presence claim + causal evidence."""
-        reasoning = "she was present at the scene and the wand signature proves it"
+        reasoning = "she was present at the scene and the focus signature proves it"
         assert _check_correlation_not_causation(reasoning, []) is False
 
     def test_no_fallacy_no_presence_claim(self) -> None:
@@ -158,7 +154,7 @@ class TestCheckCorrelationNotCausation:
 
     def test_detect_in_library_claim(self) -> None:
         """Detect 'was in the library' type claims."""
-        reasoning = "hermione was in the library so she did it"
+        reasoning = "elena was in the library so she did it"
         assert _check_correlation_not_causation(reasoning, []) is True
 
 
@@ -177,12 +173,12 @@ class TestCheckAuthorityBias:
 
     def test_detect_claimed(self) -> None:
         """Detect 'claimed' without evidence."""
-        reasoning = "draco claimed he was innocent but i don't believe him"
+        reasoning = "cassian claimed he was innocent but i don't believe him"
         assert _check_authority_bias(reasoning) is True
 
     def test_no_fallacy_with_evidence_verification(self) -> None:
         """No fallacy if testimony + evidence verification."""
-        reasoning = "the witness said it, and the wand evidence confirms this"
+        reasoning = "the witness said it, and the focus evidence confirms this"
         assert _check_authority_bias(reasoning) is False
 
     def test_no_fallacy_no_testimony_reliance(self) -> None:
@@ -216,7 +212,7 @@ class TestCheckPostHoc:
 
     def test_no_fallacy_with_evidence_connection(self) -> None:
         """No fallacy if temporal reasoning + evidence."""
-        reasoning = "they argued before and the wand signature proves they cast the spell"
+        reasoning = "they argued before and the focus signature proves they cast the spell"
         assert _check_post_hoc(reasoning) is False
 
     def test_no_fallacy_no_temporal_reasoning(self) -> None:
@@ -235,12 +231,12 @@ class TestCheckWeakReasoning:
 
     def test_detect_i_guess(self) -> None:
         """Detect 'I guess' weak reasoning."""
-        reasoning = "i guess hermione did it"
+        reasoning = "i guess elena did it"
         assert _check_weak_reasoning(reasoning) is True
 
     def test_detect_i_think_maybe(self) -> None:
         """Detect 'I think maybe' weak reasoning."""
-        reasoning = "i think maybe draco is guilty"
+        reasoning = "i think maybe cassian is guilty"
         assert _check_weak_reasoning(reasoning) is True
 
     def test_detect_probably(self) -> None:
@@ -255,32 +251,32 @@ class TestCheckWeakReasoning:
 
     def test_detect_i_dont_know(self) -> None:
         """Detect 'I don't know' weak reasoning."""
-        reasoning = "i don't know but maybe draco"
+        reasoning = "i don't know but maybe cassian"
         assert _check_weak_reasoning(reasoning) is True
 
     def test_detect_no_idea(self) -> None:
         """Detect 'no idea' weak reasoning."""
-        reasoning = "no idea really but going with hermione"
+        reasoning = "no idea really but going with elena"
         assert _check_weak_reasoning(reasoning) is True
 
     def test_detect_just_a_feeling(self) -> None:
         """Detect 'just a feeling' weak reasoning."""
-        reasoning = "just a feeling that draco is guilty"
+        reasoning = "just a feeling that cassian is guilty"
         assert _check_weak_reasoning(reasoning) is True
 
     def test_detect_no_reason(self) -> None:
         """Detect 'no reason' weak reasoning."""
-        reasoning = "hermione did it. no real reason."
+        reasoning = "elena did it. no real reason."
         assert _check_weak_reasoning(reasoning) is True
 
     def test_detect_gut_feeling(self) -> None:
         """Detect 'gut feeling' weak reasoning."""
-        reasoning = "my gut feeling says it was draco"
+        reasoning = "my gut feeling says it was cassian"
         assert _check_weak_reasoning(reasoning) is True
 
     def test_no_fallacy_confident_reasoning(self) -> None:
         """No fallacy for confident reasoning."""
-        reasoning = "the wand signature proves draco cast the spell"
+        reasoning = "the focus signature proves cassian cast the spell"
         assert _check_weak_reasoning(reasoning) is False
 
     def test_no_fallacy_evidence_based(self) -> None:
@@ -290,12 +286,12 @@ class TestCheckWeakReasoning:
 
     def test_weak_reasoning_in_detect_fallacies(self) -> None:
         """Weak reasoning detected by main function."""
-        reasoning = "I guess Hermione did it. Not sure though."
-        accused_id = "hermione"
+        reasoning = "I guess Elena did it. Not sure though."
+        accused_id = "elena"
         evidence_cited: list[str] = []
         case_data = {
-            "solution": {"culprit": "draco"},
-            "wrong_suspects": [],
+            "solution": {"culprit": "wisp"},
+            "wrong_suspects": {},
         }
 
         fallacies = detect_fallacies(reasoning, accused_id, evidence_cited, case_data)

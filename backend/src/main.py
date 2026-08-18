@@ -6,6 +6,7 @@ Phase 1: Core Investigation Loop
 
 import logging
 import os
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 
@@ -20,16 +21,36 @@ from slowapi.errors import RateLimitExceeded  # noqa: E402
 from src.api.rate_limit import limiter  # noqa: E402
 from src.api.routes import router  # noqa: E402
 from src.config.llm_settings import get_llm_settings  # noqa: E402
-from src.state.persistence import init_db  # noqa: E402
+from src.state.persistence import close_db, init_db  # noqa: E402
 from src.telemetry.logger import log_event  # noqa: E402
 
 # Configure logging for debug output
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup/shutdown lifecycle — ensures DB connection cleanup on reload."""
+    init_db()
+    _llm = get_llm_settings()
+    logger.info(
+        "LLM config: model=%s, fallback=%s, provider=%s",
+        _llm.DEFAULT_MODEL,
+        _llm.FALLBACK_MODEL,
+        _llm.DEFAULT_LLM_PROVIDER.value,
+    )
+    yield
+    close_db()
+    logger.info("Shutdown complete")
+
+
 app = FastAPI(
     title="HP Game Backend",
     description="Investigation game with Claude LLM narrator",
     version="0.4.0",
+    lifespan=lifespan,
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -50,39 +71,41 @@ async def limit_request_body(request: Request, call_next) -> Response:
     return await call_next(request)
 
 
-# CORS — env-based origins for production, localhost defaults for dev
+# CORS — explicit origins from env (no wildcard with credentials). Validate.
 _cors_env = os.getenv("CORS_ORIGINS", "")
-_cors_origins = [o.strip() for o in _cors_env.split(",") if o.strip()] if _cors_env else [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:3000",
-]
+if _cors_env:
+    _cors_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+else:
+    _cors_origins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+    ]
+
+# Tighten: disallow "*" when credentials=True (insecure + FastAPI rejects it)
+if "*" in _cors_origins:
+    logger.warning("CORS_ORIGINS contains '*'; stripping for security with credentials=True")
+    _cors_origins = [o for o in _cors_origins if o != "*"]
+
+if not _cors_origins:
+    _cors_origins = ["http://localhost:5173"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# Initialize database (creates table if not exists)
-init_db()
 
-# Log active LLM config on startup
-_llm = get_llm_settings()
-logger = logging.getLogger(__name__)
-logger.info(
-    "LLM config: model=%s, fallback=%s, provider=%s",
-    _llm.DEFAULT_MODEL,
-    _llm.FALLBACK_MODEL,
-    _llm.DEFAULT_LLM_PROVIDER.value,
-)
+# Startup/shutdown handled by lifespan context manager
 
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Log unhandled exceptions to telemetry before returning 500."""
-    log_event(
+    await log_event(
         "server_error",
         "unknown",
         "unknown",

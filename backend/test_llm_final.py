@@ -9,18 +9,18 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 
 async def test_mentor_feedback():
-    """Test mentor.py - Moody feedback generation"""
+    """Test mentor.py - Graves feedback generation"""
     print("\n" + "=" * 70)
-    print("TEST: Mentor Feedback (Moody)")
+    print("TEST: Mentor Feedback (Graves)")
     print("=" * 70)
 
     try:
-        from src.context.mentor import build_moody_feedback_llm
+        from src.context.mentor import build_graves_feedback_llm
 
-        print("📡 Generating Moody feedback (may take 5-10 seconds)...")
+        print("📡 Generating Graves feedback (may take 5-10 seconds)...")
 
         # Use correct signature from mentor.py:597
-        feedback = await build_moody_feedback_llm(
+        feedback = await build_graves_feedback_llm(
             correct=True,
             score=85,
             fallacies=[],
@@ -53,18 +53,18 @@ async def test_mentor_feedback():
 
 
 async def test_briefing_question():
-    """Test briefing.py - Moody Q&A"""
+    """Test briefing.py - Graves Q&A"""
     print("\n" + "=" * 70)
-    print("TEST: Briefing System (Moody Q&A)")
+    print("TEST: Briefing System (Graves Q&A)")
     print("=" * 70)
 
     try:
-        from src.context.briefing import ask_moody_question
+        from src.context.briefing import ask_graves_question
 
-        print("📡 Testing Moody briefing (may take 5-10 seconds)...")
+        print("📡 Testing Graves briefing (may take 5-10 seconds)...")
 
         # Use correct signature from briefing.py:188
-        response = await ask_moody_question(
+        response = await ask_graves_question(
             question="What should I focus on in this investigation?",
             case_assignment="A student has been found dead in the dungeons.",
             teaching_moment="Remember to look for contradictions in witness statements.",
@@ -74,7 +74,7 @@ async def test_briefing_question():
             briefing_context={
                 "witnesses": ["witness_001", "witness_002"],
                 "suspects": ["suspect_001"],
-                "location": "Hogwarts Dungeons",
+                "location": "Blackwood Collegiate Dungeons",
                 "overview": "Mysterious death investigation",
             },
         )
@@ -136,7 +136,7 @@ async def main():
         print("\nNext steps:")
         print("   1. Start backend: uv run uvicorn src.main:app --reload")
         print("   2. Test witness interrogation via API")
-        print("   3. Test verdict submission with Moody feedback")
+        print("   3. Test verdict submission with Graves feedback")
         print("=" * 70)
         return 0
     else:

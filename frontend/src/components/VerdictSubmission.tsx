@@ -91,7 +91,7 @@ export function VerdictSubmission({
 
   return (
     <div className="space-y-6">
-      {/* Moody's intro */}
+      {/* Graves's intro */}
       <p className={`${theme.fonts.narrative} italic ${theme.colors.text.muted} text-sm text-center`}>
         "Present your case, cadet. Choose your words carefully."
       </p>
@@ -145,7 +145,7 @@ export function VerdictSubmission({
             value={reasoning}
             onChange={(e) => setReasoning(e.target.value)}
             disabled={disabled || loading}
-            rows={5}
+            rows={3}
             placeholder="Describe your deduction..."
             className={`w-full ${theme.colors.bg.primary} border ${theme.colors.border.default} rounded-sm p-3 pr-16 ${theme.colors.text.secondary} ${theme.fonts.narrative} text-sm
                        focus:outline-none focus:${theme.colors.border.hover}
@@ -153,7 +153,7 @@ export function VerdictSubmission({
             aria-label="Enter your reasoning"
           />
           <span className={`absolute bottom-2 right-3 text-xs ${theme.fonts.ui} tracking-wider ${reasoningMet ? theme.colors.state.success.text : theme.colors.text.separator}`}>
-            {reasoning.length}/{MIN_REASONING_LENGTH}
+            {reasoningMet ? `${reasoning.length} chars` : `min ${MIN_REASONING_LENGTH - reasoning.length} more`}
           </span>
         </div>
       </div>
@@ -185,7 +185,7 @@ export function VerdictSubmission({
                              disabled:opacity-50 disabled:cursor-not-allowed
                              ${isSelected
                                ? `${theme.colors.text.primary} ${theme.colors.bg.active} border ${theme.colors.border.default}`
-                               : `${theme.colors.text.secondary} border border-gray-800 ${theme.colors.bg.hoverClass} hover:${theme.colors.text.primary} hover:${theme.colors.border.hover}`
+                               : `${theme.colors.text.secondary} border ${theme.colors.border.default} ${theme.colors.bg.hoverClass} hover:${theme.colors.text.primary} hover:${theme.colors.border.hover}`
                              }`}
                 >
                   <span className="flex items-center gap-2">

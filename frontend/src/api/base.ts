@@ -21,16 +21,104 @@ function getApiBaseUrl(): string {
     console.warn('VITE_API_URL should include protocol (http:// or https://)');
   }
 
+  // In dev, prefer relative URL so Vite proxy handles /api calls (avoids CORS and localhost resolution issues)
+  if (!url && import.meta.env.DEV) {
+    return '';
+  }
+
   return url ?? 'http://localhost:8000';
 }
 
 export const API_BASE_URL = getApiBaseUrl();
 
 // ============================================
+// Session / Auth Token
+// ============================================
+
+const TOKEN_KEY = 'lantern_player_token';
+const PLAYER_ID_KEY = 'lantern_player_id';
+
+function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+async function bootstrapSession(refreshToken?: string | null): Promise<void> {
+  const existingPlayerId = localStorage.getItem(PLAYER_ID_KEY);
+  const currentToken = refreshToken ?? getStoredToken();
+  const response = await fetch(`${API_BASE_URL}/api/session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      existing_player_id: existingPlayerId,
+      current_token: currentToken,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Session bootstrap failed: ${response.status}`);
+  }
+
+  const data = (await response.json()) as { player_id: string; token: string };
+  localStorage.setItem(TOKEN_KEY, data.token);
+  localStorage.setItem(PLAYER_ID_KEY, data.player_id);
+}
+
+let sessionReady: Promise<void> | null = null;
+
+export async function ensureSession(): Promise<void> {
+  if (getStoredToken()) return;
+  sessionReady ??= bootstrapSession().catch((err) => {
+    sessionReady = null;
+    throw err;
+  });
+  return sessionReady;
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const token = getStoredToken();
+  return token ? { 'X-Player-Token': token } : {};
+}
+
+// B2 guard: prevent 401 storm / loops on rapid errors
+let last401At = 0;
+
+// dispatch toast event for UI (listened in App.tsx)
+function notifySessionExpired(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('lantern-session-expired', {
+        detail: { message: 'Session expired — refreshing' },
+      }),
+    );
+  }
+}
+
+// Handle 401: clear creds, force re-bootstrap next ensure, notify, guard loop
+function handle401(): void {
+  const now = Date.now();
+  if (now - last401At < 1500) {
+    // guard: ignore rapid duplicate 401s to break loops
+    return;
+  }
+  last401At = now;
+
+  const expiredToken = getStoredToken();
+  localStorage.removeItem(TOKEN_KEY);
+  sessionReady = null; // force re-bootstrap on next call
+
+  notifySessionExpired();
+
+  // Refresh session with expired token to preserve player_id and saves
+  void bootstrapSession(expiredToken).catch(() => {
+    localStorage.removeItem(PLAYER_ID_KEY);
+  });
+}
+
+// ============================================
 // BYOK (Bring Your Own Key) Headers
 // ============================================
 
-const LLM_SETTINGS_KEY = 'hp_llm_settings';
+const LLM_SETTINGS_KEY = 'lantern_llm_settings';
 
 export interface LLMSettings {
   provider: string | null;
@@ -38,8 +126,21 @@ export interface LLMSettings {
   model: string | null;
 }
 
+/** BYOK keys live in sessionStorage (cleared when the tab closes). */
+function readLLMSettingsRaw(): string | null {
+  const sessionRaw = sessionStorage.getItem(LLM_SETTINGS_KEY);
+  if (sessionRaw) return sessionRaw;
+
+  const legacyRaw = localStorage.getItem(LLM_SETTINGS_KEY);
+  if (!legacyRaw) return null;
+
+  sessionStorage.setItem(LLM_SETTINGS_KEY, legacyRaw);
+  localStorage.removeItem(LLM_SETTINGS_KEY);
+  return legacyRaw;
+}
+
 export function getLLMSettings(): LLMSettings | null {
-  const raw = localStorage.getItem(LLM_SETTINGS_KEY);
+  const raw = readLLMSettingsRaw();
   if (!raw) return null;
   try {
     return JSON.parse(raw) as LLMSettings;
@@ -49,10 +150,12 @@ export function getLLMSettings(): LLMSettings | null {
 }
 
 export function saveLLMSettings(settings: LLMSettings): void {
-  localStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify(settings));
+  sessionStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.removeItem(LLM_SETTINGS_KEY);
 }
 
 export function clearLLMSettings(): void {
+  sessionStorage.removeItem(LLM_SETTINGS_KEY);
   localStorage.removeItem(LLM_SETTINGS_KEY);
 }
 
@@ -69,9 +172,32 @@ export function getLLMHeaders(): Record<string, string> {
 // Error Handling
 // ============================================
 
+interface ValidationErrorItem {
+  msg?: string;
+  loc?: unknown[];
+}
+
 interface ErrorResponseBody {
-  detail?: string;
+  detail?: string | ValidationErrorItem[];
   message?: string;
+}
+
+function formatErrorDetail(detail: unknown): string | undefined {
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (typeof item === 'object' && item !== null && 'msg' in item) {
+          return String((item as ValidationErrorItem).msg);
+        }
+        return null;
+      })
+      .filter((msg): msg is string => Boolean(msg));
+    return messages.length > 0 ? messages.join('; ') : undefined;
+  }
+  return undefined;
 }
 
 /**
@@ -105,8 +231,9 @@ async function createApiError(response: Response): Promise<ApiError> {
 
   try {
     const errorBody = (await response.json()) as ErrorResponseBody;
-    if (errorBody.detail) {
-      message = errorBody.detail;
+    const detailMessage = formatErrorDetail(errorBody.detail);
+    if (detailMessage) {
+      message = detailMessage;
     } else if (errorBody.message) {
       message = errorBody.message;
     }
@@ -163,6 +290,7 @@ export function parseResponse<T>(data: unknown, schema: z.ZodType<T>): T {
 
 /**
  * Generic API call with fetch + LLM headers + error handling + Zod parse.
+ * B2: on 401 clear token, rebootstrap, toast, guard.
  */
 export async function apiCall<T>(
   method: string,
@@ -171,14 +299,31 @@ export async function apiCall<T>(
   body?: unknown,
 ): Promise<T> {
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    await ensureSession();
+    let response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
         ...getLLMHeaders(),
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
+
+    if (response.status === 401) {
+      handle401();
+      // retry once with fresh session (ensure will bootstrap)
+      await ensureSession();
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+          ...getLLMHeaders(),
+        },
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      });
+    }
 
     if (!response.ok) {
       throw await createApiError(response);
@@ -197,6 +342,7 @@ export async function apiCall<T>(
 /**
  * Generic API call that returns null on 404 instead of throwing.
  * Also handles null response bodies gracefully.
+ * B2: 401 handling + retry once.
  */
 export async function apiCallNullable<T>(
   method: string,
@@ -205,14 +351,30 @@ export async function apiCallNullable<T>(
   body?: unknown,
 ): Promise<T | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    await ensureSession();
+    let response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
         ...getLLMHeaders(),
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
+
+    if (response.status === 401) {
+      handle401();
+      await ensureSession();
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+          ...getLLMHeaders(),
+        },
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      });
+    }
 
     if (response.status === 404) {
       return null;
@@ -247,58 +409,185 @@ export async function apiCallNullable<T>(
 export interface StreamCallbacks {
   onChunk: (text: string) => void;
   onDone: (data: Record<string, unknown>) => void;
-  onError: (error: string) => void;
+  onError: (error: StreamFailure) => void;
+}
+
+export interface StreamFailure {
+  message: string;
+  code: string;
+  retryable: boolean;
+  partial: boolean;
+  requestId?: string;
+}
+
+/**
+ * Type guard for AbortError-shaped exceptions.
+ * Fetch + reader throw a DOMException with name='AbortError' when their
+ * AbortSignal fires. We treat this as an intentional cancel, not an error.
+ */
+function isAbortError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'name' in err &&
+    (err as { name: string }).name === 'AbortError'
+  );
+}
+
+async function fetchSSE(
+  url: string,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<Response> {
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+      ...getLLMHeaders(),
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
 }
 
 export async function streamSSE(
   url: string,
   body: unknown,
   callbacks: StreamCallbacks,
+  signal?: AbortSignal,
 ): Promise<void> {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...getLLMHeaders(),
-    },
-    body: JSON.stringify(body),
-  });
+  await ensureSession();
+  let terminal = false;
+  const telemetry = (eventType: string, data: Record<string, unknown> = {}): void => {
+    void import('./telemetry')
+      .then(({ logEvent }) => logEvent(eventType, data))
+      .catch(() => undefined);
+  };
+  const fail = (failure: StreamFailure): void => {
+    if (terminal) return;
+    terminal = true;
+    telemetry(failure.code === 'stream_incomplete' ? 'stream_unexpected_eof' : 'stream_backend_error', {
+      code: failure.code,
+      partial: failure.partial,
+      request_id: failure.requestId,
+    });
+    callbacks.onError(failure);
+  };
+  const makeFailure = (
+    message: string,
+    code: string,
+    retryable = true,
+    partial = false,
+    requestId?: string,
+  ): StreamFailure => ({ message, code, retryable, partial, requestId });
+  let response: Response;
+  try {
+    response = await fetchSSE(url, body, signal);
+  } catch (err) {
+    // Caller aborted before/during fetch — silent.
+    if (signal?.aborted || isAbortError(err)) return;
+    fail(makeFailure('Connection failed — try again.', 'llm_connection'));
+    return;
+  }
+
+  if (response.status === 401) {
+    handle401();
+    await ensureSession();
+    try {
+      response = await fetchSSE(url, body, signal);
+    } catch (err) {
+      if (signal?.aborted || isAbortError(err)) return;
+      fail(makeFailure('Connection failed — try again.', 'llm_connection'));
+      return;
+    }
+  }
 
   if (!response.ok || !response.body) {
-    callbacks.onError(`HTTP ${response.status}`);
+    try {
+      const errBody = (await response.json()) as { detail?: unknown };
+      const detailMessage = formatErrorDetail(errBody.detail);
+      if (detailMessage) {
+        fail(makeFailure(detailMessage, 'http_error', response.status >= 500));
+        return;
+      }
+    } catch {
+      // non-JSON error body
+    }
+    fail(makeFailure(`HTTP ${response.status}`, 'http_error', response.status >= 500));
     return;
   }
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
+  let receivedAnyText = false;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  try {
+    while (true) {
+      if (signal?.aborted) return;
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
 
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      try {
-        const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
-        if (data.error) {
-          callbacks.onError(data.error as string);
-          return;
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const data = JSON.parse(line.slice(6)) as Record<string, unknown>;
+          if (data.error) {
+            const code = typeof data.code === 'string' ? data.code : 'llm_connection';
+            const message = typeof data.error === 'string' ? data.error : 'Request failed.';
+            fail({
+              message,
+              code,
+              retryable: data.retryable !== false,
+              partial: data.partial === true,
+              requestId: typeof data.request_id === 'string' ? data.request_id : undefined,
+            });
+            return;
+          }
+          if (data.done) {
+            if (terminal) return;
+            terminal = true;
+            telemetry('stream_done', {
+              request_id: typeof data.request_id === 'string' ? data.request_id : undefined,
+            });
+            callbacks.onDone(data);
+            return;
+          }
+          if (data.text) {
+            receivedAnyText = true;
+            callbacks.onChunk(data.text as string);
+          }
+        } catch {
+          // Keepalive comments never reach this branch. A malformed data line
+          // means terminal state cannot be trusted.
+          if (line.startsWith('data: ')) {
+            fail(makeFailure('Stream ended unexpectedly — try again.', 'stream_incomplete', true, receivedAnyText));
+            return;
+          }
         }
-        if (data.done) {
-          callbacks.onDone(data);
-          return;
-        }
-        if (data.text) {
-          callbacks.onChunk(data.text as string);
-        }
-      } catch {
-        // Skip malformed SSE lines
       }
     }
+  } catch (err) {
+    // Cancellation surfaces here as AbortError — exit silently.
+    if (signal?.aborted || isAbortError(err)) return;
+    fail(makeFailure('Connection failed — try again.', 'llm_connection', true, receivedAnyText));
+    return;
+  } finally {
+    reader.releaseLock();
+  }
+
+  // Stream ended without a done message — connection was dropped
+  if (!terminal) {
+    fail(makeFailure(
+      'Stream ended unexpectedly — try again.',
+      'stream_incomplete',
+      true,
+      receivedAnyText,
+    ));
   }
 }

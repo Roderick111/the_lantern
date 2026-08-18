@@ -4,7 +4,7 @@
  * Tests for the mentor feedback display including:
  * - Verdict result display
  * - Score meter rendering and colors
- * - Moody's Response (natural LLM prose)
+ * - Graves's Response (natural LLM prose)
  * - Retry functionality
  * - Loading states
  *
@@ -95,12 +95,13 @@ describe('MentorFeedback', () => {
   describe('Rendering', () => {
     it('renders score meter', () => {
       render(<MentorFeedback {...defaultProps} />);
-      expect(screen.getByText('85/100')).toBeInTheDocument();
+      expect(screen.getByText('85')).toBeInTheDocument();
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
     });
 
     it('renders quality label', () => {
       render(<MentorFeedback {...defaultProps} />);
-      expect(screen.getByText(/Excellent Reasoning/i)).toBeInTheDocument();
+      expect(screen.getByText('Excellent')).toBeInTheDocument();
     });
   });
 
@@ -130,22 +131,19 @@ describe('MentorFeedback', () => {
   // ------------------------------------------
 
   describe('Score Meter', () => {
-    it('shows green for high scores (>=75)', () => {
+    it('shows score value for high scores (>=75)', () => {
       render(<MentorFeedback {...defaultProps} feedback={{ ...mockFeedbackExcellent, score: 80 }} />);
-      const scoreText = screen.getByText('80/100');
-      expect(scoreText).toHaveClass('text-green-400');
+      expect(screen.getByText('80')).toBeInTheDocument();
     });
 
-    it('shows yellow for medium scores (50-74)', () => {
+    it('shows score value for medium scores (50-74)', () => {
       render(<MentorFeedback {...defaultProps} feedback={mockFeedbackMedium} />);
-      const scoreText = screen.getByText('55/100');
-      expect(scoreText).toHaveClass('text-yellow-400');
+      expect(screen.getByText('55')).toBeInTheDocument();
     });
 
-    it('shows red for low scores (<50)', () => {
+    it('shows score value for low scores (<50)', () => {
       render(<MentorFeedback {...defaultProps} feedback={mockFeedbackPoor} correct={false} />);
-      const scoreText = screen.getByText('35/100');
-      expect(scoreText).toHaveClass('text-red-400');
+      expect(screen.getByText('35')).toBeInTheDocument();
     });
 
     it('renders progress bar with correct width', () => {
@@ -162,7 +160,7 @@ describe('MentorFeedback', () => {
   describe('Attempts Remaining', () => {
     it('shows attempts remaining when incorrect', () => {
       render(<MentorFeedback {...defaultProps} correct={false} attemptsRemaining={7} />);
-      expect(screen.getByText('7/10')).toBeInTheDocument();
+      expect(screen.getByText(/7 attempts remaining/i)).toBeInTheDocument();
     });
 
     it('does not show attempts when correct', () => {
@@ -170,16 +168,14 @@ describe('MentorFeedback', () => {
       expect(screen.queryByText(/attempts remaining/i)).not.toBeInTheDocument();
     });
 
-    it('shows red warning for low attempts', () => {
+    it('shows low attempts remaining', () => {
       render(<MentorFeedback {...defaultProps} correct={false} attemptsRemaining={2} />);
-      const attemptsText = screen.getByText('2/10');
-      expect(attemptsText).toHaveClass('text-red-400');
+      expect(screen.getByText(/2 attempts remaining/i)).toBeInTheDocument();
     });
 
-    it('shows green for normal attempts', () => {
+    it('shows normal attempts remaining', () => {
       render(<MentorFeedback {...defaultProps} correct={false} attemptsRemaining={8} />);
-      const attemptsText = screen.getByText('8/10');
-      expect(attemptsText).toHaveClass('text-green-400');
+      expect(screen.getByText(/8 attempts remaining/i)).toBeInTheDocument();
     });
   });
 
@@ -252,7 +248,7 @@ describe('MentorFeedback', () => {
           attemptsRemaining={0}
         />
       );
-      expect(screen.getByText(/Max attempts reached/i)).toBeInTheDocument();
+      expect(screen.getByText(/exhausted all attempts/i)).toBeInTheDocument();
     });
   });
 
@@ -263,7 +259,7 @@ describe('MentorFeedback', () => {
   describe('Wrong Suspect Response', () => {
     it('renders LLM-generated analysis when provided', () => {
       const feedbackWithAnalysis: MentorFeedbackData = {
-        analysis: "WRONG. You accused Hermione because she 'seemed suspicious'? Confirmation bias - check the frost pattern direction!",
+        analysis: "WRONG. You accused Elena because she 'seemed suspicious'? Confirmation bias - check the frost pattern direction!",
         fallacies_detected: [],
         score: 20,
         quality: 'poor',
@@ -280,11 +276,11 @@ describe('MentorFeedback', () => {
           wrongSuspectResponse={null}
         />
       );
-      expect(screen.getByText(/Moody's Response/i)).toBeInTheDocument();
+      expect(screen.getByText(/Graves's Response/i)).toBeInTheDocument();
       expect(screen.getByText(/Confirmation bias/i)).toBeInTheDocument();
     });
 
-    it('does not render Moody section when analysis is empty', () => {
+    it('does not render Graves section when analysis is empty', () => {
       const feedbackNoAnalysis: MentorFeedbackData = {
         analysis: '',
         fallacies_detected: [],
@@ -303,7 +299,7 @@ describe('MentorFeedback', () => {
           wrongSuspectResponse={null}
         />
       );
-      expect(screen.queryByText(/Moody's Response/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Graves's Response/i)).not.toBeInTheDocument();
     });
   });
 
@@ -321,8 +317,7 @@ describe('MentorFeedback', () => {
         />
       );
 
-      expect(screen.getByText(/Moody is evaluating your verdict/i)).toBeInTheDocument();
-      expect(screen.getByText(/Analyzing reasoning quality/i)).toBeInTheDocument();
+      expect(screen.getByText(/Graves is reviewing your case/i)).toBeInTheDocument();
     });
 
     it('does not show feedback content when loading', () => {
@@ -335,8 +330,8 @@ describe('MentorFeedback', () => {
       );
 
       // Should show loading, not the feedback
-      expect(screen.getByText(/Moody is evaluating/i)).toBeInTheDocument();
-      expect(screen.queryByText(/CORRECT VERDICT/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/Graves is reviewing your case/i)).toBeInTheDocument();
+      expect(screen.queryByText(/Correct/i)).not.toBeInTheDocument();
     });
 
     it.todo('shows feedback when not loading and feedback provided');

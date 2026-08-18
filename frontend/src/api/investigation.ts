@@ -33,20 +33,24 @@ export async function investigate(
 export async function investigateStream(
   request: InvestigateRequest,
   callbacks: StreamCallbacks,
+  signal?: AbortSignal,
 ): Promise<void> {
-  await streamSSE(`${API_BASE_URL}/api/investigate/stream`, request, callbacks);
+  await streamSSE(
+    `${API_BASE_URL}/api/investigate/stream`,
+    request,
+    callbacks,
+    signal,
+  );
 }
 
 export async function getEvidenceDetails(
   evidenceId: string,
   caseId = 'case_001',
-  playerId = 'default',
   slot = 'autosave',
 ): Promise<EvidenceDetails> {
   const path =
     `/api/evidence/${encodeURIComponent(evidenceId)}` +
     `?case_id=${encodeURIComponent(caseId)}` +
-    `&player_id=${encodeURIComponent(playerId)}` +
     `&slot=${encodeURIComponent(slot)}`;
   return apiCall('GET', path, EvidenceDetailsSchema);
 }
@@ -54,20 +58,27 @@ export async function getEvidenceDetails(
 export async function getLocation(
   caseId: string,
   locationId: string,
+  language = 'en',
 ): Promise<LocationResponse> {
   const path =
     `/api/case/${encodeURIComponent(caseId)}` +
-    `/location/${encodeURIComponent(locationId)}`;
+    `/location/${encodeURIComponent(locationId)}` +
+    `?language=${encodeURIComponent(language)}`;
   return apiCall('GET', path, LocationResponseSchema);
 }
 
 export async function getLocations(
   caseId: string,
   sessionId?: string,
+  language = 'en',
 ): Promise<LocationInfo[]> {
   let path = `/api/case/${encodeURIComponent(caseId)}/locations`;
-  if (sessionId) {
-    path += `?session_id=${encodeURIComponent(sessionId)}`;
+  const params = new URLSearchParams();
+  if (sessionId) params.set('session_id', sessionId);
+  if (language !== 'en') params.set('language', language);
+  const query = params.toString();
+  if (query) {
+    path += `?${query}`;
   }
   return apiCall('GET', path, z.array(LocationInfoSchema));
 }
@@ -75,13 +86,12 @@ export async function getLocations(
 export async function changeLocation(
   caseId: string,
   locationId: string,
-  playerId = 'default',
   sessionId?: string,
+  slot = 'autosave',
 ): Promise<ChangeLocationResponse> {
   const body: Record<string, string> = {
     location_id: locationId,
-    player_id: playerId,
-    slot: 'autosave',
+    slot,
   };
   if (sessionId) {
     body.session_id = sessionId;
@@ -91,8 +101,12 @@ export async function changeLocation(
   return apiCall('POST', path, ChangeLocationResponseSchema, body);
 }
 
-export async function getCases(): Promise<CaseListResponse> {
-  return apiCall('GET', '/api/cases', CaseListResponseSchema);
+export async function getCases(language = 'en'): Promise<CaseListResponse> {
+  return apiCall(
+    'GET',
+    `/api/cases?language=${encodeURIComponent(language)}`,
+    CaseListResponseSchema,
+  );
 }
 
 export interface ResetResponse {
@@ -102,10 +116,7 @@ export interface ResetResponse {
 
 export async function resetCase(
   caseId: string,
-  playerId = 'default',
 ): Promise<ResetResponse> {
-  const path =
-    `/api/case/${encodeURIComponent(caseId)}/reset` +
-    `?player_id=${encodeURIComponent(playerId)}`;
+  const path = `/api/case/${encodeURIComponent(caseId)}/reset`;
   return apiCall('POST', path, ResetResponseSchema);
 }

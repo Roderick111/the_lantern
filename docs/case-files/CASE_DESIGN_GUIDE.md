@@ -1,4 +1,4 @@
-# Case Design Guide - Harry Potter Investigation Game
+# Case Design Guide - Victorian occult detective Investigation Game
 
 Complete guide to creating professional-quality cases using the enhanced YAML schema (Phase 5.5+).
 
@@ -10,6 +10,8 @@ Complete guide to creating professional-quality cases using the enhanced YAML sc
 2. Follow the [REQUIRED] field annotations
 3. Reference `CASE_002_RESTRICTED_SECTION.md` for complete example
 4. Test: Drop file in case_store/, restart server or call GET /api/cases
+
+**World frame:** Every case is a **live 1890s investigation** — present-tense crime scenes, living witnesses. Do not frame cases as training exercises, historical reconstructions, or closed-file replays. See `docs/game-design/WORLD_AND_NARRATIVE.md`.
 
 ---
 
@@ -25,7 +27,7 @@ Complete guide to creating professional-quality cases using the enhanced YAML sc
 - Evidence should reveal character depth, not just plot mechanics
 - Player should care about the people involved, not just "solving the puzzle"
 
-**Example**: Hermione isn't just "the student who found the body." She's a loyal friend secretly teaching Neville defensive spells after he was bullied. Her badge at the crime scene creates conflict: tell the truth and get Neville expelled, or withhold details and look guilty herself.
+**Example**: Elena isn't just "the student who found the body." She's a loyal friend secretly teaching Rowan defensive spells after he was bullied. Her badge at the crime scene creates conflict: tell the truth and get Rowan expelled, or withhold details and look guilty herself.
 
 **2. MYSTERY STRUCTURE (Second Priority)**
 - Create solid, logically structured narratives with ambiguity and contradictions
@@ -34,24 +36,24 @@ Complete guide to creating professional-quality cases using the enhanced YAML sc
 - Timeline and physical evidence as the keys to resolution
 - Avoid linear "collect evidence against obvious suspect" gameplay
 
-**Example**: Players suspect Hermione (found body, badge at scene) → consider Dobby (theft conflict, "D." note) → evidence shifts to Draco (Hand of Glory letter, timeline, witnesses). Each phase feels earned, not arbitrary.
+**Example**: Players suspect Elena (found body, badge at scene) → consider Wisp (theft conflict, "D." note) → evidence shifts to Cassian (Thief's Candle letter, timeline, witnesses). Each phase feels earned, not arbitrary.
 
 **3. TEACHING RATIONALITY (Third Priority)**
 - Rationality concepts emerge naturally from solving complex mysteries
 - Don't sacrifice story quality to force a teaching moment
 - Let players discover biases by making mistakes, then show them why
-- Use Moody's feedback to highlight fallacies AFTER verdict, not during investigation
+- Use Graves's feedback to highlight fallacies AFTER verdict, not during investigation
 
-**Example**: Players accusing Hermione teaches "don't assume person who found body is guilty" more effectively than lecturing about availability bias upfront.
+**Example**: Players accusing Elena teaches "don't assume person who found body is guilty" more effectively than lecturing about availability bias upfront.
 
 ### What Makes a Case Engaging
 
 **✅ Good Mystery Design:**
 - Three witnesses with different secrets (only one is the culprit)
 - Red herring evidence that initially points to wrong suspect
-- Ambiguous notes or evidence (e.g., "D." could mean Draco or Dobby)
+- Ambiguous notes or evidence (e.g., "D." could mean Cassian or Wisp)
 - Timeline that eliminates suspects with alibis
-- Physical evidence that shifts theories (Hand of Glory proves magic was used)
+- Physical evidence that shifts theories (Thief's Candle proves magic was used)
 - Moral complexity (accident vs intentional, reckless vs evil)
 
 **❌ Boring Mystery Design:**
@@ -111,18 +113,18 @@ Two scalar types matter for case content:
 
 ```yaml
 # Prose — use > (folded):
-- speaker: "moody"
+- speaker: "graves"
   text: >
     You followed the evidence where it led, not where your
     assumptions wanted it to go. That takes discipline.
 
 # Bullet lists — use | (literal):
 teaching_moment: |
-  - The timeline eliminates Hermione
+  - The timeline eliminates Elena
   - The dual shimmer proves two attackers
 ```
 
-**Dialogue**: The `speaker` field identifies who talks — don't prefix text with "MOODY:", "DOBBY:", etc.
+**Dialogue**: The `speaker` field identifies who talks — don't prefix text with "GRAVES:", "DOBBY:", etc.
 
 ---
 
@@ -135,17 +137,17 @@ teaching_moment: |
 ```yaml
 case:
   world_context: |
-    It is the students' second year at Hogwarts. The Chamber of Secrets has been opened. Filch's cat, Mrs. Norris, was found petrified weeks ago. Muggle-born students live in fear.
+    It is the students' second year at Blackwood Collegiate. The The Hollow Below has been opened. Mr. Crankshaw's cat, Morrigan, was found held in stillness weeks ago. uninitiated-born students live in fear.
 
-    Draco, Hermione, and the other students are twelve or thirteen years old — children dealing with forces beyond their understanding.
+    Cassian, Elena, and the other students are twelve or thirteen years old — children dealing with forces beyond their understanding.
 
-    Dobby is still enslaved by the Malfoy family. He has no legal rights.
+    Wisp is still enslaved by the Thorne family. He has no legal rights.
 ```
 
 **Guidelines**:
 - Establish the era: what year, what larger events are happening
 - State character ages explicitly — this shapes how the narrator writes dialogue and reactions
-- Include social/political dynamics (house-elf slavery, Board of Governors, school fear)
+- Include social/political dynamics (bound familiar slavery, Board of Governors, school fear)
 - Keep it to 3-5 short paragraphs — this is injected into every narrator prompt
 - Write full sentences on single lines — YAML `|` blocks preserve line breaks literally
 
@@ -163,10 +165,10 @@ hidden_evidence:
     name: "Unusual Frost Pattern"
     # ... other fields ...
     witness_reactions:
-      hermione: "The center scorch is unusual. Freezing charms don't leave burns. This looks like combustion followed by rapid cold expansion."
-      draco: "*changes subject quickly* Probably a malfunctioning ward. Old library, old magic."
-      mcgonagall: "Dark artifact discharge. Several cursed objects produce frost like this — Hand of Glory, Cursed Opal, Winter's Grip amulet."
-      dobby: "Dobby does not know about frost. Dobby was not there. *does not look at the evidence*"
+      elena: "The center scorch is unusual. Freezing cantrips don't leave burns. This looks like combustion followed by rapid cold expansion."
+      cassian: "*changes subject quickly* Probably a malfunctioning ward. Old library, old magic."
+      whitmore: "Cursed artifact discharge. Several cursed objects produce frost like this — Thief's Candle, Cursed Opal, Winter's Grip amulet."
+      wisp: "Wisp does not know about frost. Wisp was not there. *does not look at the evidence*"
 ```
 
 **Guidelines**:
@@ -192,12 +194,12 @@ triggers:
   - "examine desk closely"
 
 # NEW (preferred):
-discovery_guidance: "Revealed when player searches the reading desk, examines papers, or uses Revelio on the desk area."
+discovery_guidance: "Revealed when player searches the reading desk, examines papers, or uses Unveil on the desk area."
 ```
 
 **Guidelines**:
 - Describe the player actions that should reveal this evidence in plain English
-- Include both physical actions ("searches the floor") and magical actions ("casts Specialis Revelio on the body")
+- Include both physical actions ("searches the floor") and magical actions ("casts Identify Substance on the body")
 - The narrator LLM uses this semantically — "investigate the table" matches "searches the reading desk"
 - Be specific about location — "examines the desk" should not reveal floor evidence
 
@@ -215,14 +217,14 @@ discovery_guidance: "Revealed when player searches the reading desk, examines pa
   type: "documentary"
   discovery_guidance: "Revealed when player examines the corridor notice board or asks about security."
   description: |
-    A patrol schedule showing reduced coverage due to Chamber of Secrets fears. Half the prefects refuse night patrol. Library wing coverage suspended after 9 PM.
+    A patrol schedule showing reduced coverage due to The Hollow Below fears. Half the prefects refuse night patrol. Library wing coverage suspended after 9 PM.
   tag: "[EVIDENCE: prefect_patrol_notes]"
   significance: "Security gaps explain how multiple people accessed the area undetected."
   strength: 15        # Very low — world-building
   points_to: []       # Empty — no suspects implicated
   witness_reactions:
-    hermione: "Half the prefects refusing patrol? No wonder the corridor was empty."
-    draco: "If there were proper patrols, none of this would have... *stops himself*"
+    elena: "Half the prefects refusing patrol? No wonder the corridor was empty."
+    cassian: "If there were proper patrols, none of this would have... *stops himself*"
 ```
 
 **Design principles**:
@@ -230,8 +232,8 @@ discovery_guidance: "Revealed when player searches the reading desk, examines pa
 - **points_to: []**: Never implicates a suspect directly
 - **Every location should have 1-2**: Prevents "empty room" feeling after main evidence is found
 - **Types that work well**: administrative records, staff notes, patrol schedules, student complaints, confiscation logs, duty rosters, graffiti, damaged infrastructure
-- **Connect to world_context**: Atmospheric evidence should reinforce the era (Chamber fears, house-elf conditions, security failures)
-- **Witness reactions reveal character, not case facts**: Hermione gets angry about house-elf rights, Draco dismisses concerns, etc.
+- **Connect to world_context**: Atmospheric evidence should reinforce the era (Lodge succession fears, bound familiar conditions, security failures)
+- **Witness reactions reveal character, not case facts**: Elena gets angry about bound familiar rights, Cassian dismisses concerns, etc.
 
 ---
 
@@ -242,16 +244,16 @@ discovery_guidance: "Revealed when player searches the reading desk, examines pa
 ```yaml
 # BAD — minute-by-minute feels clinical:
 - time: "9:47 PM"
-  event: "Hermione enters Restricted Section"
+  event: "Elena enters Sealed Stacks"
 - time: "9:50 PM"
-  event: "Draco leaves common room"
+  event: "Cassian leaves common room"
 - time: "9:55 PM"
-  event: "Draco enters Restricted Section"
+  event: "Cassian enters Sealed Stacks"
 
 # GOOD — narrative timing, group related events:
 - time: "Late evening, shortly before curfew"
-  event: "Hermione enters the Restricted Section to research her defense. Around the same time, Draco leaves the Slytherin common room carrying the wrapped Hand of Glory."
-  evidence: ["hermione_book_slip", "student_testimony"]
+  event: "Elena enters the Sealed Stacks to research her defense. Around the same time, Cassian leaves the Iron Lodge common room carrying the wrapped Thief's Candle."
+  evidence: ["elena_book_slip", "student_testimony"]
 ```
 
 **Guidelines**:
@@ -268,9 +270,9 @@ discovery_guidance: "Revealed when player searches the reading desk, examines pa
 
 ```yaml
 synopsis: |
-  Professor Snape found petrified in the Restricted Section. Evidence of magical discharge.
+  Professor Aldric Vane found held in stillness in the Sealed Stacks. Evidence of etheric discharge.
 
-  **How to investigate:** Type what you want to do — *"examine the frost patterns"*, *"cast Specialis Revelio on the body"*, *"search the desk"*. Be specific. The more precise your actions, the more you'll find.
+  **How to investigate:** Type what you want to do — *"examine the frost patterns"*, *"cast Identify Substance on the body"*, *"search the desk"*. Be specific. The more precise your actions, the more you'll find.
 
   **Talk to witnesses** by selecting them from the sidebar. Ask questions, build trust, and **present evidence** to see how they react — different people interpret the same clue differently.
 
@@ -296,33 +298,33 @@ synopsis: |
 
 **age** (required if victim section present):
 - Age descriptor that gives context
-- Good: "Fourth-year Ravenclaw", "First-year Hufflepuff", "Sixth-year transfer student"
+- Good: "Fourth-year Candlewick", "First-year Ashford", "Sixth-year transfer student"
 - Bad: "14 years old" (too clinical)
 
 **humanization** (required if victim section present):
 - 2-3 sentences creating emotional connection
 - Include: What they were like, what made them memorable, what was lost
-- Good: "You remember her from the library—always buried in wandlore texts, muttering about core resonance frequencies. Brilliant, obsessive, the kind of student who'd sneak into the Restricted Section for research long after curfew. Someone silenced that curious mind permanently."
+- Good: "You remember her from the library—always buried in focuslore texts, muttering about core resonance frequencies. Brilliant, obsessive, the kind of student who'd sneak into the Sealed Stacks for research long after curfew. Someone silenced that curious mind permanently."
 - Bad: "A student who was killed." (too vague)
 
 **memorable_trait** (required if victim section present):
 - One distinctive detail that sticks
-- Examples: "Wandlore obsessive", "Always wore mismatched socks", "Hummed while studying"
+- Examples: "Focuslore obsessive", "Always wore mismatched socks", "Hummed while studying"
 
 **cause_of_death** (required for complete cases):
 - **Critical**: First word becomes crime type shown to all witnesses automatically
 - Format: "[Simple action] [by/with/from] [details]"
 - Examples:
-  - "Petrification curse from cursed object discharge" → Witnesses see "Petrification"
+  - "Paralytic binding curse from cursed object discharge" → Witnesses see "Paralytic binding"
   - "Crushed by a massive bookshelf (staged as accident)" → Witnesses see "Crushed"
   - "Stabbed with enchanted letter opener" → Witnesses see "Stabbed"
 - Bad: "Died" (too vague), "Killed" (not specific)
-- Used by: Witness context (automatic extraction), Moody (verdict evaluation)
+- Used by: Witness context (automatic extraction), Graves (verdict evaluation)
 
 **time_of_death** (optional, recommended):
 - Precise time for timeline coordination
 - Example: "10:05 PM"
-- Used by: Moody (verdict evaluation), Timeline cross-referencing
+- Used by: Graves (verdict evaluation), Timeline cross-referencing
 
 ---
 
@@ -331,35 +333,35 @@ synopsis: |
 **discovery_guidance** (required, replaces legacy `triggers`):
 - Semantic description of how the player discovers this evidence
 - The narrator LLM interprets this — no need for exact keyword matching
-- Example: `"Revealed when player searches the reading desk, examines papers, or uses Revelio on the desk area."`
+- Example: `"Revealed when player searches the reading desk, examines papers, or uses Unveil on the desk area."`
 - Used by: Narrator LLM (decides when to reveal evidence)
 
 **significance** (optional, recommended):
 - One sentence: WHY this evidence matters to the case
-- Example: "Proves Wingardium Leviosa was used at high power"
-- Used by: Narrator (subtle emphasis), Moody (feedback), Tom (commentary)
+- Example: "Proves Levitation Cantrip was used at high power"
+- Used by: Narrator (subtle emphasis), Graves (feedback), Matthew (commentary)
 
 **strength** (optional, recommended):
 - 0-100 rating of evidence quality
 - Calibration:
   - 100: Critical, case-solving evidence (levitation scorch marks, erased log)
-  - 80-90: Strong evidence that implicates/eliminates (missing wand, shelf marks)
+  - 80-90: Strong evidence that implicates/eliminates (missing focus, shelf marks)
   - 60-70: Moderate evidence (witness testimony, circumstantial)
   - 40-50: Weak evidence (presence, opportunity)
-  - 20-30: Red herring or misleading (Flint's scarf)
+  - 20-30: Red herring or misleading (Sterling's scarf)
   - 10-20: Atmospheric/world-building (patrol notes, duty rosters)
-- Used by: Tom (targets strong evidence), Moody (feedback quality)
+- Used by: Matthew (targets strong evidence), Graves (feedback quality)
 
 **points_to** (optional, recommended):
 - List of suspect IDs this evidence implicates
 - Empty list `[]` for atmospheric evidence
-- Example: `["professor_vector", "marcus_flint"]`
-- Used by: Moody (evaluating player reasoning)
+- Example: `["professor_morraine", "marcus_sterling"]`
+- Used by: Graves (evaluating player reasoning)
 
 **contradicts** (optional, recommended):
 - List of suspect IDs or theory names this evidence exonerates
-- Example: `["filch_guilty", "adrian_guilty", "accident_theory"]`
-- Used by: Moody (catching player mistakes)
+- Example: `["crankshaw_guilty", "adrian_guilty", "accident_theory"]`
+- Used by: Graves (catching player mistakes)
 
 **witness_reactions** (optional, recommended):
 - Per-witness one-line reactions when evidence is presented during interrogation
@@ -368,9 +370,9 @@ synopsis: |
 - Example:
   ```yaml
   witness_reactions:
-    hermione: "Two layers of magic? That's... the blue-white is artifact discharge. But the yellowish-green — I've read about that color."
-    draco: "*genuinely confused* Two colors? I only used one artifact. What's the second one?"
-    dobby: "*tries to leave the conversation* Dobby does not understand wizard magic."
+    elena: "Two layers of magic? That's... the blue-white is artifact discharge. But the yellowish-green — I've read about that color."
+    cassian: "*genuinely confused* Two colors? I only used one artifact. What's the second one?"
+    wisp: "*tries to leave the conversation* Wisp does not understand initiate magic."
   ```
 - Used by: Witness LLM (evidence presentation prompt)
 
@@ -384,13 +386,13 @@ Every witness needs two text fields:
 - **`personality`** — used by the AI for roleplay. Full inner state, lying tells, emotional reactions. Spoilers are expected here.
 
 ```yaml
-- id: "dobby"
-  name: "Dobby"
+- id: "wisp"
+  name: "Wisp"
   description: >
-    A house-elf who serves the Malfoy family. Speaks in third person, wrings
-    his hands constantly. Admitted to stealing hellebore from Snape's stores.
+    A bound familiar who serves the Thorne family. Speaks in third person, wrings
+    his hands constantly. Admitted to stealing nightshade from Professor Vane's stores.
   personality: |
-    Still enslaved to the Malfoy family. His guilt about Snape is overwhelming
+    Still enslaved to the Thorne family. His guilt about Professor Vane is overwhelming
     but he cannot confess. When lying: physically pained, may hit himself.
     When confronted with evidence: silence, then self-harm attempt.
 ```
@@ -411,7 +413,7 @@ If `description` is missing, the system falls back to showing `personality` — 
 **fears** (required for complete cases):
 - What stops them from helping fully
 - Creates internal conflict
-- Good: "Retaliation from Slytherins if she names names", "Expulsion so close to graduation"
+- Good: "Retaliation from Iron Lodges if she names names", "Expulsion so close to graduation"
 - Bad: "Being caught lying" (too generic)
 - Used by: Witness LLM (low trust = fear dominates, high trust = trust overcomes fear)
 
@@ -419,9 +421,9 @@ If `description` is missing, the system falls back to showing `personality` — 
 - 2-4 sentences describing internal conflict
 - Why they're torn between competing values
 - What makes them human, not just an NPC
-- Good: "Hannah saw something important but doesn't want to betray Marcus, who helped her pass Potions last year. She's not malicious—just caught between loyalty to someone who was kind to her and doing what's right. The guilt of staying silent wars with fear of social consequences."
+- Good: "Hannah saw something important but doesn't want to betray Marcus, who helped her pass Alchemy last year. She's not malicious—just caught between loyalty to someone who was kind to her and doing what's right. The guilt of staying silent wars with fear of social consequences."
 - Bad: "She's conflicted." (too vague)
-- Used by: Witness LLM (informs roleplay nuance), Moody (feedback on witness handling)
+- Used by: Witness LLM (informs roleplay nuance), Graves (feedback on witness handling)
 
 **secrets** (optional):
 - Hidden information witness may reveal during interrogation
@@ -436,13 +438,13 @@ If `description` is missing, the system falls back to showing `personality` — 
       trigger: "trust>70 OR evidence:some_evidence"  # Legacy field, kept for reference
       risk_type: "protective"  # [REQUIRED] What makes this hard to reveal
       risk_level: "high"       # [OPTIONAL] low | medium | high
-      why_hiding: "Neville could be expelled if authorities find out"  # [REQUIRED] Context for LLM
+      why_hiding: "Rowan could be expelled if authorities find out"  # [REQUIRED] Context for LLM
       text: |
         What witness says when revealing this secret.
         Written in character voice (first person, 2-4 sentences).
         Include emotional authenticity and hesitation if appropriate.
       keywords:  # [OPTIONAL] Multi-word phrases for detection
-        - "teaching neville defensive"
+        - "tutoring rowan defensive"
         - "blonde hair running"
         - "hand of glory cursed"
   ```
@@ -452,10 +454,10 @@ If `description` is missing, the system falls back to showing `personality` — 
   - Shared freely at 50+ trust, if asked at <50
 - `protective` - Protects someone witness cares about (friend, student, vulnerable person)
   - Deflect <50, hint 50-70, reveal with caveats 70+
-  - Example: "Neville could be expelled", "Dobby could be killed by masters"
+  - Example: "Rowan could be expelled", "Wisp could be killed by masters"
 - `self_incriminating` - Witness did something wrong/illegal
   - Lie/deny <50, deflect hard 50-75, reluctant admission 75+
-  - Example: "This connects me to the crime", "I could go to Azkaban"
+  - Example: "This connects me to the crime", "I could go to Dreadmoor Penitentiary"
 - `emotional` - Deeply personal, shameful, vulnerable
   - Avoid topic <65, share with difficulty 65+
   - Example: "My deepest shame", "The truth about my past"
@@ -464,8 +466,8 @@ If `description` is missing, the system falls back to showing `personality` — 
 - One sentence explaining **why this is hard to reveal**
 - Used by LLM to understand emotional/social stakes
 - Examples:
-  - Protective: "Neville could be expelled if this gets out"
-  - Self-incriminating: "This confession means Azkaban or expulsion"
+  - Protective: "Rowan could be expelled if this gets out"
+  - Self-incriminating: "This confession means Dreadmoor Penitentiary or expulsion"
   - Emotional: "I've never told anyone about my father's betrayal"
 
 #### Secret Detection System
@@ -473,36 +475,36 @@ If `description` is missing, the system falls back to showing `personality` — 
 Secrets are automatically detected using **two complementary methods**:
 
 **Method 1: Denial-Aware Keyword Matching** (Phase 6.5+)
-- Player explicitly searches for specific phrases during Legilimency
+- Player explicitly searches for specific phrases during Mnemonic Delving
 - **Context-aware**: Rejects keywords in denial context
 - Checks 40 characters before keyword for denial patterns: "don't", "never", "not", "nothing about", etc.
 - Examples:
   - ✅ "Father sent me a hand of glory" → Detected (affirmative)
   - ❌ "I don't know anything about a hand of glory" → Not detected (denial)
-  - ✅ "I was teaching Neville defensive magic" → Detected (affirmative)
-  - ❌ "I wasn't teaching Neville anything" → Not detected (denial)
+  - ✅ "I was teaching Rowan defensive magic" → Detected (affirmative)
+  - ❌ "I wasn't teaching Rowan anything" → Not detected (denial)
 
 **Method 2: 5-Consecutive-Word Matching** (Phase 6.5+, upgraded from 4)
 - Detects when LLM naturally reveals secret during interrogation/evidence presentation
 - Uses sliding window algorithm: checks if any 5 consecutive words in witness response ALL appear in secret text
 - Filters common stopwords to prevent false positives
 - **Stricter threshold** (5 words vs 4) reduces false positives
-- Example: Secret "I was teaching Neville defensive magic in secret" → Witness says "Fine! I confess - teaching Neville defensive magic in secret was wrong" → Secret revealed (5+ consecutive words)
+- Example: Secret "I was teaching Rowan defensive magic in secret" → Witness says "Fine! I confess - teaching Rowan defensive magic in secret was wrong" → Secret revealed (5+ consecutive words)
 
 **Both methods work across all 3 contexts:**
 1. **Regular Interrogation** - Witness naturally reveals during questioning
 2. **Evidence Presentation** - Witness reacts to evidence with revealing response
-3. **Legilimency Spell** - Player searches witness's mind with specific intent
+3. **Mnemonic Delving Spell** - Player searches witness's mind with specific intent
 
 ---
 
 #### Keywords Field (Optional)
 
-**Purpose**: Enables targeted secret discovery via Legilimency spell.
+**Purpose**: Enables targeted secret discovery via Mnemonic Delving spell.
 
 **Best Practices**:
-- ✅ **Use multi-word phrases** (3-4 words): `"teaching neville defensive"`, `"hand of glory cursed"`
-- ✅ **Specific and unique**: `"draco malfoy returning"`, `"dobby stole ingredients"`
+- ✅ **Use multi-word phrases** (3-4 words): `"tutoring rowan defensive"`, `"hand of glory cursed"`
+- ✅ **Specific and unique**: `"cassian thorne returning"`, `"wisp stole ingredients"`
 - ✅ **Match secret content**: Extract key phrases directly from secret text
 - ❌ **Avoid single common words**: `"was"`, `"there"`, `"magic"` (causes false positives)
 - ❌ **Avoid generic terms**: `"person"`, `"thing"`, `"something"`
@@ -510,23 +512,23 @@ Secrets are automatically detected using **two complementary methods**:
 **Example**:
 ```yaml
 secrets:
-  - id: "teaching_neville"
+  - id: "tutoring_a_peer"
     trigger: "trust>65"
     text: |
-      I was there to research spells for... for Neville. I've been teaching him
-      defensive magic in secret. The Slytherins have been hexing him in corridors.
-    keywords:  # Optional but recommended for Legilimency targeting
-      - "teaching neville"           # ✅ Specific person + activity
+      I was there to research spells for... for Rowan. I've been teaching him
+      defensive magic in secret. The Iron Lodges have been hexing him in corridors.
+    keywords:  # Optional but recommended for Mnemonic Delving targeting
+      - "tutoring rowan"           # ✅ Specific person + activity
       - "defensive magic training"   # ✅ Multi-word unique phrase
       - "secret combat lessons"      # ✅ Distinctive action
-      - "slytherins hexing neville"  # ✅ Specific situation
+      - "iron lodge hexing rowan"  # ✅ Specific situation
 ```
 
 **Detection Example**:
-- Legilimency search: *"searching for who she's been teaching"*
+- Mnemonic Delving search: *"searching for who she's been teaching"*
   - Contains keyword `"teaching"` → ✅ Secret revealed
-- Witness response: *"Fine! I was teaching Neville defensive magic okay?"*
-  - 4 consecutive words `"teaching neville defensive magic"` → all match secret → ✅ Secret revealed
+- Witness response: *"Fine! I was teaching Rowan defensive magic okay?"*
+  - 4 consecutive words `"tutoring rowan defensive magic"` → all match secret → ✅ Secret revealed
 - Witness response: *"I was just studying in the library"*
   - No keyword match, no 4-word match → ❌ Secret stays hidden
 
@@ -534,7 +536,7 @@ secrets:
 
 **Writing Guidelines**:
 - Write in character voice, not clinical/robotic
-- Good: "Alright. I... I saw Draco Malfoy. Running. From the Restricted Section. He looked absolutely terrified."
+- Good: "Alright. I... I saw Cassian Thorne. Running. From the Sealed Stacks. He looked absolutely terrified."
 - Bad: "I observed suspect flee scene at 9:15 PM" (too clinical)
 - Secrets should feel like emotional confessions, not police reports
 
@@ -558,13 +560,13 @@ Where: [first location.name]
 **Fields Used for Auto-Extraction**:
 1. `victim.name` → Displayed as-is to all witnesses
 2. `victim.cause_of_death` → First word extracted and simplified
-   - "Petrification curse from..." → "Petrification"
+   - "Paralytic binding curse from..." → "Paralytic binding"
    - "Crushed by a massive..." → "Crushed"
 3. `locations` dict → First location's `name` field used as crime scene
 
 **Why This Matters**:
-- Everyone at Hogwarts would know these basic facts
-- McGonagall doesn't need "investigating Snape" in her `knowledge` - she already knows
+- Everyone at Blackwood Collegiate would know these basic facts
+- Professor Whitmore doesn't need "investigating Professor Vane" in her `knowledge` - she already knows
 - Witnesses can reference the victim by name naturally
 - Keeps witness `knowledge` focused on their unique observations
 
@@ -584,13 +586,13 @@ case_context = {
 **Best Practices**:
 
 ✅ **DO use witness.knowledge for**:
-- Specific personal observations: "Caught Draco at 11:00 PM trying to re-enter library"
-- What they personally did: "Secured Draco's belongings, found letter"
+- Specific personal observations: "Caught Cassian at 11:00 PM trying to re-enter library"
+- What they personally did: "Secured Cassian's belongings, found letter"
 - Sensory details: "Heard voices before crash"
-- Relationships: "Draco is in my Potions class"
+- Relationships: "Cassian is in my Alchemy class"
 
 ❌ **DON'T use witness.knowledge for**:
-- Victim's identity ("Investigating Snape's petrification") - auto-provided
+- Victim's identity ("Investigating Professor Vane's paralytic binding") - auto-provided
 - Crime location ("Crime happened in library") - auto-provided
 - Crime type ("Looking into the attack") - auto-provided
 
@@ -599,41 +601,41 @@ case_context = {
 ```yaml
 # Case YAML structure
 victim:
-  name: "Severus Snape"
-  cause_of_death: "Petrification curse from cursed object discharge"
+  name: "Professor Aldric Vane"
+  cause_of_death: "Paralytic binding curse from cursed object discharge"
 
 locations:
   library:
-    name: "Hogwarts Library - Restricted Section"
+    name: "Blackwood Collegiate Library - Sealed Stacks"
     # ... rest of location config
 
 # Witness definition
 witnesses:
-  - id: "mcgonagall"
-    name: "Professor Minerva McGonagall"
+  - id: "whitmore"
+    name: "Professor Minerva Whitmore"
     knowledge:
       # ✅ SPECIFIC observations only
-      - "Caught Draco trying to re-enter the library at 11:00 PM"
-      - "Draco claimed he 'forgot a book' despite crime scene tape"
-      - "Secured Draco's belongings, found Lucius's letter"
+      - "Caught Cassian trying to re-enter the library at 11:00 PM"
+      - "Cassian claimed he 'forgot a book' despite crime scene tape"
+      - "Secured Cassian's belongings, found Magnus's letter"
 
-# What McGonagall's LLM prompt receives:
+# What Professor Whitmore's LLM prompt receives:
 # == CASE CONTEXT (public knowledge) ==
-# Victim: Severus Snape
-# What happened: Petrification
-# Where: Hogwarts Library - Restricted Section
+# Victim: Professor Aldric Vane
+# What happened: Paralytic binding
+# Where: Blackwood Collegiate Library - Sealed Stacks
 #
 # == YOUR KNOWLEDGE ==
-# - Caught Draco trying to re-enter the library at 11:00 PM
-# - Draco claimed he 'forgot a book' despite crime scene tape
-# - Secured Draco's belongings, found Lucius's letter
+# - Caught Cassian trying to re-enter the library at 11:00 PM
+# - Cassian claimed he 'forgot a book' despite crime scene tape
+# - Secured Cassian's belongings, found Magnus's letter
 ```
 
 ---
 
 ### Briefing Structure
 
-**Purpose**: Provide Mad-Eye Moody's case introduction and pre-investigation teaching question.
+**Purpose**: Provide Inspector Graves's case introduction and pre-investigation teaching question.
 
 **Structure**:
 ```yaml
@@ -641,11 +643,11 @@ briefing:
   case_id: "case_001"  # [REQUIRED] Must match case.id
 
   dossier:  # [REQUIRED] Structured case summary
-    title: "The Restricted Section"
-    victim: "Severus Snape (Potions Master)"
-    location: "Hogwarts Library - Restricted Section"
+    title: "The Sealed Stacks"
+    victim: "Professor Aldric Vane (Alchemy Master)"
+    location: "Blackwood Collegiate Library - Sealed Stacks"
     time: "22:00 (Found)"
-    status: "Petrified / St. Mungo's"
+    status: "Held in stillness / St. Mungo's"
     synopsis: |
       Brief description of the case. What happened?
       Who are the suspects? What's the player's job?
@@ -655,20 +657,20 @@ briefing:
     concept_summary: "Base Rates: Start with likely scenarios, not dramatic theories."
     choices:  # 2-4 answer choices
       - id: "choice_a"
-        text: "25% - Most are dark magic cover-ups"
+        text: "25% - Most are forbidden craft cover-ups"
         response: |
-          *Mad-Eye Moody's magical eye spins wildly*
+          *Inspector Graves's magical eye spins wildly*
 
-          MOODY: "Paranoia. Constant vigilance is good, but assume
+          GRAVES: "Paranoia. Trust nothing unseen is good, but assume
           conspiracy everywhere and you'll chase shadows while the real
           culprit walks away. 85% are accidents. Use logic."
 
       - id: "choice_b"
         text: "85% - Most are just reckless students"
         response: |
-          *Mad-Eye Moody nods approval*
+          *Inspector Graves nods approval*
 
-          MOODY: "Correct. Start with the most likely explanation:
+          GRAVES: "Correct. Start with the most likely explanation:
           incompetence or accident. Then let the evidence prove
           otherwise. That's how you avoid chasing ghosts."
 
@@ -676,9 +678,9 @@ briefing:
   concept_description: "Start with likely scenarios (base rates), not dramatic theories."
 
   transition: |  # [OPTIONAL] Text after briefing, before investigation
-    *Mad-Eye Moody's magical eye spins*
+    *Inspector Graves's magical eye spins*
 
-    CONSTANT VIGILANCE, recruit. Now investigate.
+    TRUST NOTHING UNSEEN, recruit. Now investigate.
 ```
 
 **Guidelines**:
@@ -688,7 +690,7 @@ briefing:
 - **dossier.synopsis**: 2-4 sentences summarizing the case
 - **teaching_question.prompt**: Question testing rationality concept
 - **teaching_question.concept_summary**: One-line summary of the concept
-- **teaching_question.choices**: 2-4 multiple choice answers with Moody's responses
+- **teaching_question.choices**: 2-4 multiple choice answers with Graves's responses
 - **rationality_concept**: ID like "base_rates", "hidden_variables", "confirmation_bias"
 - **transition**: Optional send-off before investigation begins
 
@@ -698,7 +700,7 @@ briefing:
 - `confirmation_bias` - Don't only look for evidence supporting your theory
 - `correlation_not_causation` - Presence doesn't prove guilt
 
-**Used by**: Briefing LLM (Moody's character), Teaching system
+**Used by**: Briefing LLM (Graves's character), Teaching system
 
 ---
 
@@ -710,7 +712,7 @@ briefing:
 The system automatically looks for portrait images based on the witness `id` defined in the YAML.
 
 1. **File Format**: `.png`
-2. **File Name**: Must match the `id` of the witness exactly (e.g., `professor_vector.png`).
+2. **File Name**: Must match the `id` of the witness exactly (e.g., `professor_morraine.png`).
 3. **Location**: `frontend/public/portraits/`
 
 **Workflow for Designers**:
@@ -734,19 +736,19 @@ If no image is found in the `portraits/` folder, the interface will automaticall
 ```yaml
 timeline:
   - time: "Three days before the attack"
-    event: "Dobby steals hellebore from Snape's stores to heal Winky"
+    event: "Wisp steals nightshade from Professor Vane's stores to heal Pippa"
     witnesses: []
     evidence: ["hidden_note"]
 
   - time: "Late evening, shortly before curfew"
-    event: "Hermione enters the Restricted Section. Around the same time, Draco leaves carrying the wrapped artifact."
+    event: "Elena enters the Sealed Stacks. Around the same time, Cassian leaves carrying the wrapped artifact."
     witnesses: []
-    evidence: ["hermione_book_slip", "student_testimony"]
+    evidence: ["elena_book_slip", "student_testimony"]
 
   - time: "Around ten o'clock"
-    event: "Snape arrives and attempts to cancel the ritual. The artifact discharges."
+    event: "Professor Vane arrives and attempts to cancel the ritual. The artifact discharges."
     witnesses: []
-    evidence: ["wand_signature"]
+    evidence: ["focus_signature"]
 ```
 
 **Guidelines**:
@@ -759,7 +761,7 @@ timeline:
 - Link to supporting evidence
 - Aim for 8-12 entries total
 
-**Used by**: Moody (alibi evaluation), Narrator (timeline references)
+**Used by**: Graves (alibi evaluation), Narrator (timeline references)
 
 ---
 
@@ -769,9 +771,9 @@ timeline:
 - List of logical steps player must make
 - Example:
   ```yaml
-  - "Levitation scorch marks prove Wingardium Leviosa used"
-  - "High power eliminates weak casters (Adrian) and non-magical (Filch)"
-  - "Erased log entry at 10:15 PM connects to Vector's presence"
+  - "Levitation scorch marks prove Levitation Cantrip used"
+  - "High power eliminates weak casters (Adrian) and non-magical (Mr. Crankshaw)"
+  - "Erased log entry at 10:15 PM connects to Morraine's presence"
   ```
 
 **correct_reasoning_requires** (optional, recommended):
@@ -787,7 +789,7 @@ timeline:
 - Errors players are likely to make
 - Structure:
   ```yaml
-  - error: "Accuse Flint"
+  - error: "Accuse Sterling"
     reason: "Obvious suspect, strong motive, scarf at scene"
     why_wrong: "Timeline proves he left before 9 PM"
   ```
@@ -797,10 +799,10 @@ timeline:
 - Structure:
   ```yaml
   - fallacy: "confirmation_bias"
-    example: "Player locks onto Flint, ignores timeline evidence"
+    example: "Player locks onto Sterling, ignores timeline evidence"
   ```
 
-**Used by**: Moody (verdict evaluation, educational feedback)
+**Used by**: Graves (verdict evaluation, educational feedback)
 
 ---
 
@@ -814,13 +816,13 @@ timeline:
 **hook** (optional, recommended):
 - One sentence that creates intrigue
 - Goes on landing page (case.description)
-- Good: "A brilliant Ravenclaw found dead under a collapsed bookshelf. Accident, or murder disguised?"
+- Good: "A brilliant Candlewick found dead under a collapsed bookshelf. Accident, or murder disguised?"
 - Bad: "There was a death in the library." (too plain)
 
 **twist** (optional, recommended):
 - What subverts player's initial theory
-- Example: "The obvious suspect (Flint) left before the crime. The real killer never physically touched the victim—used Wingardium Leviosa to stage an 'accident'."
-- Used by: Narrator (foreshadowing), Moody (teaching moment)
+- Example: "The obvious suspect (Sterling) left before the crime. The real killer never physically touched the victim—used Levitation Cantrip to stage an 'accident'."
+- Used by: Narrator (foreshadowing), Graves (teaching moment)
 
 ---
 
@@ -861,12 +863,12 @@ timeline:
 |-------|-------------|-------------|
 | witness.description | ✅ Witness modal | — |
 | witness.personality | ❌ Never | Roleplay |
-| wants/fears/moral_complexity | ❌ | Witness roleplay, Moody feedback |
-| victim.humanization | ❌ | Narrator atmosphere, Moody context |
+| wants/fears/moral_complexity | ❌ | Witness roleplay, Graves feedback |
+| victim.humanization | ❌ | Narrator atmosphere, Graves context |
 | evidence.witness_reactions | ❌ | Witness evidence reactions |
 | evidence.discovery_guidance | ❌ | Narrator decides when to reveal |
 | world_context | ❌ | Narrator atmosphere |
-| solution fields | ❌ | Verdict scoring, Moody feedback |
+| solution fields | ❌ | Verdict scoring, Graves feedback |
 | timeline | ❌ | Narrator references, alibi checking |
 
 ---
@@ -883,18 +885,18 @@ hidden_evidence:
   - id: "levitation_scorch_marks"
     name: "Levitation Scorch Marks"
     type: "magical"
-    discovery_guidance: "Revealed when player looks up at the ceiling, examines the area above the bookshelf, or casts Revelio on the ceiling."
+    discovery_guidance: "Revealed when player looks up at the ceiling, examines the area above the bookshelf, or casts Unveil on the ceiling."
     description: |
-      Faint scorch marks on ceiling above bookshelf. Signature of high-powered Wingardium Leviosa.
+      Faint scorch marks on ceiling above bookshelf. Signature of high-powered Levitation Cantrip.
     tag: "[EVIDENCE: levitation_scorch_marks]"
-    significance: "Proves Wingardium Leviosa used at high power"
+    significance: "Proves Levitation Cantrip used at high power"
     strength: 100
-    points_to: ["professor_vector", "marcus_flint"]
-    contradicts: ["filch_guilty", "adrian_guilty", "accident_theory"]
+    points_to: ["professor_morraine", "marcus_sterling"]
+    contradicts: ["crankshaw_guilty", "adrian_guilty", "accident_theory"]
     witness_reactions:
       hannah_abbott: "Scorch marks? On the ceiling? That's... that's a levitation spell. A strong one."
-      marcus_flint: "Could be anything. Old castle, old magic. Scorch marks happen."
-      professor_vector: "*slight pause* Interesting. The power required for that would be considerable."
+      marcus_sterling: "Could be anything. Old castle, old magic. Scorch marks happen."
+      professor_morraine: "*slight pause* Interesting. The power required for that would be considerable."
 
   # Atmospheric evidence — builds the world
   - id: "library_complaints_log"
@@ -902,9 +904,9 @@ hidden_evidence:
     type: "documentary"
     discovery_guidance: "Revealed when player examines the library desk, searches administrative records."
     description: |
-      A complaints log showing students reporting strange noises from the Restricted Section over the past week. Three separate complaints, all dismissed by Madam Pince as "overactive imaginations."
+      A complaints log showing students reporting strange noises from the Sealed Stacks over the past week. Three separate complaints, all dismissed by Miss Hawthorne as "overactive imaginations."
     tag: "[EVIDENCE: library_complaints_log]"
-    significance: "Shows the Restricted Section had unusual activity before the crime. World context."
+    significance: "Shows the Sealed Stacks had unusual activity before the crime. World context."
     strength: 10
     points_to: []
     witness_reactions:
@@ -918,31 +920,31 @@ witnesses:
   - id: "hannah_abbott"
     name: "Hannah Abbott"
     personality: "Nervous, people-pleaser, conflict-averse"
-    background: "Hufflepuff third-year, friends with both victim and suspect"
+    background: "Ashford third-year, friends with both victim and suspect"
 
     # Phase 5.5 enhancements
     wants: "Help investigation without betraying friend Marcus"
-    fears: "Retaliation from Slytherins, being seen as snitch"
+    fears: "Retaliation from Iron Lodges, being seen as snitch"
     moral_complexity: |
       Hannah saw something critical but doesn't want to betray Marcus,
-      who helped her pass Potions last year. She's torn between loyalty
+      who helped her pass Alchemy last year. She's torn between loyalty
       to a friend and duty to justice. Her people-pleasing nature makes
       this internal conflict especially painful.
 
     knowledge:
       - "Saw Marcus near library around 10 PM"
     secrets:
-      - id: "saw_marcus_with_wand"
+      - id: "saw_marcus_with_focus"
         trigger: "trust>65"
         risk_type: "protective"
         risk_level: "high"
-        why_hiding: "Marcus helped me pass Potions - betraying him feels like breaking a debt of loyalty"
+        why_hiding: "Marcus helped me pass Alchemy - betraying him feels like breaking a debt of loyalty"
         text: |
-          I... I saw Marcus's wand. It was glowing—faintly, but I know what
-          I saw. He was near the Restricted Section entrance around 10 PM.
+          I... I saw Marcus's focus. It was glowing—faintly, but I know what
+          I saw. He was near the Sealed Stacks entrance around 10 PM.
           I didn't want to believe it, but the light was unmistakable.
         keywords:
-          - "marcus wand glowing"
+          - "marcus focus glowing"
           - "restricted section entrance"
           - "ten pm saw"
 ```
@@ -952,18 +954,18 @@ witnesses:
 ```yaml
 timeline:
   - time: "Earlier that evening"
-    event: "Filch patrols past library entrance. Helena enters the Restricted Section shortly after."
-    witnesses: ["argus_filch", "madam_pince"]
+    event: "Mr. Crankshaw patrols past library entrance. Helena enters the Sealed Stacks shortly after."
+    witnesses: ["argus_crankshaw", "miss_hawthorne"]
     evidence: ["checkout_log"]
 
   - time: "Around ten o'clock"
-    event: "A loud crash is heard from the Restricted Section. Multiple students hear it from the corridor."
+    event: "A loud crash is heard from the Sealed Stacks. Multiple students hear it from the corridor."
     witnesses: ["hannah_abbott", "adrian_clearmont"]
     evidence: ["bookshelf_collapse"]
 
   - time: "Shortly after"
-    event: "Adrian finds Helena under the collapsed bookshelf. Filch arrives and secures the scene."
-    witnesses: ["adrian_clearmont", "argus_filch"]
+    event: "Adrian finds Helena under the collapsed bookshelf. Mr. Crankshaw arrives and secures the scene."
+    witnesses: ["adrian_clearmont", "argus_crankshaw"]
     evidence: []
 ```
 
@@ -971,9 +973,9 @@ timeline:
 
 ```yaml
 solution:
-  culprit: "professor_vector"
-  method: "Used Wingardium Leviosa to topple bookshelf"
-  motive: "Helena discovered Vector's use of dark magic for research"
+  culprit: "professor_morraine"
+  method: "Used Levitation Cantrip to topple bookshelf"
+  motive: "Helena discovered Morraine's use of forbidden craft for research"
   key_evidence:
     - "levitation_scorch_marks"
     - "erased_log_entry"
@@ -982,15 +984,15 @@ solution:
   deductions_required:
     - "Scorch marks prove levitation spell used (not accident)"
     - "Shelf positioned deliberately before being dropped"
-    - "Helena's missing wand suggests killer took it"
+    - "Helena's missing focus suggests killer took it"
 
   correct_reasoning_requires:
     - "Evidence of magical involvement (scorch marks)"
     - "Proof of premeditation (shelf positioning)"
-    - "Alibi verification (Vector's lie)"
+    - "Alibi verification (Morraine's lie)"
 
   common_mistakes:
-    - error: "Accusing Marcus Flint"
+    - error: "Accusing Marcus Sterling"
       reason: "Presence near scene + hostile relationship with victim"
       why_wrong: "Alibi confirmed by multiple witnesses, no magical skill for levitation"
 
@@ -1009,21 +1011,21 @@ solution:
 4. Test case discovery: Landing page shows new case
 5. Test evidence discovery: Triggers work
 6. Test witness depth: wants/fears affect responses
-7. Test verdict: Moody uses enhanced solution fields
+7. Test verdict: Graves uses enhanced solution fields
 
 ---
 
 ## Common Pitfalls
 
-❌ **Vague humanization**: "A student who died" → ✅ "You remember her from the library—always buried in wandlore texts..."
+❌ **Vague humanization**: "A student who died" → ✅ "You remember her from the library—always buried in focuslore texts..."
 
-❌ **Generic wants/fears**: "Tell the truth" / "Being caught" → ✅ "Help investigation without betraying friend Marcus" / "Retaliation from Slytherins"
+❌ **Generic wants/fears**: "Tell the truth" / "Being caught" → ✅ "Help investigation without betraying friend Marcus" / "Retaliation from Iron Lodges"
 
 ❌ **Strength not calibrated**: Guessing numbers → ✅ Use calibration scale (100=critical, 80=strong, 50=moderate)
 
 ❌ **Missing timeline**: Can't check alibis → ✅ Include key events with witnesses who can confirm
 
-❌ **No common_mistakes**: Generic Moody feedback → ✅ Specific per-suspect wrong verdict responses
+❌ **No common_mistakes**: Generic Graves feedback → ✅ Specific per-suspect wrong verdict responses
 
 ---
 

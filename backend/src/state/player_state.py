@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 def _utc_now() -> datetime:
@@ -62,7 +62,7 @@ class CaseMetadata(BaseModel):
 class Victim(BaseModel):
     """Victim metadata for humanization and emotional stakes.
 
-    Used by narrator LLM (crime scene descriptions) and Moody LLM (briefing/feedback).
+    Used by narrator LLM (crime scene descriptions) and Graves LLM (briefing/feedback).
     All fields optional except name for backward compatibility.
     """
 
@@ -74,7 +74,7 @@ class Victim(BaseModel):
     age: str = Field(
         default="",
         max_length=100,
-        description="Age or year (e.g., 'Fourth-year Ravenclaw')",
+        description="Age or year (e.g., 'Fourth-year Candlewick')",
     )
     humanization: str = Field(
         default="",
@@ -101,7 +101,7 @@ class Victim(BaseModel):
 class EvidenceEnhanced(BaseModel):
     """Enhanced evidence metadata with strategic significance.
 
-    Extends base evidence with fields for Moody feedback quality and Tom commentary.
+    Extends base evidence with fields for Graves feedback quality and Matthew commentary.
     """
 
     id: str = Field(
@@ -142,7 +142,7 @@ class EvidenceEnhanced(BaseModel):
 class WitnessEnhanced(BaseModel):
     """Enhanced witness metadata with psychological depth.
 
-    Used by witness LLM (personality context) and Moody LLM (feedback on witness handling).
+    Used by witness LLM (personality context) and Graves LLM (feedback on witness handling).
     """
 
     id: str = Field(
@@ -180,7 +180,7 @@ class WitnessEnhanced(BaseModel):
 class TimelineEntry(BaseModel):
     """Single event in case timeline.
 
-    Used by narrator LLM (timeline references) and Moody LLM (alibi evaluation).
+    Used by narrator LLM (timeline references) and Graves LLM (alibi evaluation).
     """
 
     time: str = Field(
@@ -206,7 +206,7 @@ class TimelineEntry(BaseModel):
 class SolutionEnhanced(BaseModel):
     """Enhanced solution metadata for educational feedback.
 
-    Used by Moody LLM for verdict evaluation and teaching moments.
+    Used by Graves LLM for verdict evaluation and teaching moments.
     """
 
     culprit: str = Field(
@@ -270,6 +270,8 @@ class VerdictAttempt(BaseModel):
 class VerdictState(BaseModel):
     """Verdict submission state."""
 
+    model_config = ConfigDict(extra="ignore")
+
     case_id: str
     attempts: list[VerdictAttempt] = Field(default_factory=list)
     attempts_remaining: int = 10
@@ -318,19 +320,23 @@ class VerdictState(BaseModel):
 class WitnessState(BaseModel):
     """State tracking for a specific witness interrogation."""
 
+    model_config = ConfigDict(extra="ignore")
+
     witness_id: str
     trust: int
     conversation_history: list[ConversationItem] = Field(default_factory=list)
     secrets_revealed: list[str] = Field(default_factory=list)
     awaiting_spell_confirmation: str | None = (
-        None  # Spell awaiting confirmation (e.g., "legilimency")
+        None  # Spell awaiting confirmation (e.g., "mnemonic_delving")
     )
-    # Phase 4.8: Legilimency consequence tracking
-    legilimency_detected: bool = False  # Track if Legilimency was detected
+    # Phase 4.8: Mnemonic Delving consequence tracking
+    mnemonic_delving_detected: bool = False  # Track if Mnemonic Delving was detected
     spell_attempts: dict[str, int] = Field(default_factory=dict)  # Track spell attempts by spell_id
 
     # Phase 5.5+: Track evidence shown to this witness (for one-time bonus)
     evidence_shown: list[str] = Field(default_factory=list)
+
+    _MAX_CONVERSATION_HISTORY = 50
 
     def add_conversation(
         self,
@@ -338,7 +344,7 @@ class WitnessState(BaseModel):
         response: str,
         trust_delta: int = 0,
     ) -> None:
-        """Add conversation exchange to history."""
+        """Add conversation exchange to history (capped at 50 entries)."""
         self.conversation_history.append(
             ConversationItem(
                 question=question,
@@ -346,6 +352,10 @@ class WitnessState(BaseModel):
                 trust_delta=trust_delta,
             )
         )
+        if len(self.conversation_history) > self._MAX_CONVERSATION_HISTORY:
+            self.conversation_history = self.conversation_history[
+                -self._MAX_CONVERSATION_HISTORY :
+            ]
 
     def reveal_secret(self, secret_id: str) -> None:
         """Mark secret as revealed (deduplicated)."""
@@ -379,27 +389,29 @@ class WitnessState(BaseModel):
 
 
 class BriefingState(BaseModel):
-    """State for intro briefing with Mad-Eye Moody.
+    """State for intro briefing with Inspector Graves."""
 
-    Tracks:
-    - Briefing completion status
-    - Q&A conversation history
-    - Completion timestamp
-    """
+    model_config = ConfigDict(extra="ignore")
 
     case_id: str
     briefing_completed: bool = False
     conversation_history: list[dict[str, str]] = Field(default_factory=list)
     completed_at: datetime | None = None
 
+    _MAX_CONVERSATION_HISTORY = 30
+
     def add_question(self, question: str, answer: str) -> None:
         """Add Q&A exchange to conversation history.
 
         Args:
             question: Player's question
-            answer: Moody's response
+            answer: Graves's response
         """
         self.conversation_history.append({"question": question, "answer": answer})
+        if len(self.conversation_history) > self._MAX_CONVERSATION_HISTORY:
+            self.conversation_history = self.conversation_history[
+                -self._MAX_CONVERSATION_HISTORY :
+            ]
 
     def mark_complete(self) -> None:
         """Mark briefing as completed."""
@@ -407,8 +419,8 @@ class BriefingState(BaseModel):
         self.completed_at = _utc_now()
 
 
-class TomTriggerRecord(BaseModel):
-    """Single Tom inner voice trigger event.
+class MatthewTriggerRecord(BaseModel):
+    """Single Matthew spirit companion trigger event.
 
     Records when a trigger fired with context for debugging/analytics.
     """
@@ -421,20 +433,14 @@ class TomTriggerRecord(BaseModel):
     evidence_count_at_fire: int
 
 
-class InnerVoiceState(BaseModel):
-    """State for Tom's inner voice system.
+class MatthewCompanionState(BaseModel):
+    """State for Matthew's spirit companion system."""
 
-    Tracks:
-    - Fired triggers (to prevent repeats) - LEGACY, kept for compatibility
-    - Trigger history (for analytics/debugging)
-    - Total comment count
-    - Trust level (0.0-1.0, grows 10% per case completed)
-    - Conversation history (for Phase 4.1+ LLM mode)
-    """
+    model_config = ConfigDict(extra="ignore")
 
     case_id: str
     fired_triggers: list[str] = Field(default_factory=list)  # LEGACY for YAML triggers
-    trigger_history: list[TomTriggerRecord] = Field(default_factory=list)
+    trigger_history: list[MatthewTriggerRecord] = Field(default_factory=list)
     total_interruptions: int = 0  # Renamed semantically but kept for compat
     last_interruption_at: datetime | None = None
 
@@ -444,6 +450,8 @@ class InnerVoiceState(BaseModel):
     conversation_history: list[dict[str, str]] = Field(default_factory=list)
     total_comments: int = 0  # LLM-based comment count
     last_comment_at: datetime | None = None
+
+    _MAX_CONVERSATION_HISTORY = 50
 
     def get_trust_percentage(self) -> int:
         """Return trust as 0-100 integer for display.
@@ -479,20 +487,24 @@ class InnerVoiceState(BaseModel):
         self.cases_completed += 1
         self.trust_level = self.calculate_trust_from_cases()
 
-    def add_tom_comment(self, user_msg: str | None, tom_response: str) -> None:
-        """Add Tom conversation exchange to history.
+    def add_matthew_comment(self, user_msg: str | None, matthew_response: str) -> None:
+        """Add Matthew conversation exchange to history.
 
         Args:
             user_msg: Player's message (None if auto-comment)
-            tom_response: Tom's response text
+            matthew_response: Matthew's response text
         """
         self.conversation_history.append(
             {
                 "user": user_msg or "[auto-comment]",
-                "tom": tom_response,
+                "matthew": matthew_response,
                 "timestamp": _utc_now().isoformat(),
             }
         )
+        if len(self.conversation_history) > self._MAX_CONVERSATION_HISTORY:
+            self.conversation_history = self.conversation_history[
+                -self._MAX_CONVERSATION_HISTORY :
+            ]
         self.total_comments += 1
         self.last_comment_at = _utc_now()
 
@@ -508,14 +520,14 @@ class InnerVoiceState(BaseModel):
 
         Args:
             trigger_id: Unique trigger ID
-            text: Tom's message text
+            text: Matthew's message text
             trigger_type: Type of trigger (helpful/misleading/etc.)
             tier: Trigger tier (1/2/3)
             evidence_count: Evidence count when fired
         """
         self.fired_triggers.append(trigger_id)
         self.trigger_history.append(
-            TomTriggerRecord(
+            MatthewTriggerRecord(
                 trigger_id=trigger_id,
                 text=text,
                 type=trigger_type,
@@ -526,14 +538,22 @@ class InnerVoiceState(BaseModel):
         self.total_interruptions += 1
         self.last_interruption_at = _utc_now()
 
+
 class PlayerState(BaseModel):
     """Player investigation state."""
+
+    model_config = ConfigDict(extra="ignore")
 
     state_id: str = Field(default_factory=lambda: str(uuid4()))
     case_id: str
     current_location: str
     # Phase 5.3: Save file versioning for migration
     version: str = Field(default="1.0.0", description="Save file version for migration")
+    save_revision: int = Field(
+        default=0,
+        ge=0,
+        description="Optimistic concurrency revision — incremented on each successful save",
+    )
     last_saved: datetime | None = Field(default=None, description="Timestamp of last save")
     discovered_evidence: list[str] = Field(default_factory=list)
     visited_locations: list[str] = Field(default_factory=list)
@@ -545,13 +565,21 @@ class PlayerState(BaseModel):
     location_narrator_history: dict[str, list[ConversationItem]] = Field(default_factory=dict)
     # Narrator verbosity style: "concise" | "storyteller" | "atmospheric"
     narrator_verbosity: str = Field(default="storyteller", description="Narrator style verbosity")
+    assistance_mode: Literal["normal", "easy"] = Field(
+        default="normal", description="Narrator assistance: normal | easy"
+    )
+    # Game language (ISO 639-1): "en", "ru", "fr", "es", "de", "pt", "zh", "ja", "ko"
+    language: str = Field(default="en", description="Game response language")
 
     submitted_verdict: dict[str, str] | None = None
     verdict_state: VerdictState | None = None
     briefing_state: BriefingState | None = None
-    inner_voice_state: InnerVoiceState | None = None
+    matthew_companion_state: MatthewCompanionState | None = Field(
+        default=None,
+        validation_alias=AliasChoices("matthew_companion_state", "inner_voice_state"),
+    )
     # Phase 4.7: Spell attempt tracking per location per spell
-    # Example: {"library": {"revelio": 2, "lumos": 1}, "dormitory": {"revelio": 1}}
+    # Example: {"library": {"unveil": 2, "raise_the_lamp": 1}, "dormitory": {"unveil": 1}}
     spell_attempts_by_location: dict[str, dict[str, int]] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=_utc_now)
     updated_at: datetime = Field(default_factory=_utc_now)
@@ -614,16 +642,16 @@ class PlayerState(BaseModel):
         briefing.mark_complete()
         self.updated_at = _utc_now()
 
-    def get_inner_voice_state(self) -> InnerVoiceState:
-        """Get or create inner voice state.
+    def get_matthew_companion_state(self) -> MatthewCompanionState:
+        """Get or create Matthew companion state.
 
         Returns:
-            InnerVoiceState for Tom's ghost voice system
+            MatthewCompanionState for spirit companion system
         """
-        if self.inner_voice_state is None:
-            self.inner_voice_state = InnerVoiceState(case_id=self.case_id)
+        if self.matthew_companion_state is None:
+            self.matthew_companion_state = MatthewCompanionState(case_id=self.case_id)
             self.updated_at = _utc_now()
-        return self.inner_voice_state
+        return self.matthew_companion_state
 
     def add_conversation_message(
         self,
@@ -635,7 +663,7 @@ class PlayerState(BaseModel):
         """Add message to conversation history (per location).
 
         Args:
-            msg_type: Message type (player/narrator/tom)
+            msg_type: Message type (player/narrator/matthew)
             text: Message text content
             timestamp: Unix timestamp in milliseconds (defaults to now)
             location_id: Current location ID for scoped history

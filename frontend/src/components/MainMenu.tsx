@@ -15,6 +15,8 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import { useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { backdropVariants, dialogContentVariants, reducedMotionVariants } from '../utils/modalAnimations';
 import { useTheme } from '../context/useTheme';
 
 // ============================================
@@ -100,22 +102,35 @@ export function MainMenu({
   }, [isOpen, onRestart, onLoad, onSave, onSettings, onExitToMainMenu, onClose, loading]);
 
   // Common button class for consistency (rounded-sm for terminal-style sharp corners)
-  const menuButtonClass = `w-full text-left ${theme.fonts.ui} text-sm font-bold uppercase tracking-wider py-3 px-4 border rounded-sm transition-all duration-200 flex items-center gap-3`;
+  const prefersReducedMotion = useReducedMotion();
+  const menuButtonClass =`w-full text-left ${theme.fonts.ui} text-sm font-bold uppercase tracking-wider py-3 px-4 border rounded-sm transition-all duration-200 flex items-center gap-3 active:opacity-80`;
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        {/* Backdrop overlay */}
-        <Dialog.Overlay className={theme.components.modal.overlay} />
+      <AnimatePresence>
+        {isOpen && (
+          <Dialog.Portal forceMount>
+            {/* Backdrop overlay */}
+            <Dialog.Overlay asChild forceMount>
+              <motion.div
+                className={theme.components.modal.overlay}
+                variants={prefersReducedMotion ? reducedMotionVariants : backdropVariants}
+                initial="initial" animate="animate" exit="exit"
+              />
+            </Dialog.Overlay>
 
-        {/* Menu content */}
-        <Dialog.Content
-          className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-                     ${theme.colors.bg.primary} border ${theme.colors.interactive.border} rounded-sm
-                     w-full max-w-sm shadow-2xl
-                     focus:outline-none`}
-          onEscapeKeyDown={onClose}
-        >
+            {/* Menu content */}
+            <Dialog.Content asChild forceMount
+              onEscapeKeyDown={onClose}
+            >
+              <motion.div
+                className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
+                           ${theme.colors.bg.primary} border ${theme.colors.interactive.border} rounded-sm
+                           w-[calc(100%-2rem)] max-w-sm shadow-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto
+                           focus:outline-none`}
+                variants={prefersReducedMotion ? reducedMotionVariants : dialogContentVariants}
+                initial="initial" animate="animate" exit="exit"
+              >
           {/* Menu title */}
           <div className={`border-b ${theme.colors.interactive.border} px-6 py-4 flex items-center justify-between ${theme.colors.bg.semiTransparent}`}>
             <Dialog.Title className={`${theme.typography.headerLg} ${theme.colors.interactive.text}`}>
@@ -189,8 +204,8 @@ export function MainMenu({
             )}
           </div>
 
-          {/* Keyboard hint */}
-          <div className={`border-t ${theme.colors.interactive.border} px-6 py-3 ${theme.colors.bg.semiTransparent}`}>
+          {/* Keyboard hint — hidden on mobile */}
+          <div className={`hidden md:block border-t ${theme.colors.interactive.border} px-6 py-3 ${theme.colors.bg.semiTransparent}`}>
             <p className={`text-center ${theme.colors.text.muted} text-xs ${theme.fonts.ui} uppercase tracking-widest`}>
               Press ESC to close
             </p>
@@ -207,8 +222,11 @@ export function MainMenu({
               {theme.symbols.closeButton}
             </button>
           </Dialog.Close>
-        </Dialog.Content>
-      </Dialog.Portal>
+            </motion.div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        )}
+      </AnimatePresence>
     </Dialog.Root>
   );
 }

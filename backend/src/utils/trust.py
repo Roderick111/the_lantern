@@ -1,87 +1,95 @@
 """Trust mechanics for witness interrogation.
 
 Handles trust adjustment based on question tone and secret trigger evaluation.
+Phase 7: LLM-driven trust via [TRUST_DELTA: N] tags piggybacked on witness responses.
 """
 
+import logging
 import re
+from difflib import SequenceMatcher
 from typing import Any
 
-# Clean aggressive signals only (Phase 5.5+)
-AGGRESSIVE_KEYWORDS = [
-    "liar",
-    "lying",
-    "you lie",
-    "you're lying",
-    "guilty",
-    "you did it",
-    "caught you",
-    "exposed",
-    "hiding something",
-    "hiding the truth",
-    "pathetic",
-    "coward",
-    "bullshit",
-    "nonsense",
-    "obviously lying",
-    "don't believe you",
-    "accusing you",
-]
+logger = logging.getLogger(__name__)
 
-# Clear empathetic signals only (Phase 5.5+)
-EMPATHETIC_KEYWORDS = [
-    "understand",
-    "please",
-    "sorry",
-    "must be hard",
-    "difficult for you",
-    "appreciate",
-    "thank you",
-    "scared",
-    "afraid",
-    "worried",
-    "feel safe",
-    "protect you",
-    "no judgment",
-    "on your side",
-    "here to listen",
-    "hear you out",
-    "i believe you",
-    "trust you",
-]
+# Regex for [TRUST_DELTA: N] tag in LLM responses
+# Colon is optional — LLMs sometimes output [TRUST_DELTA +4] or [TRUST_DELTA4]
+# Also matches abbreviations like "TA: -12]" or "TD: 5]"
+TRUST_DELTA_TAG_RE = re.compile(
+    r"\[?(?:TRUST_DELTA|TRUST_D|TD|TA):?\s*([+-]?\d+)\s*\]",
+    re.IGNORECASE,
+)
+# For stripping: match any variant including the full tag
+TRUST_DELTA_STRIP_RE = re.compile(
+    r"\s*\[?(?:TRUST_DELTA|TRUST_D|TD|TA):?\s*[+-]?\d+\s*\]",
+    re.IGNORECASE,
+)
+# Also match partial tags during streaming (safety net)
+# Requires opening bracket to avoid false positives on normal text containing "T"
+TRUST_DELTA_TAG_PARTIAL_RE = re.compile(
+    r"\s*\[T(?:R(?:U(?:S(?:T(?:_(?:D(?:E(?:L(?:T(?:A)?)?)?)?)?)?)?)?)?)?:?\s*[^\]]*$", re.IGNORECASE
+)
 
-# Trust adjustment values
-AGGRESSIVE_PENALTY = -10
-EMPATHETIC_BONUS = 5
-EVIDENCE_PRESENTATION_BONUS = 5  # Increased from 3 (Phase 5.5+)
-NEUTRAL_ADJUSTMENT = 0
+# Clamping range for LLM-provided trust deltas (symmetric)
+TRUST_DELTA_MIN = -15
+TRUST_DELTA_MAX = 10
+
+# Natural warming: small trust bonus when LLM doesn't emit a tag.
+# Simply engaging in conversation builds mild rapport over time.
+NATURAL_WARMING_MIN = 0
+NATURAL_WARMING_MAX = 3
 
 # Trust boundaries
 MIN_TRUST = 0
 MAX_TRUST = 100
 
 
-def adjust_trust(question: str, personality: str | None = None) -> int:
-    """Calculate trust delta based on question tone.
+def natural_warming() -> int:
+    """Return a small random trust bonus for natural conversation warming.
+
+    When the LLM doesn't emit a [TRUST_DELTA] tag, we assume the exchange
+    was neutral-to-positive and apply a small rapport bonus (0-5).
+    """
+    import random
+
+    return random.randint(NATURAL_WARMING_MIN, NATURAL_WARMING_MAX)
+
+
+def extract_trust_delta(response: str) -> int | None:
+    """Extract trust delta from LLM response [TRUST_DELTA: N] tag.
 
     Args:
-        question: Player's question text
-        personality: Optional witness personality (for future personality-specific adjustments)
+        response: Full LLM response text
 
     Returns:
-        Trust delta (positive for empathetic, negative for aggressive, 0 for neutral)
+        Clamped trust delta, or None if tag not found/invalid
     """
-    question_lower = question.lower()
+    match = TRUST_DELTA_TAG_RE.search(response)
+    if not match:
+        return None
+    try:
+        raw = int(match.group(1))
+    except ValueError:
+        return None
+    clamped = max(TRUST_DELTA_MIN, min(TRUST_DELTA_MAX, raw))
+    if clamped != raw:
+        logger.warning("Trust delta clamped: %d → %d", raw, clamped)
+    return clamped
 
-    # Check for aggressive keywords
-    if any(kw in question_lower for kw in AGGRESSIVE_KEYWORDS):
-        return AGGRESSIVE_PENALTY
 
-    # Check for empathetic keywords
-    if any(kw in question_lower for kw in EMPATHETIC_KEYWORDS):
-        return EMPATHETIC_BONUS
+def strip_trust_tag(text: str) -> str:
+    """Strip [TRUST_DELTA: N] tags from text for display.
 
-    # Neutral questions
-    return NEUTRAL_ADJUSTMENT
+    Handles complete tags, LLM abbreviations (TA:, TD:), and partial tags during streaming.
+
+    Args:
+        text: Response text possibly containing trust tags
+
+    Returns:
+        Cleaned text with trust tags removed
+    """
+    cleaned = TRUST_DELTA_STRIP_RE.sub("", text)
+    cleaned = TRUST_DELTA_TAG_PARTIAL_RE.sub("", cleaned)
+    return cleaned.rstrip()
 
 
 def clamp_trust(trust: int) -> int:
@@ -324,80 +332,184 @@ def should_lie(
     return None
 
 
-def detect_evidence_presentation(player_input: str) -> str | None:
-    """Check if player is presenting evidence to witness.
+def _get_discovered_evidence_objs(
+    discovered_evidence: list[str],
+    case_data: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Get evidence objects for all discovered evidence IDs."""
+    case_inner = case_data.get("case", case_data)
+    all_evidence: list[dict[str, Any]] = []
+    for location in case_inner.get("locations", {}).values():
+        all_evidence.extend(location.get("hidden_evidence", []))
+    return [e for e in all_evidence if e.get("id") in discovered_evidence]
 
-    Pattern: "show X", "present X", "give X", "reveal X"
 
-    Args:
-        player_input: Raw player input text
+_MIN_SUBSTR_LEN = 3  # minimum token length for substring containment matching
 
-    Returns:
-        Extracted word if detected, None otherwise.
-        Note: Returns raw word, use match_evidence_to_inventory() for fuzzy matching.
+
+def _tokenize(text: str) -> list[str]:
+    """Lowercase split, strip common articles/prepositions."""
+    stop = {"the", "a", "an", "this", "that", "of", "to", "in", "on", "is", "it", "i"}
+    return [w for w in text.lower().split() if w not in stop]
+
+
+_FUZZY_TOKEN_THRESHOLD = 0.75  # minimum similarity for fuzzy token match
+
+
+def _token_overlap_score(
+    input_tokens: list[str],
+    name_tokens: list[str],
+) -> float:
+    """Fraction of name tokens matched by input tokens.
+
+    Tries substring match first, falls back to SequenceMatcher similarity.
     """
-    patterns = [
-        r"show\s+(?:the\s+)?(\w+)",
-        r"present\s+(?:the\s+)?(\w+)",
-        r"give\s+(?:the\s+)?(\w+)",
-        r"reveal\s+(?:the\s+)?(\w+)",
-    ]
+    if not name_tokens:
+        return 0.0
+    matched = 0
+    for nt in name_tokens:
+        # Exact substring match (fast path, require min length for containment)
+        if any(
+            (nt == it) or (len(min(nt, it, key=len)) >= _MIN_SUBSTR_LEN and (nt in it or it in nt))
+            for it in input_tokens
+        ):
+            matched += 1
+            continue
+        # Fuzzy match (typo tolerance)
+        if any(
+            SequenceMatcher(None, nt, it).ratio() >= _FUZZY_TOKEN_THRESHOLD for it in input_tokens
+        ):
+            matched += 1
+    return matched / len(name_tokens)
 
-    input_lower = player_input.lower()
 
-    for pattern in patterns:
-        match = re.search(pattern, input_lower)
-        if match:
-            return match.group(1)
+# Verb patterns that signal explicit evidence presentation intent
+_PRESENTATION_VERBS = re.compile(
+    r"\b(show|present|give|reveal|hand|display)\b",
+    re.IGNORECASE,
+)
 
-    return None
+# Minimum token overlap required (fraction of evidence name tokens matched)
+_MIN_OVERLAP_MULTI = 0.5  # multi-word names: at least half the tokens
+_VERB_BOOST = 0.25  # bonus when explicit presentation verb present
+
+# Generic words that should NOT count as distinctive evidence matches on their own
+_EVIDENCE_GENERIC_WORDS = {
+    "evidence",
+    "proof",
+    "clue",
+    "item",
+    "thing",
+    "object",
+    "found",
+    "discovered",
+    "hidden",
+    "unknown",
+    "old",
+    "new",
+    "small",
+    "large",
+    "broken",
+    "open",
+    "closed",
+    "wet",
+    "dry",
+}
 
 
-def match_evidence_to_inventory(
-    extracted_word: str,
+def detect_evidence_in_message(
+    player_input: str,
     discovered_evidence: list[str],
     case_data: dict[str, Any],
 ) -> str | None:
-    """Fuzzy match player's word to actual evidence ID.
+    """Detect if player's message references any discovered evidence.
 
-    Matches against:
-    1. Exact evidence ID
-    2. Evidence name (case-insensitive substring)
-    3. Words in evidence name
+    Scans the full message for evidence name mentions using token overlap.
+    Explicit presentation verbs ("show", "present", etc.) lower the threshold.
 
     Args:
-        extracted_word: Word extracted from "show X" pattern
-        discovered_evidence: List of evidence IDs player has discovered
-        case_data: Full case data with all evidence definitions
+        player_input: Raw player input text
+        discovered_evidence: List of evidence IDs player has found
+        case_data: Full case data with evidence definitions
 
     Returns:
-        Matched evidence ID or None
+        Matched evidence ID, or None
     """
-    extracted_lower = extracted_word.lower()
+    if not discovered_evidence:
+        return None
 
-    # Get all evidence from all locations
-    all_evidence: list[dict[str, Any]] = []
-    for location in case_data.get("locations", {}).values():
-        all_evidence.extend(location.get("hidden_evidence", []))
+    input_lower = player_input.lower()
+    input_tokens = _tokenize(player_input)
+    has_verb = bool(_PRESENTATION_VERBS.search(player_input))
 
-    # Filter to only discovered evidence
-    discovered_evidence_objs = [e for e in all_evidence if e.get("id") in discovered_evidence]
+    evidence_objs = _get_discovered_evidence_objs(discovered_evidence, case_data)
 
-    for evidence in discovered_evidence_objs:
-        evidence_id: str = str(evidence.get("id", ""))
-        evidence_name: str = str(evidence.get("name", "")).lower()
+    best_id: str | None = None
+    best_score: float = 0.0
 
-        # Check exact ID match
-        if extracted_lower == evidence_id.lower():
-            return evidence_id
+    for ev in evidence_objs:
+        eid: str = str(ev.get("id", ""))
+        ename: str = str(ev.get("name", "")).lower()
+        name_tokens = _tokenize(ename)
 
-        # Check if word appears in evidence name
-        if extracted_lower in evidence_name:
-            return evidence_id
+        # 1) Exact ID mention (e.g., "hidden_note" or "hidden note")
+        if eid.lower() in input_lower or eid.replace("_", " ") in input_lower:
+            return eid
 
-        # Check if evidence name contains the word
-        name_words = evidence_name.split()
-        if any(extracted_lower in word for word in name_words):
-            return evidence_id
+        # 2) Full name substring
+        if ename in input_lower:
+            return eid
+
+        # 3) Token overlap scoring
+        score = _token_overlap_score(input_tokens, name_tokens)
+        if has_verb:
+            score += _VERB_BOOST
+
+        # Single-word evidence names need exact token match (avoid false positives)
+        if len(name_tokens) == 1:
+            if name_tokens[0] in input_tokens:
+                score = 1.0
+            else:
+                score = 0.0
+                if has_verb:
+                    # With verb, allow substring: "show note" matches "note"
+                    if any(
+                        len(min(name_tokens[0], it, key=len)) >= _MIN_SUBSTR_LEN
+                        and (name_tokens[0] in it or it in name_tokens[0])
+                        for it in input_tokens
+                    ):
+                        score = 1.0
+
+        # Multi-word: require distinctive token matches
+        if len(name_tokens) > 1:
+            matched_tokens = [
+                nt
+                for nt in name_tokens
+                if any(
+                    (nt == it)
+                    or (len(min(nt, it, key=len)) >= _MIN_SUBSTR_LEN and (nt in it or it in nt))
+                    for it in input_tokens
+                )
+                or any(
+                    SequenceMatcher(None, nt, it).ratio() >= _FUZZY_TOKEN_THRESHOLD
+                    for it in input_tokens
+                )
+            ]
+            raw_matched = len(matched_tokens)
+            distinctive = [t for t in matched_tokens if t not in _EVIDENCE_GENERIC_WORDS]
+
+            if not distinctive:
+                # No distinctive tokens matched — reject
+                score = 0.0
+            elif raw_matched < 2 and not has_verb:
+                # Single distinctive token without verb — not enough
+                score = 0.0
+
+        if score > best_score:
+            best_score = score
+            best_id = eid
+
+    if best_score >= _MIN_OVERLAP_MULTI:
+        return best_id
 
     return None

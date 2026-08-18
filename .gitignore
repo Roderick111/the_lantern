@@ -60,9 +60,5 @@ backend/telemetry/
 backend/scripts/
 backend/src/case_store/*.bak
 
-# WIP files (not ready for commit)
-frontend/src/api/telemetry.ts
-frontend/src/test/render.tsx
-
 # Production env example
 .env.production.example

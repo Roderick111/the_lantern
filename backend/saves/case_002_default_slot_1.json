@@ -1,7 +1,7 @@
 {
   "state_id": "fbbe5994-95ca-4afc-ba17-b07f1dccd99f",
   "case_id": "case_002",
-  "current_location": "madam_pince_office",
+  "current_location": "miss_hawthorne_office",
   "version": "1.0.0",
   "last_saved": "2026-01-18T21:51:29.728112Z",
   "discovered_evidence": [
@@ -13,7 +13,7 @@
   "visited_locations": [
     "restricted_section",
     "study_alcove",
-    "madam_pince_office",
+    "miss_hawthorne_office",
     "library_main_hall"
   ],
   "conversation_history": [],

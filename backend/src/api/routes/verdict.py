@@ -4,8 +4,14 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from src.api.dependencies import UserLLMConfig, get_user_llm_config
-from src.api.helpers import load_case_or_404, load_or_create_state, save_slot_state
+from src.api.dependencies import UserLLMConfig, get_authenticated_player_id, get_user_llm_config
+from src.api.helpers import (
+    load_case_or_404,
+    load_localized_case_or_404,
+    load_or_create_state,
+    load_slot_state,
+    save_slot_state,
+)
 from src.api.rate_limit import LLM_RATE, limiter
 from src.api.schemas import (
     ConfrontationDialogue,
@@ -20,10 +26,12 @@ from src.case_store.loader import (
     load_wrong_verdict_info,
 )
 from src.context.mentor import (
+    build_graves_feedback_llm,
     build_mentor_feedback,
-    build_moody_feedback_llm,
     get_wrong_suspect_response,
 )
+from src.state.exceptions import StaleStateError
+from src.state.idempotency import IdempotencyGuard
 from src.state.player_state import VerdictState
 from src.telemetry.logger import log_event
 from src.verdict.evaluator import check_verdict
@@ -38,11 +46,37 @@ router = APIRouter()
 async def submit_verdict(
     request: Request,
     body: SubmitVerdictRequest,
+    player_id: str = Depends(get_authenticated_player_id),
     llm_config: UserLLMConfig = Depends(get_user_llm_config),
 ) -> SubmitVerdictResponse:
-    """Submit verdict and get Moody mentor feedback."""
-    case_data = load_case_or_404(body.case_id)
-    state = load_or_create_state(body.case_id, body.player_id, case_data, slot=body.slot)
+    """Submit verdict and get Graves mentor feedback."""
+    guard = IdempotencyGuard(player_id, "submit_verdict", body.request_id)
+    early = guard.begin()
+    if early is not None:
+        return SubmitVerdictResponse.model_validate(early)
+
+    try:
+        result = await _submit_verdict_impl(body, player_id, llm_config)
+    except HTTPException:
+        guard.fail_before_mutation()
+        raise
+
+    guard.complete(result)
+    return result
+
+
+async def _submit_verdict_impl(
+    body: SubmitVerdictRequest,
+    player_id: str,
+    llm_config: UserLLMConfig,
+) -> SubmitVerdictResponse:
+    load_case_or_404(body.case_id)
+    existing_state = load_slot_state(body.case_id, player_id, body.slot)
+    case_data = load_localized_case_or_404(
+        body.case_id,
+        getattr(existing_state, "language", "en") if existing_state else "en",
+    )
+    state = load_or_create_state(body.case_id, player_id, case_data, slot=body.slot)
 
     solution = load_solution(case_data)
     mentor_templates = load_mentor_templates(case_data)
@@ -58,16 +92,18 @@ async def submit_verdict(
     if verdict_state.attempts_remaining <= 0:
         raise HTTPException(
             status_code=400,
-            detail=f"No attempts remaining. You've used all {10 - verdict_state.attempts_remaining} attempts. Use 'Reset Case' to start over.",
+            detail=(
+                f"No attempts remaining. You've used all "
+                f"{10 - verdict_state.attempts_remaining} attempts. "
+                "Use 'Reset Case' to start over."
+            ),
         )
 
     correct = check_verdict(body.accused_suspect_id, solution)
 
-    # Get case context for evaluator
     case_section = case_data.get("case", case_data)
     briefing_context = case_section.get("briefing_context", {})
 
-    # LLM-based reasoning evaluation (replaces rule-based scoring)
     evaluator_result = await evaluate_reasoning_llm(
         correct=correct,
         reasoning=body.reasoning,
@@ -103,7 +139,7 @@ async def submit_verdict(
         attempts_remaining=verdict_state.attempts_remaining,
     )
 
-    moody_text = await build_moody_feedback_llm(
+    graves_text = await build_graves_feedback_llm(
         correct=correct,
         score=score,
         fallacies=fallacies,
@@ -117,10 +153,11 @@ async def submit_verdict(
         api_key=llm_config.api_key,
         model=llm_config.model,
         evaluator_result=evaluator_result,
+        language=state.language,
     )
 
     mentor_feedback = MentorFeedback(
-        analysis=moody_text,
+        analysis=graves_text,
         fallacies_detected=[],
         score=score,
         quality=evaluator_result["quality"],
@@ -156,11 +193,17 @@ async def submit_verdict(
         if wrong_info and wrong_info.get("reveal"):
             reveal = wrong_info["reveal"]
 
-    save_slot_state(state, body.player_id, body.slot)
+    try:
+        save_slot_state(state, player_id, body.slot)
+    except StaleStateError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="Save conflict — reload your game and try again.",
+        ) from exc
 
-    log_event(
+    await log_event(
         "verdict_submitted",
-        body.player_id,
+        player_id,
         body.case_id,
         {
             "accused": body.accused_suspect_id,

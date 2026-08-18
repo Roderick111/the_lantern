@@ -1,7 +1,10 @@
 """Tests for narrator spell integration."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
+from src.api.routes.investigation_logic import validate_narrator_control_response
 from src.context.narrator import build_narrator_or_spell_prompt
 
 
@@ -34,9 +37,9 @@ class TestBuildNarratorOrSpellPrompt:
     def spell_contexts(self) -> dict:
         """Sample spell contexts."""
         return {
-            "available_spells": ["revelio", "lumos", "prior_incantato"],
+            "available_spells": ["unveil", "raise_the_lamp", "echo_reading"],
             "special_interactions": {
-                "revelio": {
+                "unveil": {
                     "targets": ["desk", "shelves"],
                     "reveals_evidence": ["hidden_note"],
                 },
@@ -75,13 +78,40 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=[],
             not_present=not_present_items,
-            player_input="cast revelio on desk",
+            player_input="cast unveil on desk",
             spell_contexts=spell_contexts,
         )
 
         assert is_spell is True
-        assert "Revelio" in prompt
-        assert "spell effects" in system_prompt.lower()
+        assert "Unveil" in prompt
+        assert "narrator" in system_prompt.lower()
+
+    def test_normal_and_spell_actions_share_the_same_system_prompt(
+        self,
+        sample_evidence: list[dict],
+        not_present_items: list[dict],
+        spell_contexts: dict,
+    ) -> None:
+        common = {
+            "location_desc": "The library",
+            "hidden_evidence": sample_evidence,
+            "discovered_ids": [],
+            "not_present": not_present_items,
+            "spell_contexts": spell_contexts,
+            "verbosity": "storyteller",
+        }
+        _, normal_system, _ = build_narrator_or_spell_prompt(
+            player_input="examine the desk", **common
+        )
+        _, spell_system, _ = build_narrator_or_spell_prompt(
+            player_input="cast unveil on desk", **common
+        )
+
+        assert spell_system == normal_system
+        assert "40-200 words" in spell_system
+        assert spell_system.count("LENGTH:") == 1
+        assert "1-2 sentences max" not in spell_system
+        assert "RITE CONTROL RESULT" in spell_system
 
     def test_spell_includes_location_context(
         self,
@@ -95,12 +125,28 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=[],
             not_present=not_present_items,
-            player_input="cast revelio on desk",
+            player_input="cast unveil on desk",
             spell_contexts=spell_contexts,
         )
 
         assert is_spell is True
         assert "dusty library" in prompt.lower()
+
+    def test_spell_includes_authored_evidence_details(self, sample_evidence, not_present_items, spell_contexts):
+        """Spell narrator receives authored description, guidance, and exact tag."""
+        prompt, _, is_spell = build_narrator_or_spell_prompt(
+            location_desc="The library",
+            hidden_evidence=sample_evidence,
+            discovered_ids=[],
+            not_present=not_present_items,
+            player_input="cast unveil on desk",
+            spell_contexts=spell_contexts,
+        )
+
+        assert is_spell is True
+        assert "A crumpled parchment." in prompt
+        assert "Discovery guidance" in prompt
+        assert "[EVIDENCE_hidden_note]" in prompt
 
     def test_spell_includes_valid_targets(
         self,
@@ -114,13 +160,33 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=[],
             not_present=not_present_items,
-            player_input="cast revelio",
+            player_input="cast unveil",
             spell_contexts=spell_contexts,
         )
 
         assert is_spell is True
         assert "desk" in prompt
         assert "shelves" in prompt
+
+    def test_russian_target_can_reveal_evidence(
+        self,
+        sample_evidence: list[dict],
+        not_present_items: list[dict],
+        spell_contexts: dict,
+    ) -> None:
+        """Localized target inflections do not suppress revealable evidence."""
+        prompt, _, is_spell = build_narrator_or_spell_prompt(
+            location_desc="The library",
+            hidden_evidence=sample_evidence,
+            discovered_ids=[],
+            not_present=not_present_items,
+            player_input="Скрытое, явись на столе",
+            spell_contexts=spell_contexts,
+        )
+
+        assert is_spell is True
+        assert "ID: hidden_note" in prompt
+        assert "Can reveal:" not in prompt
 
     def test_spell_respects_discovered_evidence(
         self,
@@ -134,7 +200,7 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=["hidden_note"],
             not_present=not_present_items,
-            player_input="cast revelio on desk",
+            player_input="cast unveil on desk",
             spell_contexts=spell_contexts,
         )
 
@@ -153,12 +219,12 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=[],
             not_present=not_present_items,
-            player_input="I'm casting Lumos",
+            player_input="I'm casting Raise the Lamp",
             spell_contexts=spell_contexts,
         )
 
         assert is_spell is True
-        assert "Lumos" in prompt
+        assert "Raise the Lamp" in prompt
 
     def test_unknown_spell_handled(
         self,
@@ -190,11 +256,11 @@ class TestBuildNarratorOrSpellPrompt:
             hidden_evidence=sample_evidence,
             discovered_ids=[],
             not_present=not_present_items,
-            player_input="cast revelio",
+            player_input="cast unveil",
         )
 
         assert is_spell is True
-        assert "Revelio" in prompt
+        assert "Unveil" in prompt
 
 
 class TestSpellDetectionEdgeCases:
@@ -219,7 +285,7 @@ class TestSpellDetectionEdgeCases:
             hidden_evidence=[],
             discovered_ids=[],
             not_present=[],
-            player_input="What would revelio show me?",
+            player_input="What would unveil show me?",
         )
 
         assert is_spell is False
@@ -240,11 +306,11 @@ class TestSpellDetectionEdgeCases:
 class TestSpellToEvidenceMapping:
     """Tests for spell to evidence mapping."""
 
-    def test_revelio_maps_to_hidden_note(self) -> None:
-        """Revelio at desk can reveal hidden_note."""
+    def test_unveil_maps_to_hidden_note(self) -> None:
+        """Unveil at desk can reveal hidden_note."""
         spell_contexts = {
             "special_interactions": {
-                "revelio": {
+                "unveil": {
                     "targets": ["desk"],
                     "reveals_evidence": ["hidden_note"],
                 },
@@ -256,32 +322,67 @@ class TestSpellToEvidenceMapping:
             hidden_evidence=[{"id": "hidden_note", "triggers": [], "description": "A note"}],
             discovered_ids=[],
             not_present=[],
-            player_input="cast revelio on desk",
+            player_input="cast unveil on desk",
             spell_contexts=spell_contexts,
         )
 
         assert is_spell is True
         assert "hidden_note" in prompt
 
-    def test_prior_incantato_maps_to_wand_signature(self) -> None:
-        """Prior Incantato on wand can reveal wand_signature."""
+    def test_echo_reading_maps_to_focus_signature(self) -> None:
+        """Echo Reading on focus can reveal focus_signature."""
         spell_contexts = {
             "special_interactions": {
-                "prior_incantato": {
-                    "targets": ["wand", "victim_wand"],
-                    "reveals_evidence": ["wand_signature"],
+                "echo_reading": {
+                    "targets": ["focus", "victim_focus"],
+                    "reveals_evidence": ["focus_signature"],
                 },
             },
         }
 
         prompt, _, is_spell = build_narrator_or_spell_prompt(
             location_desc="The library",
-            hidden_evidence=[{"id": "wand_signature", "triggers": [], "description": "Last spell"}],
+            hidden_evidence=[{"id": "focus_signature", "triggers": [], "description": "Last spell"}],
             discovered_ids=[],
             not_present=[],
-            player_input="cast prior incantato on wand",
+            player_input="cast echo reading on focus",
             spell_contexts=spell_contexts,
         )
 
         assert is_spell is True
-        assert "wand_signature" in prompt
+        assert "focus_signature" in prompt
+
+
+@pytest.mark.asyncio
+async def test_normal_narration_uses_control_validation_and_telemetry() -> None:
+    prompt = "Required tag: [EVIDENCE_clue_id]"
+
+    with patch(
+        "src.api.routes.investigation_logic.log_event", new_callable=AsyncMock
+    ) as log_event:
+        resolution = await validate_narrator_control_response(
+            "You identify the clue.\n\n[EVIDENCE_clue_id]",
+            is_spell=False,
+            prompt=prompt,
+            model="test-model",
+            player_id="player",
+            case_id="case",
+            slot=2,
+            assistance_mode="normal",
+            pre_action_discovered_ids=["old_clue"],
+        )
+
+    assert resolution.response.endswith("[EVIDENCE_clue_id]")
+    payload = log_event.await_args.args[3]
+    assert payload == {
+        "valid": True,
+        "reason": None,
+        "control_result": "[EVIDENCE_clue_id]",
+        "allowed_evidence_ids": ["clue_id"],
+        "markers": ["[EVIDENCE_clue_id]"],
+        "model": "test-model",
+        "is_spell": False,
+        "slot": 2,
+        "assistance_mode": "normal",
+        "pre_action_discovered_ids": ["old_clue"],
+    }

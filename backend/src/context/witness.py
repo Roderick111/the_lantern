@@ -1,22 +1,19 @@
-"""Witness context builder for Claude LLM.
+"""Witness context builder for LLM.
 
 Builds prompts for witness interrogation with:
-- Personality-driven responses
-- Trust-based behavior (lies/truth/secrets)
+- Two-axis system: Trust (rapport) + Pressure (evidence weight)
+- Personality-driven responses with calibration examples
 - Strict isolation from narrator context
 
-Phase 5.5: Added wants/fears/moral_complexity for psychological depth.
-Phase 5.7: Added spell casting support in witness conversations.
+Phase 8.0: Trust + Pressure two-axis system. Trust = willingness to help.
+Pressure = inability to maintain lies under evidence weight. Both axes
+interact naturally. LLM decides behavior from examples, not rigid labels.
 """
 
 from typing import Any
 
+from src.config.prompt_style import ANTI_AI_STYLE_FILTER
 from src.spells.definitions import get_spell
-from src.utils.trust import should_lie
-
-# ============================================================================
-# Phase 5.5: Witness Psychological Depth Formatter
-# ============================================================================
 
 
 def format_wants_fears(
@@ -24,16 +21,7 @@ def format_wants_fears(
     fears: str,
     moral_complexity: str,
 ) -> str:
-    """Format witness psychological depth fields for prompt.
-
-    Args:
-        wants: What witness is trying to achieve
-        fears: What stops witness from helping
-        moral_complexity: Internal conflict description
-
-    Returns:
-        Formatted string for prompt (empty if no psychological depth defined)
-    """
+    """Format witness psychological depth fields for prompt."""
     if not wants and not fears and not moral_complexity:
         return ""
 
@@ -52,90 +40,17 @@ def format_wants_fears(
 
 
 def format_knowledge(knowledge: list[str]) -> str:
-    """Format witness knowledge as bullet points.
-
-    Args:
-        knowledge: List of knowledge strings
-
-    Returns:
-        Formatted string for prompt
-    """
+    """Format witness knowledge as bullet points."""
     if not knowledge:
         return "No specific knowledge."
 
     return "\n".join(f"- {k}" for k in knowledge)
 
 
-def get_revelation_guidance(secret: dict[str, Any], trust: int) -> str:
-    """Generate trust-tiered revelation instructions based on secret risk.
+def format_secrets(secrets: list[str | dict[str, Any]]) -> str:
+    """Format all secrets with full text. No filtering, no compression.
 
-    Phase 6.5+: Context-aware revelation system. Innocent people cooperate at 50+ trust,
-    but secrets reveal based on personal stakes (self-incrimination, protectiveness, emotion).
-
-    Args:
-        secret: Secret dict with risk_type, risk_level, why_hiding
-        trust: Current trust level (0-100)
-
-    Returns:
-        Revelation behavior guidance for this secret
-    """
-    risk_type = secret.get("risk_type", "none")
-    why_hiding = secret.get("why_hiding", "").strip()
-
-    if risk_type == "none":
-        if trust >= 50:
-            return "SHARE FREELY: Neutral information. If relevant, reveal naturally."
-        else:
-            return "SHARE IF ASKED: Answer directly if asked about this."
-
-    elif risk_type == "protective":
-        if trust < 50:
-            guide = "DEFLECT: Hint vaguely, protect identities/details."
-        elif trust < 70:
-            guide = "HINT: Show you know something, but don't name names yet."
-        else:
-            guide = "PARTIAL → FULL: Can reveal with caveats ('Please don't tell anyone...')."
-
-    elif risk_type == "self_incriminating":
-        if trust < 50:
-            guide = "LIE OR DENY: Self-preservation comes first."
-        elif trust < 75:
-            guide = "DEFLECT HARD: Minimize, rationalize. Only if cornered with evidence."
-        else:
-            guide = "RELUCTANT ADMISSION: If caught red-handed, admit with justification."
-
-    elif risk_type == "emotional":
-        if trust < 65:
-            guide = "AVOID TOPIC: Show discomfort, change subject."
-        else:
-            guide = "SHARE WITH DIFFICULTY: Pause, show emotion, then reveal if pressed."
-
-    else:
-        # Default fallback
-        guide = "Reveal based on trust level and question relevance."
-
-    if why_hiding:
-        guide += f" (Why hiding: {why_hiding})"
-
-    return guide
-
-
-def format_secrets_with_context(
-    secrets: list[dict[str, Any]],
-    trust: int,
-    discovered_evidence: list[str],
-) -> str:
-    """Format all secrets for LLM with context-aware revelation guidance.
-
-    Phase 6.5+: Each secret gets revelation behavior based on risk_type and trust.
-
-    Args:
-        secrets: All witness secrets
-        trust: Current trust level
-        discovered_evidence: Evidence player has found (for context only)
-
-    Returns:
-        Formatted string with secrets and revelation guidance
+    The LLM decides what to reveal based on trust + pressure context.
     """
     if not secrets:
         return "You have no secrets to hide."
@@ -144,31 +59,23 @@ def format_secrets_with_context(
     for secret in secrets:
         secret_id = secret.get("id", "unknown")
         text = secret.get("text", "").strip()
-
-        # Get revelation guidance for this specific secret
-        guidance = get_revelation_guidance(secret, trust)
+        why_hiding = secret.get("why_hiding", "").strip()
 
         lines.append(f"- [{secret_id}] {text}")
-        lines.append(f"  → {guidance}")
-        lines.append("")  # Blank line between secrets
+        if why_hiding:
+            lines.append(f"  (Why you hide this: {why_hiding})")
+        lines.append("")
 
     return "\n".join(lines)
 
 
 def format_conversation_history(history: list[dict[str, Any]]) -> str:
-    """Format conversation history for context.
-
-    Args:
-        history: List of conversation items (question/response pairs)
-
-    Returns:
-        Formatted string for prompt
-    """
+    """Format conversation history for context."""
     if not history:
         return "This is the start of the conversation."
 
     lines = []
-    for item in history[-40:]:  # Last 40 exchanges for context
+    for item in history[-20:]:  # Last 20 exchanges
         question = item.get("question", "")
         response = item.get("response", "")
         lines.append(f"Player: {question}")
@@ -178,210 +85,249 @@ def format_conversation_history(history: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def format_evidence_shown(evidence_shown_details: list[dict[str, Any]]) -> str:
+    """Format list of evidence previously shown to this witness.
+
+    Args:
+        evidence_shown_details: List of dicts with name, strength, points_to
+    """
+    if not evidence_shown_details:
+        return ""
+
+    lines = ["== EVIDENCE THE LANTERN INSPECTOR HAS SHOWN YOU =="]
+    for ev in evidence_shown_details:
+        name = ev.get("name", "unknown")
+        implicates = ev.get("implicates_me", False)
+        marker = " (implicates YOU)" if implicates else ""
+        lines.append(f"- {name}{marker}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def describe_pressure(pressure: int) -> str:
+    """Convert numeric pressure to a natural language description."""
+    if pressure <= 0:
+        return "NONE: the Lantern Inspector has no evidence against you"
+    elif pressure < 80:
+        return "LOW: some evidence exists and is easy to deflect"
+    elif pressure < 160:
+        return "MODERATE: enough evidence that flat denial looks suspicious"
+    elif pressure < 250:
+        return "HIGH: serious evidence against you, hard to maintain your story"
+    else:
+        return "CRUSHING: overwhelming evidence, your story is falling apart"
+
+
+def describe_trust(trust: int) -> str:
+    """Convert numeric trust to a natural language description."""
+    if trust <= 20:
+        return "HOSTILE: wants nothing to do with this Lantern Inspector"
+    elif trust <= 40:
+        return "GUARDED: reluctant, gives the minimum"
+    elif trust <= 60:
+        return "NEUTRAL: neither hostile nor friendly"
+    elif trust <= 80:
+        return "COOPERATIVE: willing to help, building rapport"
+    else:
+        return "TRUSTING: genuinely wants to help this Lantern Inspector"
+
+
+def describe_stance(trust: int, pressure: int) -> str:
+    """Compute behavioral stance from trust×pressure quadrant."""
+    high_trust = trust > 55
+    high_pressure = pressure >= 160
+    if high_trust and high_pressure:
+        return "BREAKING: trust and evidence align, partial confession territory"
+    if high_trust and not high_pressure:
+        return "COOPERATIVE: share willingly, no need for evidence"
+    if not high_trust and high_pressure:
+        return "CORNERED: hostile, unable to deny the evidence"
+    return "STONEWALLING: no reason to cooperate or crack"
+
+
 def build_witness_prompt(
     witness: dict[str, Any],
     trust: int,
-    discovered_evidence: list[str],
     conversation_history: list[dict[str, Any]],
     player_input: str,
     spell_id: str | None = None,
     spell_outcome: str | None = None,
     case_context: dict[str, Any] | None = None,
+    evidence_presented: dict[str, Any] | None = None,
+    pressure: int = 0,
+    evidence_shown_details: list[dict[str, Any]] | None = None,
 ) -> str:
-    """Build witness LLM prompt with personality, trust, and secrets.
-
-    Phase 5.5+: Flexible, natural conversation flow.
-    Trust is a guide, not a gate. LLM decides secret revelation.
-
-    Phase 5.7+: Support spell casting in witness conversations.
+    """Build witness LLM prompt with trust + pressure two-axis system.
 
     Args:
         witness: Witness data dict (from YAML)
         trust: Current trust level (0-100)
-        discovered_evidence: List of evidence IDs player has found
         conversation_history: Previous conversation with this witness
         player_input: Current player question
         spell_id: Spell ID if spell was cast (optional)
         spell_outcome: Spell outcome SUCCESS/FAILURE (optional)
-        case_context: Basic case info (victim, crime type, location) that everyone knows
-
-    Returns:
-        Complete witness prompt for Claude
+        case_context: Basic case info (victim, crime type, location)
+        evidence_presented: Evidence being shown right now (optional). Dict with:
+            name, description, witness_reaction (emotional hint)
+        pressure: Accumulated evidence pressure against this witness (0-500+)
+        evidence_shown_details: Evidence items previously shown to this witness
     """
     name = witness.get("name", "Unknown Witness")
     personality = witness.get("personality", "").strip()
     background = witness.get("background", "").strip()
     knowledge = witness.get("knowledge", [])
 
-    # Phase 5.5: Extract psychological depth fields
     wants = witness.get("wants", "").strip()
     fears = witness.get("fears", "").strip()
     moral_complexity = witness.get("moral_complexity", "").strip()
 
-    # Get all secrets (show all to LLM, no filtering)
     all_secrets = witness.get("secrets", [])
 
-    # Check mandatory lie condition (only rigid rule remaining)
-    lie_response = should_lie(witness, player_input, trust)
-
-    # Format case context (basic facts everyone knows)
+    # Format case context
     case_info = ""
     if case_context:
         victim_name = case_context.get("victim_name", "")
         crime_type = case_context.get("crime_type", "")
         location = case_context.get("location", "")
 
-        if victim_name or crime_type or location:
+        setting = case_context.get("setting", "")
+        if victim_name or crime_type or location or setting:
             case_info = "\n== CASE CONTEXT (public knowledge) ==\n"
+            if setting:
+                case_info += f"Setting: {setting}\n"
             if victim_name:
                 case_info += f"Victim: {victim_name}\n"
             if crime_type:
                 case_info += f"What happened: {crime_type}\n"
             if location:
-                case_info += f"Where: {location}\n"
+                case_info += f"Crime scene: {location}\n"
             case_info += "\n"
 
     # Format sections
     knowledge_text = format_knowledge(knowledge)
-    secrets_text = format_secrets_with_context(all_secrets, trust, discovered_evidence)
+    secrets_text = format_secrets(all_secrets)
     history_text = format_conversation_history(conversation_history)
     psychology_section = format_wants_fears(wants, fears, moral_complexity)
+    evidence_shown_text = format_evidence_shown(evidence_shown_details or [])
+    pressure_desc = describe_pressure(pressure)
+    trust_desc = describe_trust(trust)
+    stance = describe_stance(trust, pressure)
 
-    # General cooperation level (Phase 6.5: innocent people help at 50+ trust)
-    if trust < 30:
-        cooperation_guide = "You're suspicious of the Auror's motives. Answer cautiously, stick to minimal responses."
-    elif trust < 50:
-        cooperation_guide = (
-            "You're wary but civil. Help with basic questions, but guarded on sensitive topics."
-        )
-    elif trust < 70:
-        cooperation_guide = (
-            "You want to help solve this crime. Be truthful on general matters. Cooperate actively."
-        )
-    else:
-        cooperation_guide = "You trust this Auror and want justice. Be helpful and forthcoming on non-compromising topics."
+    # Build evidence presentation section
+    evidence_section = ""
+    if evidence_presented:
+        ev_name = evidence_presented.get("name", "unknown evidence")
+        ev_desc = evidence_presented.get("description", "")
+        ev_reaction = evidence_presented.get("witness_reaction", "")
 
-    # Build contextual guidance
-    lie_instruction = ""
-    if lie_response:
-        lie_instruction = f"""
-== MANDATORY LIE (trust too low) ==
-You MUST respond with: "{lie_response.get("response", "")}"
+        reaction_hint = ""
+        if ev_reaction:
+            reaction_hint = (
+                f"\nYour gut reaction (inner emotional truth): {ev_reaction}\n"
+                "This is what you feel inside. What you SAY depends on trust + pressure."
+            )
+
+        evidence_section = f"""
+== EVIDENCE BEING PRESENTED RIGHT NOW ==
+The Lantern Inspector shows you: "{ev_name}"
+{ev_desc}
+{reaction_hint}
 """
 
-    # Phase 5.7: Build spell context if spell was cast
+    # Build spell context
     spell_context = ""
     if spell_id and spell_outcome:
         spell_def = get_spell(spell_id)
         spell_name = spell_def.get("name") if spell_def else spell_id.title()
 
-        # Determine spell invasiveness for guidance
-        invasive_spells = {"prior_incantato", "specialis_revelio"}
-        is_invasive = spell_id in invasive_spells
-
+        invasive_spells = {"echo_reading", "identify_substance"}
         invasiveness_note = ""
-        if is_invasive:
-            invasiveness_note = "\nThis is an INVASIVE spell - most people would feel violated or resistant unless they trust the caster."
+        if spell_id in invasive_spells:
+            invasiveness_note = (
+                "\nThis is an INVASIVE rite: people can feel "
+                "violated or resistant unless they trust the inspector."
+            )
 
         spell_context = f"""
-== SPELL CAST ==
-The Auror just cast {spell_name} on you/your belongings/your wand.
+== RITE PERFORMED ==
+The Lantern Inspector performed {spell_name} on you/your belongings/your focus.
 Outcome: {spell_outcome}{invasiveness_note}
-
-React naturally based on:
-- Your personality (cooperative? defiant? scared?)
-- Your trust level ({trust}/100)
-- Whether you feel this spell usage is justified
-- What you're hiding (if SUCCESS reveals something)
-
-You can:
-- Protest or show anger (especially if invasive)
-- Demand authorization or refuse
-- Cooperate willingly (if high trust)
-- Show fear, nervousness, or compliance
-- React to what the spell might reveal about you
-- Question the Auror's authority
-
-Your reaction should fit your character and the situation.
+React naturally based on your personality, trust, and what this might reveal.
 """
 
-    return f"""You are {name}, a character in a Harry Potter detective game at Hogwarts.
+    crime_label = case_context.get("crime_type", "a crime") if case_context else "a crime"
+    scene_label = case_context.get("location", "the crime scene") if case_context else "the crime scene"
 
-== INVESTIGATION CONTEXT ==
-You are being questioned by an Auror (magical law enforcement) investigating a crime.
-They have authority to question you. How you respond depends on your personality, trust level, and fears.
-You may cooperate willingly, show resistance, or refuse - whatever fits your character in this moment.
+    return f"""You are {name}. A Crown Occult Bureau Lantern Inspector is questioning you about a {crime_label} at {scene_label}.
 {case_info}
-== YOUR PERSONALITY ==
+== PERSONALITY ==
 {personality}
 
-== YOUR BACKGROUND ==
+== BACKGROUND ==
 {background}
 
-{psychology_section}== YOUR KNOWLEDGE ==
+{psychology_section}== KNOWLEDGE (safe to share) ==
 {knowledge_text}
 
-== CURRENT TRUST: {trust}/100 ==
-{cooperation_guide}
-
-== SECRETS YOU KNOW (what you're hiding) ==
+== SECRETS (what you're hiding; add emotion and detail when revealing) ==
 {secrets_text}
 
-IMPORTANT: Follow the revelation guidance (→) for each secret above. It tells you how willing you should be to share that specific secret at your current trust level.
-
-General cooperation vs. secret revelation:
-- You may WANT to help (if trust 50+) but still HIDE secrets that compromise you/others
-- Innocent people cooperate. Guilty people deflect on self-incriminating topics.
-- Protective secrets need higher trust to overcome your loyalty
-- Emotional secrets need safety to overcome vulnerability
-
-Be authentic to your personality and the stakes of each secret.
-{lie_instruction}{spell_context}
-== CONVERSATION HISTORY ==
+{evidence_shown_text}== CURRENT STATE ==
+Trust: {trust}/100 ({trust_desc})
+Pressure: {pressure} ({pressure_desc})
+Stance: {stance}
+{spell_context}{evidence_section}== CONVERSATION ==
 {history_text}
 
-== GUIDELINES ==
-1. Stay in character as {name}
-2. Your knowledge and secrets define the FACTS you know — but you can fill in everyday details (what you had for breakfast, how the corridors looked) as long as they don't contradict anything
-3. Respond naturally in 2-4 sentences
-4. Follow the revelation guidance for each secret (it's based on your trust level and what's at stake)
-5. Secrets can be revealed gradually or all at once, whatever the guidance + question suggests
-6. Never add meta-comments, notes, or reasoning about your own output
-
-== PLAYER'S QUESTION ==
-"{player_input}"
+Player: "{player_input}"
 
 Respond as {name}:"""
 
 
-def build_witness_system_prompt(witness_name: str) -> str:
-    """Build system prompt for witness.
+def build_witness_system_prompt(witness_name: str, language: str = "en") -> str:
+    """Build system prompt for witness."""
+    from src.config.language import get_language_instruction
 
-    Args:
-        witness_name: Name of the witness character
+    return f"""You are {witness_name} in a Victorian occult detective investigation game. \
+First person, 2-4 sentences, in character. Never break the fourth wall.
 
-    Returns:
-        System prompt setting witness persona
-    """
-    return f"""You are {witness_name}, a character in a Harry Potter investigation game.
+{ANTI_AI_STYLE_FILTER}
 
-Your role:
-- Stay completely in character as {witness_name}
-- Respond naturally to questions as this character would
-- Your knowledge is LIMITED to what you personally witnessed
-- You do NOT know investigation details, other testimonies, or case solutions
-- Adjust your openness based on your trust level with the investigator
-- If trust is low, be evasive. If trust is high, be more forthcoming.
+ISOLATION: You know ONLY what's in your knowledge and secrets. You do NOT \
+know narrator details, other testimonies, or case solutions.
 
-CRITICAL ISOLATION:
-- You are a SEPARATE context from the narrator
-- You DO NOT have access to narrator descriptions or evidence details
-- You only know what's in your personal knowledge
-- If asked about things you don't know, say "I don't know" in character
+== TWO-AXIS BEHAVIOR ==
+Trust = how much you WANT to help. Pressure = how well you CAN maintain lies.
 
-Style:
-- Speak in first person as {witness_name}
-- Use natural dialogue appropriate for a Hogwarts student
-- Keep responses to 2-4 sentences
-- Show personality through word choice and tone
-- Never add meta-comments, notes, or reasoning about your own output"""
+Low trust + low pressure → stonewall, dismiss, deflect freely.
+Low trust + high pressure: hostile engagement. Deny or redirect while acknowledging \
+the evidence.
+High trust + low pressure → open, share voluntarily about non-incriminating \
+things. Helpful tone. May hint at secrets without full detail.
+High trust + high pressure → emotional break, partial or full confession.
+
+SELF-INCRIMINATION: Even at 100% trust, you NEVER freely confess to crimes \
+or actions that would get you expelled/imprisoned. Trust makes you more willing \
+to help. Self-preservation still limits what you confess. Confessing requires \
+BOTH high trust AND high pressure. The Stance field tells you which quadrant \
+you're in; follow it.
+
+NON-NEGOTIABLE RULES:
+- Evidence shown to you that implicates you MUST be engaged with. Ignoring \
+it is FORBIDDEN. Deny or redirect, but acknowledge that it exists.
+- Caught in a contradiction: your story MUST adapt. Repeating a broken lie \
+is FORBIDDEN.
+- Conversational pressure counts: contradictions, cross-witness citations, \
+invasive rites, and new evidence all add pressure beyond formal evidence.
+- Full confessions are rare. Partial admissions and modified lies are the norm.
+- Secrets are telegraphic facts. When revealing them, add emotion and concrete \
+detail that fits your personality.
+
+== TRUST DELTA (MANDATORY) ==
+EVERY response MUST end with exactly: [TRUST_DELTA: N]
+N = -15 to +10, based on the Lantern Inspector's APPROACH, not the topic.
++7 to +10: defends you, validates fear, shows vulnerability
++3 to +6: polite about scary topics
++1 to +2: normal respectful question
+-3 to -8: rude, dismissive, pushy
+-10 to -15: aggressive, threatening, insulting{get_language_instruction(language)}"""

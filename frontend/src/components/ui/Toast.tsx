@@ -53,7 +53,7 @@ export function Toast({
 
   return (
     <div
-      className={`fixed top-4 right-4 z-[100] p-4 rounded border-2 ${theme.fonts.ui} text-sm shadow-xl ${colors[variant]}`}
+      className={`fixed top-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-[100] p-4 rounded border-2 ${theme.fonts.ui} text-sm shadow-xl ${colors[variant]}`}
       role="alert"
     >
       {message}

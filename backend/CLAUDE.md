@@ -4,7 +4,7 @@
 
 ## Stack
 
-Python 3.13 · FastAPI · LiteLLM · Pydantic v2 · PostgreSQL (Neon) · slowapi
+Python 3.13 · FastAPI · LiteLLM · Pydantic v2 · SQLite · slowapi
 
 **Run:** `cd backend && uv run uvicorn src.main:app --reload` (port 8001)
 **Test:** `uv run pytest` · **Lint:** `uv run ruff check .` · **Types:** `uv run mypy src/`
@@ -18,22 +18,23 @@ src/
 ├── main.py                  # FastAPI app, CORS, rate limiting, body size limit, health check
 │
 ├── api/
-│   ├── schemas.py           # All Pydantic request/response models (~15 models)
+│   ├── schemas.py           # Pydantic models (+ optional request_id, Telegram snapshot)
 │   ├── llm_client.py        # LiteLLM wrapper: async completion, streaming (SSE), BYOK, fallback
-│   ├── helpers.py            # Shared route utils: state loading, secret detection, evidence extraction
+│   ├── helpers.py            # Shared route utils: state loading, unified secret scorer, evidence extraction
 │   ├── rate_limit.py         # slowapi config (10/min LLM, 100/min standard)
 │   └── routes/
 │       ├── __init__.py       # Mounts all sub-routers
 │       ├── investigation.py  # POST /api/investigate — narrator + spell detection + evidence discovery
 │       ├── witnesses.py      # POST /api/interrogate, /api/present-evidence — trust mechanics
-│       ├── legilimency.py    # POST /api/cast-legilimency — programmatic success formula
+│       ├── mnemonic_delving.py    # POST /api/cast-mnemonic_delving — programmatic success formula
 │       ├── verdict.py        # POST /api/submit-verdict — scoring + fallacy detection + confrontation
-│       ├── briefing.py       # GET /api/briefing, POST /api/briefing/{case_id}/question — Moody Q&A
-│       ├── inner_voice.py    # POST /api/tom/* — ghost mentor auto-comments + chat
+│       ├── briefing.py       # GET /api/briefing, POST /api/briefing/{case_id}/question — Graves Q&A
+│       ├── matthew.py        # POST /api/matthew/* — spirit companion auto-comments + chat
 │       ├── saves.py          # Save/load/list/delete — multi-slot system
 │       ├── cases.py          # Case discovery + location info
 │       ├── evidence.py       # GET /api/evidence — list discovered evidence
 │       ├── llm_config.py     # GET /api/llm-config — expose model info to frontend
+│       ├── telegram.py       # GET /api/telegram/snapshot/{case_id} — compact gateway snapshot
 │       └── telemetry.py      # POST /api/telemetry — client-side event logging
 │
 ├── config/
@@ -42,10 +43,10 @@ src/
 ├── context/                  # LLM prompt builders (one per feature)
 │   ├── narrator.py           # Investigation narration — victim humanization, evidence significance
 │   ├── witness.py            # Witness interrogation — personality, trust-aware responses
-│   ├── mentor.py             # Moody feedback — template + LLM-powered verdict response
+│   ├── mentor.py             # Graves feedback — template + LLM-powered verdict response
 │   ├── briefing.py           # Rationality teaching Q&A prompts
-│   ├── tom_llm.py            # Tom's ghost — 50/50 helpful/misleading, evidence-aware
-│   ├── inner_voice.py        # Legacy trigger selection (fallback for Tom)
+│   ├── matthew_llm.py        # Matthew Croft — 50/50 helpful/misleading, evidence-aware
+│   ├── matthew_triggers.py   # Legacy YAML trigger selection (fallback for Matthew)
 │   ├── spell_detection.py    # Multi-priority: exact → fuzzy → semantic spell matching
 │   ├── spell_prompts.py      # Spell effect narration builders
 │   ├── spell_llm.py          # LLM-based spell success calculation
@@ -55,18 +56,19 @@ src/
 │   └── loader.py             # YAML case loading, path traversal protection, case discovery
 │
 ├── location/
-│   └── parser.py             # Natural language location parsing (rapidfuzz, 75% threshold)
+│   └── parser.py             # Natural language location parsing (SequenceMatcher, 75% threshold)
 │
 ├── spells/
-│   └── definitions.py        # 7 spell definitions (Revelio, Homenum Revelio, Legilimency, etc.)
+│   └── definitions.py        # 7 spell definitions (Unveil, Sense Presence, Mnemonic Delving, etc.)
 │
 ├── state/
 │   ├── player_state.py       # PlayerState dataclass — conversation, evidence, witnesses, trust
-│   └── persistence.py        # PostgreSQL JSONB storage — 4 slots (autosave + 3 manual), per-player UUID
+│   ├── persistence.py        # SQLite storage — 4 slots (autosave + 3 manual), per-player UUID
+│   └── idempotency.py        # (player_id, operation, request_id) durable mutation dedupe
 │
 ├── utils/
 │   ├── evidence.py           # Evidence extraction from LLM text, dedup, hallucination prevention
-│   └── trust.py              # Witness trust mechanics — tone detection, aggressive/empathetic adjustment
+│   └── trust.py              # Witness trust mechanics — LLM trust delta, natural warming, evidence detection
 │
 ├── verdict/
 │   ├── evaluator.py          # Verdict checking — harsh 0-100 scoring
@@ -86,13 +88,13 @@ tests/
 ├── test_narrator.py          # Narrator context builder
 ├── test_witness.py           # Witness interrogation + trust
 ├── test_evidence.py          # Evidence extraction + dedup
-├── test_persistence.py       # Save/load PostgreSQL
+├── test_persistence.py       # Save/load SQLite
 ├── test_briefing.py          # Briefing Q&A
-├── test_mentor.py            # Moody feedback
+├── test_mentor.py            # Graves feedback
 ├── test_verdict_evaluator.py # Verdict scoring
 ├── test_fallacies.py         # Fallacy detection
 ├── test_spell_*.py           # Spell detection + LLM integration
-├── test_tom_*.py             # Tom ghost mentor
+├── test_matthew_*.py         # Matthew spirit companion
 ├── test_location.py          # Location parsing
 ├── test_case_*.py            # Case loading, discovery, context
 └── test_trust.py             # Trust mechanics
@@ -108,11 +110,13 @@ tests/
 
 **Evidence discovery** — YAML-driven. LLM narration includes `[EVIDENCE: evidence_id]` tags. `utils/evidence.py` extracts and deduplicates them against player state. Case YAML defines all valid evidence IDs + discovery guidance.
 
-**State management** — `PlayerState` is loaded from PostgreSQL at request start, mutated in the route handler, then saved back. Always pass `player_id` + `slot` from frontend. `"default"` slot maps to `"autosave"`.
+**State management** — `PlayerState` is loaded from SQLite (with bounded LRU cache) at request start, mutated in the route handler, then saved back. Always pass `player_id` + `slot` from frontend. `"default"` slot maps to `"autosave"`.
+
+**Idempotency** — Optional `request_id` on mutation bodies (investigate, interrogate, present-evidence, submit-verdict, change-location, briefing complete, settings update). Keyed `(player_id, operation, request_id)` in `idempotency_records`. Completed → replay body; `in_progress` → `409 request_in_progress`; `failed_before_mutation` → retry. Telegram gateway uses non-streaming endpoints only. Contract: `docs/plans/2026-07-17-telegram-phase1-api-contract.md`. Owner-run SQL: `migrations/2026-07-17-idempotency-records.sql`.
 
 **Spell detection** — Three-tier priority: exact match → fuzzy match (rapidfuzz) → semantic phrases. Defined in `spells/definitions.py`, detected in `context/spell_detection.py`.
 
-**Witness trust** — Numeric trust score per witness, adjusted by tone detection in `utils/trust.py`. Trust level gates what witnesses reveal (lies, secrets, evidence reactions).
+**Witness trust** — Two-axis system: Trust (rapport, 0-100) + Pressure (evidence weight, 0-500). LLM emits `[TRUST_DELTA: N]` tags (-15 to +15), natural warming (+0-5) as fallback. Secret revelation detected by unified fuzzy scorer in `helpers.py` (keyword token overlap + content sliding window + denial/evasion filters).
 
 **Rate limiting** — slowapi on all LLM-hitting endpoints (10/min). Standard endpoints get 100/min. Configured in `api/rate_limit.py`.
 
@@ -123,7 +127,7 @@ tests/
 ## Env Config (.env)
 
 ```
-DATABASE_URL=              # Neon PostgreSQL connection string
+LANTERN_DB_PATH=           # Optional SQLite path (default: saves/lantern.db or /app/saves/lantern.db in Docker)
 DEFAULT_LLM_PROVIDER=      # anthropic | openrouter | openai | google
 DEFAULT_MODEL=             # e.g. openrouter/x-ai/grok-4.1-fast
 FALLBACK_MODEL=            # e.g. openrouter/google/gemma-4-26b-a4b-it

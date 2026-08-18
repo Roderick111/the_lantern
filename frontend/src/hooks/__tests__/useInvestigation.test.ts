@@ -5,26 +5,31 @@
  * - Loading with conversation_history -> Messages mapped correctly
  * - Loading with empty conversation_history -> No errors
  * - Message keys unique and stable
- * - Type conversion (tom -> tom_ghost)
+ * - Type conversion (matthew/tom -> matthew_ghost)
  */
 
 import { renderHook, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useInvestigation } from '../useInvestigation';
 import * as client from '../../api/client';
+import { ApiError } from '../../api/base';
 import type { LoadResponse, LocationResponse } from '../../types/investigation';
 
-// Mock the API client
-vi.mock('../../api/client', () => ({
-  loadState: vi.fn(),
-  saveState: vi.fn(),
-  getLocation: vi.fn(),
-}));
+// Mock the API client (preserve isApiError from barrel)
+vi.mock('../../api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../api/client')>();
+  return {
+    ...actual,
+    loadState: vi.fn(),
+    saveGameState: vi.fn(),
+    getLocation: vi.fn(),
+  };
+});
 
 describe('useInvestigation Hook', () => {
   const mockLocation: LocationResponse = {
     id: 'library',
-    name: 'Hogwarts Library',
+    name: 'Blackwood Collegiate Library',
     description: 'A grand library',
     surface_elements: ['desk', 'bookshelf'],
   };
@@ -67,7 +72,26 @@ describe('useInvestigation Hook', () => {
         discovered_evidence: [],
         visited_locations: ['library'],
         narrator_verbosity: 'storyteller',
+        language: 'en',
       });
+      expect(result.current.restoredMessages).toBeNull();
+    });
+
+    it('does not create default state when load fails with an error', async () => {
+      vi.mocked(client.loadState).mockRejectedValue(
+        new ApiError(400, 'Corrupted save in slot autosave: invalid JSON'),
+      );
+
+      const { result } = renderHook(() =>
+        useInvestigation({ caseId: 'case_001', locationId: 'library' }),
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.state).toBeNull();
+      expect(result.current.error).toContain('Corrupted save');
       expect(result.current.restoredMessages).toBeNull();
     });
   });
@@ -100,14 +124,14 @@ describe('useInvestigation Hook', () => {
       expect(result.current.restoredMessages).toHaveLength(3);
     });
 
-    it('converts tom type to tom_ghost for rendering', async () => {
+    it('converts matthew type to matthew_ghost for rendering', async () => {
       const savedState: LoadResponse = {
         case_id: 'case_001',
         current_location: 'library',
         discovered_evidence: [],
         visited_locations: ['library'],
         conversation_history: [
-          { type: 'tom', text: 'A ghostly whisper...', timestamp: 1000 },
+          { type: 'matthew', text: 'A ghostly whisper...', timestamp: 1000 },
         ],
       };
 
@@ -123,8 +147,35 @@ describe('useInvestigation Hook', () => {
 
       const messages = result.current.restoredMessages;
       expect(messages).not.toBeNull();
-      expect(messages![0].type).toBe('tom_ghost');
+      expect(messages![0].type).toBe('matthew_ghost');
       expect(messages![0].text).toBe('A ghostly whisper...');
+    });
+
+    it('converts legacy tom type to matthew_ghost for rendering', async () => {
+      const savedState: LoadResponse = {
+        case_id: 'case_001',
+        current_location: 'library',
+        discovered_evidence: [],
+        visited_locations: ['library'],
+        conversation_history: [
+          { type: 'tom', text: 'Legacy whisper...', timestamp: 1000 },
+        ],
+      };
+
+      vi.mocked(client.loadState).mockResolvedValue(savedState);
+
+      const { result } = renderHook(() =>
+        useInvestigation({ caseId: 'case_001', locationId: 'library' })
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      const messages = result.current.restoredMessages;
+      expect(messages).not.toBeNull();
+      expect(messages![0].type).toBe('matthew_ghost');
+      expect(messages![0].text).toBe('Legacy whisper...');
     });
 
     it('preserves player message type', async () => {
@@ -276,6 +327,114 @@ describe('useInvestigation Hook', () => {
       expect(messages[1].text).toBe('Second');
       expect(messages[2].text).toBe('Third');
       expect(messages[3].text).toBe('Fourth');
+    });
+  });
+
+  describe('handleEvidenceDiscovered', () => {
+    it('adds new evidence ids to the discovered_evidence set', async () => {
+      vi.mocked(client.loadState).mockResolvedValue(null);
+
+      const { result } = renderHook(() =>
+        useInvestigation({ caseId: 'case_001', locationId: 'library' }),
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.state?.discovered_evidence).toEqual([]);
+
+      // Synchronously call the handler with a new evidence id
+      result.current.handleEvidenceDiscovered(['hidden_note']);
+
+      await waitFor(() => {
+        expect(result.current.state?.discovered_evidence).toEqual([
+          'hidden_note',
+        ]);
+      });
+    });
+
+    it('deduplicates already-discovered evidence ids', async () => {
+      vi.mocked(client.loadState).mockResolvedValue({
+        case_id: 'case_001',
+        current_location: 'library',
+        discovered_evidence: ['note_a'],
+        visited_locations: ['library'],
+      });
+
+      const { result } = renderHook(() =>
+        useInvestigation({ caseId: 'case_001', locationId: 'library' }),
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Try to add an already-discovered id along with a new one
+      result.current.handleEvidenceDiscovered(['note_a', 'note_b']);
+
+      await waitFor(() => {
+        expect(result.current.state?.discovered_evidence).toEqual([
+          'note_a',
+          'note_b',
+        ]);
+      });
+    });
+  });
+
+  describe('handleSave', () => {
+    it('calls saveGameState with caseId, current state, and slot', async () => {
+      vi.mocked(client.loadState).mockResolvedValue(null);
+      vi.mocked(client.saveGameState).mockResolvedValue({
+        success: true,
+        message: 'ok',
+      });
+
+      const { result } = renderHook(() =>
+        useInvestigation({
+          caseId: 'case_001',
+          locationId: 'library',
+          playerId: 'player-xyz',
+          slot: 'slot_2',
+        }),
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      const ok = await result.current.handleSave();
+      expect(ok).toBe(true);
+
+      expect(client.saveGameState).toHaveBeenCalledTimes(1);
+      expect(client.saveGameState).toHaveBeenCalledWith(
+        'case_001',
+        expect.objectContaining({
+          case_id: 'case_001',
+          current_location: 'library',
+        }),
+        'slot_2',
+      );
+    });
+
+    it('returns false and surfaces an error when saveGameState rejects', async () => {
+      vi.mocked(client.loadState).mockResolvedValue(null);
+      vi.mocked(client.saveGameState).mockRejectedValue(new Error('network down'));
+
+      const { result } = renderHook(() =>
+        useInvestigation({ caseId: 'case_001', locationId: 'library' }),
+      );
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      const ok = await result.current.handleSave();
+      expect(ok).toBe(false);
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Failed to save progress');
+      });
     });
   });
 

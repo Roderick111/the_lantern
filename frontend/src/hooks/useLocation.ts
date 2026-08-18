@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { getLocations, changeLocation } from '../api/client';
 import type { LocationInfo, ChangeLocationResponse } from '../types/investigation';
 
@@ -32,6 +33,10 @@ interface UseLocationOptions {
   sessionId?: string;
   /** Auto-load locations on mount (defaults to true) */
   autoLoad?: boolean;
+  /** Save slot for state (defaults to "autosave") */
+  slot?: string;
+  /** Content language for location labels and descriptions */
+  language?: string;
   /** Callback when location changes successfully */
   onLocationChange?: (locationId: string, response: ChangeLocationResponse) => void;
 }
@@ -64,14 +69,16 @@ interface UseLocationReturn {
 // ============================================
 
 // localStorage key for persisting current location per case
-const LOCATION_STORAGE_KEY = (caseId: string) => `hp_game_location_${caseId}`;
+const LOCATION_STORAGE_KEY = (caseId: string) => `lantern_game_location_${caseId}`;
 
 export function useLocation({
   caseId,
   initialLocationId = '', // Phase 5.2: Empty string means let backend decide, or wait for fetch
-  playerId = 'default',
+  playerId: _playerId = 'default',
   sessionId,
   autoLoad = true,
+  slot = 'autosave',
+  language = 'en',
   onLocationChange,
 }: UseLocationOptions): UseLocationReturn {
   // State — restore from localStorage if no explicit initialLocationId
@@ -110,7 +117,9 @@ export function useLocation({
     setError(null);
 
     try {
-      const locs = await getLocations(caseId, sessionId);
+      const locs = language === 'en'
+        ? await getLocations(caseId, sessionId)
+        : await getLocations(caseId, sessionId, language);
       setLocations(locs);
 
       // If no current location set (initial load), default to the first available location
@@ -129,7 +138,7 @@ export function useLocation({
     } finally {
       setLoading(false);
     }
-  }, [caseId, sessionId]);
+  }, [caseId, sessionId, language]);
 
   // Auto-load on mount
   useEffect(() => {
@@ -158,10 +167,16 @@ export function useLocation({
       setError(null);
 
       try {
-        const response = await changeLocation(caseId, locationId, playerId, sessionId);
+        const response = await changeLocation(caseId, locationId, sessionId, slot);
 
-        // Update current location
-        setCurrentLocationId(locationId);
+        // Update current location (with view transition if supported)
+        if (document.startViewTransition) {
+          document.startViewTransition(() => {
+            flushSync(() => setCurrentLocationId(locationId));
+          });
+        } else {
+          setCurrentLocationId(locationId);
+        }
 
         // Add to visited locations if not already visited
         setVisitedLocations((prev) => {
@@ -182,7 +197,7 @@ export function useLocation({
         setChanging(false);
       }
     },
-    [caseId, currentLocationId, playerId, sessionId, onLocationChange]
+    [caseId, currentLocationId, sessionId, slot, onLocationChange]
   );
 
   // Reload locations handler
